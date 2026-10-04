@@ -123,6 +123,7 @@ function placeAt(race, c, first) {
   const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, curves: 0, length: 15 }));
   const race = new Race({ track, mode: 'race', laps: 3, humans: [P1], ai: rivals(9, 0.7), power: true, diff: 1 });
   if (race.cars.some(c => !c.human && (c.shock == null) === (c.power == null))) throw new Error('power: a rival uses both flashes and boosts, or neither');
+  for (const c of race.cars.filter(c => !c.human).slice(-2)) { c.shock = null; c.power = 0; } // the split is random: two use boosts
   const h = race.humans[0], [r, o] = race.cars.filter(c => !c.human && c.power === 0), halfW = K.CAR_W / 2 / track.roadW;
   const orb = onTrack(track, 'power')[0].o;
   race.hitObstacle(r, orb, halfW);
