@@ -5,8 +5,12 @@ import { S, R, P, grad } from './draw.js';
 // game's own. s (-2..2) slides the parts that sit further forward towards the turn: the body by s, the deck
 // by about 1.5s, the cabin by 2s to 3s.
 const W = a => `rgba(255,255,255,${a})`, B = a => `rgba(0,0,0,${a})`;
-const tyres = (g, y, w = 11, x0 = 5) => { // the tread, rounded, in the arch's shadow at the top
-  for (const x of [x0, 72 - x0 - w]) {
+// The rear tyres' treads, rounded, in the arches' shadow at the top. When the car turns, the flank draws the tyre
+// on its side (k.near: 1 right, -1 left) whole, so it is left out here.
+const tyres = (g, k) => {
+  const [y, w, x0] = k.tyre;
+  for (const x of [k.near < 0 ? null : x0, k.near > 0 ? null : 72 - x0 - w]) {
+    if (x === null) continue;
     round(g, grad(g, x, 0, x + w, 0, [[0, '#050505'], [0.5, '#2c2c2e'], [1, '#050505']]), x, y, w, 38.5 - y, 1.5);
     for (let ty = y + 5; ty < 37; ty += 3) R(g, x + 1, ty, w - 2, 0.7, B(0.55));
     R(g, x, y, w, 3, B(0.6));
@@ -115,10 +119,10 @@ const mirrors = (g, s, c, dx, y) => { // door mirrors sticking out dx from the c
 };
 
 // k: palette { col, bD (dark), bL (light), bDD, glass, tl (tail lamp), tlL (lamp highlight) }, the lamps' glow and
-// blur, the shoulder line sh and the plate text
+// blur, the shoulder line sh, the tyres (PROFILE's tyre, and near) and the plate text
 export const REAR = {
   pixel(g, k, s) { // compact hatchback: upright tailgate, black glass running down into a band joining the lamps
-    tyres(g, 27);
+    tyres(g, k);
     const H = [[21, 3, 3, 2.5], [27, 12, 4, 1.8], [31, 16, 3, 1.3], [32, 26, 3], [31, 33, 2], [24, 34]];
     mirrors(g, s, k.bD, 26, 11);
     shell(g, k, s, H, () => {
@@ -131,7 +135,7 @@ export const REAR = {
     plate(g, 29 + s, 22, k.plate);
   },
   ridge(g, k, s) { // compact SUV: tall and rounded, lamps in a grid of square pixels, dark cladding, roof rails
-    tyres(g, 25, 12, 4);
+    tyres(g, k);
     const H = [[22, 2, 3, 2.5], [28, 12, 3, 1.8], [32, 15, 3, 1.3], [33, 25, 3], [32, 33, 2], [24, 34]];
     mirrors(g, s, k.bD, 27, 10);
     shell(g, k, s, H, () => {
@@ -145,7 +149,7 @@ export const REAR = {
     plate(g, 29 + s, 21, k.plate);
   },
   granite(g, k, s) { // mid-size SUV: tall, smooth and broad, slim lamps joined by a light bar, chrome trim
-    tyres(g, 24, 12, 4);
+    tyres(g, k);
     const H = [[22, 1, 4, 2.5], [28, 11, 4, 1.8], [33, 14, 3, 1.3], [34, 24, 3], [33, 32, 3], [25, 34]];
     mirrors(g, s, k.bD, 28, 9);
     shell(g, k, s, H, () => {
@@ -159,7 +163,7 @@ export const REAR = {
     plate(g, 29 + s, 21, k.plate);
   },
   beach(g, k, s) { // retro-styled electric microbus: tall, rounded and two-tone, lamps joined by a light line
-    tyres(g, 28, 11, 6);
+    tyres(g, k);
     const L = [[29, 16, 0, 1.5], [29, 34, 4]], U = [[27.5, 0, 7, 2], [28.5, 18, 0, 1.5]];
     mirrors(g, s, S(UPPER, 0.8), 29, 12);
     shell(g, k, s, L, () => {
@@ -174,7 +178,7 @@ export const REAR = {
     plate(g, 29 + s, 23, k.plate);
   },
   aero(g, k, s) { // sportback: glass raked down to a ducktail, a full-width light blade
-    tyres(g, 27);
+    tyres(g, k);
     const H = [[14, 6, 3, 3], [23, 13, 3, 2.2], [31, 17, 3, 1.3], [33, 24, 2], [32, 32, 3], [24, 34]];
     mirrors(g, s, k.bD, 22, 12);
     shell(g, k, s, H, () => {
@@ -187,7 +191,7 @@ export const REAR = {
     plate(g, 29 + s, 23, k.plate);
   },
   wave(g, k, s) { // sleek sedan: rounded all over, glass roof, slim wrap-around lamps, ducktail
-    tyres(g, 27);
+    tyres(g, k);
     const H = [[13, 6, 4, 3], [22, 14, 3, 2.2], [30, 16, 3, 1.5], [33, 21, 3], [33, 27, 2], [31, 33, 3], [24, 34]];
     mirrors(g, s, k.bD, 21, 12);
     shell(g, k, s, H, () => {
@@ -199,7 +203,7 @@ export const REAR = {
     plate(g, 29 + s, 23, k.plate);
   },
   flux(g, k, s) { // low sports sedan: wide hips, narrow glass, a light strip across, finned diffuser
-    tyres(g, 27, 12, 4);
+    tyres(g, k);
     const H = [[12, 6, 3, 3], [21, 14, 3, 2.2], [27, 16, 3, 1.6], [33, 18, 3, 1.2], [34, 23, 3], [33, 33, 3], [24, 34]];
     mirrors(g, s, k.bD, 20, 12);
     shell(g, k, s, H, () => {
@@ -213,7 +217,7 @@ export const REAR = {
     plate(g, 29 + s, 23, k.plate);
   },
   blitz(g, k, s) { // low roadster: wings rising over the rear wheels, a bubble cabin under a black glass roof
-    tyres(g, 27, 12, 3);
+    tyres(g, k);
     const H = [[10, 17, 2, 1.6], [20, 16, 3, 1.5], [26, 14.5, 4, 1.4], [32, 17, 3, 1.2], [34, 22, 3], [33, 31, 3], [26, 34]];
     mirrors(g, s, k.bD, 14, 13);
     shape(g, '#141414', [[9, 7, 4, 3], [15, 18, 0, 2.5]], s);
@@ -230,22 +234,23 @@ export const REAR = {
 // cabin rear edge [bottom x, bottom y, top x, top y] and how far s slides it [bottom, top]. Along the side (0 tail,
 // 1 nose): len, where the windscreen meets the bonnet and the roof [bottom, top]; hood, the wing's height at the
 // windscreen and at the nose; whl, the wheels [rear, front, radius]; lamp, the tail lamp's rows; cpil, where the
-// side glass starts; doors, where the door pillars stand; clad, dark arches and sills; upper, the cabin's colour.
+// side glass starts; doors, where the door pillars stand; clad, dark arches and sills; upper, the cabin's colour;
+// tyre, the rear tyres seen from behind [top y, width, x from the side].
 export const PROFILE = {
   pixel: { top: 16, bot: 33, edge: 68, cab: [64, 15, 57, 3], slide: [1.8, 2.5], len: [0.78, 0.6],
-    hood: [17, 20], whl: [0.16, 0.85, 6.5], lamp: [15, 19], cpil: 0.06, doors: [0.42] },
+    hood: [17, 20], whl: [0.16, 0.85, 6.5], lamp: [15, 19], cpil: 0.06, doors: [0.42], tyre: [27, 11, 5] },
   ridge: { top: 15, bot: 33, edge: 69, cab: [64, 14, 58, 2], slide: [1.8, 2.5], len: [0.76, 0.58],
-    hood: [16, 19], whl: [0.17, 0.83, 7.5], lamp: [16, 22], cpil: 0.08, doors: [0.42], clad: true },
+    hood: [16, 19], whl: [0.17, 0.83, 7.5], lamp: [16, 22], cpil: 0.08, doors: [0.42], tyre: [25, 12, 4], clad: true },
   granite: { top: 14, bot: 32, edge: 70, cab: [64, 13, 58, 1], slide: [1.8, 2.5], len: [0.74, 0.56],
-    hood: [15, 18], whl: [0.17, 0.83, 8], lamp: [15, 18], cpil: 0.08, doors: [0.42], clad: true },
+    hood: [15, 18], whl: [0.17, 0.83, 8], lamp: [15, 18], cpil: 0.08, doors: [0.42], tyre: [24, 12, 4], clad: true },
   beach: { top: 18, bot: 33, edge: 65, cab: [64.5, 18, 63.5, 2], slide: [1.5, 2], len: [0.95, 0.84],
-    hood: [19, 21], whl: [0.14, 0.86, 7], lamp: [18, 21], cpil: 0.06, doors: [0.3, 0.62], upper: UPPER },
+    hood: [19, 21], whl: [0.14, 0.86, 7], lamp: [18, 21], cpil: 0.06, doors: [0.3, 0.62], tyre: [28, 11, 6], upper: UPPER },
   aero: { top: 18, bot: 33, edge: 69, cab: [59, 14, 50, 6], slide: [2.2, 3], len: [0.66, 0.42],
-    hood: [19, 22], whl: [0.19, 0.82, 7], lamp: [19, 21], cpil: 0.04, doors: [0.36] },
+    hood: [19, 22], whl: [0.19, 0.82, 7], lamp: [19, 21], cpil: 0.04, doors: [0.36], tyre: [27, 11, 5] },
   wave: { top: 18, bot: 33, edge: 69, cab: [58, 14.5, 49, 6], slide: [2.2, 3], len: [0.68, 0.44],
-    hood: [18, 22], whl: [0.19, 0.82, 7], lamp: [18, 21], cpil: 0.06, doors: [0.38] },
+    hood: [18, 22], whl: [0.19, 0.82, 7], lamp: [18, 21], cpil: 0.06, doors: [0.38], tyre: [27, 11, 5] },
   flux: { top: 19, bot: 33, edge: 70, cab: [57, 14, 48, 6], slide: [2.2, 3], len: [0.64, 0.42],
-    hood: [20, 23], whl: [0.2, 0.82, 7.5], lamp: [19, 22], cpil: 0.04, doors: [0.34] },
+    hood: [20, 23], whl: [0.2, 0.82, 7.5], lamp: [19, 22], cpil: 0.04, doors: [0.34], tyre: [27, 12, 4] },
   blitz: { top: 18, bot: 33, edge: 70, cab: [51, 17.5, 45, 7], slide: [2.5, 3], len: [0.55, 0.4],
-    hood: [21, 24], whl: [0.2, 0.84, 7.5], lamp: [18, 21.5], cpil: 0.04, doors: [] },
+    hood: [21, 24], whl: [0.2, 0.84, 7.5], lamp: [18, 21.5], cpil: 0.04, doors: [], tyre: [27, 12, 3] },
 };
