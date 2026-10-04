@@ -88,5 +88,6 @@ body.touching canvas, body.touching .touch {
   display: none; position: absolute; left: 50%; top: calc(10px + var(--t)); transform: translateX(-50%);
   width: 180px; padding: 8px; pointer-events: auto; font: inherit; font-size: 10px; color: #fff; caret-color: transparent;
   background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; text-align: center;
+  -webkit-user-select: text; user-select: text; /* iOS won't type into a field that inherits body's 'none' */
 }
 .touch.typing .type { display: block; }

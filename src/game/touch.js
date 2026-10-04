@@ -124,21 +124,31 @@ function build() {
   button(menu, 'mb prev', '<', 'ArrowLeft');
   button(menu, 'mb next', '>', 'ArrowRight');
 
-  // Typing a name or course code: the field forwards characters, Enter and Esc to Input.
+  // Typing a name or course code: the field forwards characters, Enter and Esc to Input. Each change to its text
+  // goes over as backspaces for what went and characters for what came, so a word an Android keyboard is still
+  // composing ('C', 'CH', 'CHR'...) is left alone until it is done. Then the field goes back to a single space:
+  // something left to delete, so Backspace always fires.
   field = el('input', 'type', root);
   Object.assign(field, { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, value: ' ' });
   field.setAttribute('autocorrect', 'off');
   field.placeholder = 'TAP TO TYPE';
+  let sent = ' ';
+  const sync = done => {
+    const v = field.value;
+    let i = 0;
+    while (i < v.length && v[i] === sent[i]) i++;
+    Input.type('\b'.repeat(sent.length - i) + v.slice(i));
+    sent = v;
+    if (done) field.value = sent = ' ';
+  };
   field.addEventListener('keydown', e => {
     e.stopPropagation();
     const code = e.key === 'Enter' ? 'Enter' : e.key === 'Escape' ? 'Escape' : null;
     if (code) { e.preventDefault(); Input.virtual(code, true); Input.virtual(code, false); field.blur(); }
   });
-  field.addEventListener('input', e => {
-    if (e.inputType && e.inputType.startsWith('delete')) Input.type('\b');
-    else if (e.data) Input.type(e.data);
-    field.value = ' '; // something left to delete, so Backspace always fires
-  });
+  field.addEventListener('input', e => sync(!e.isComposing));
+  field.addEventListener('compositionend', () => sync(true));
+  field.addEventListener('focus', () => { field.value = sent = ' '; });
 }
 
 function releaseAll() {
