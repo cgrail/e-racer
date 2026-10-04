@@ -60,31 +60,34 @@ const PROFILE = {
   spark: { top: 15, bot: 32, deck: 12, edge: 67, cab: [56, 10, 52, 2], slide: [3, 3.5], glass: 'rgba(170,210,240,0.5)', open: true },
   ion: { top: 17, bot: 33, deck: 14, edge: 70, cab: [58, 13, 53, 9], slide: [2, 2.5], glass: '#1d2a3c' },
 };
-const TURN = [[1, 0], [0.86, 10], [0.74, 18]]; // per steer level: rear-face squash, flank width
+const TURN = [[1, 0], [0.9, 8], [0.8, 15]]; // per steer level: rear-face squash, flank width
+const VY = -20, Q = 0.15; // vanishing point height (sprite y) and how far the nose shrinks towards it
 
-// Side of the car as seen when it yaws right: starts at the rear face's edge (ex) and recedes over fw px.
-function drawFlank(g, p, col, k, ex, fw, cb, ct) {
-  const c = 0.03 * k, X = d => ex + d * fw, Y = (d, y) => y * (1 - d * c), pt = (d, y) => [X(d), Y(d, y)];
+// Side of the car as seen when it yaws right: it starts at the rear face's edge (ex) and recedes over
+// fw px towards a vanishing point up on the horizon, so the nose sits higher and smaller than the tail.
+function drawFlank(g, p, col, ex, fw, cb, ct) {
+  const VX = ex + fw / Q, a = Q / (1 - Q), t = d => (1 - 1 / (1 + a * d)) / Q;
+  const pt = (d, y, x = ex) => { const s = 1 - Q * t(d); return [VX + (x - VX) * s, VY + (y - VY) * s]; };
   const poly = (colr, ...pts) => P(g, colr, pts.flat());
-  const corner = [ex - 3, p.deck]; // rear deck's outer corner, so the shoulder meets the rear face
-  poly(S(col, 0.78), corner, pt(0.3, p.deck + 1), pt(1, p.top - 1), pt(1, p.bot), pt(0, p.bot), pt(0, p.top));
-  poly(S(col, 1.35), corner, pt(0.3, p.deck + 1), pt(1, p.top - 1), pt(1, p.top), pt(0.3, p.deck + 2), [ex - 3, p.deck + 1]);
-  poly('#1a1a1a', pt(0, p.bot - 4), pt(1, p.bot - 4), pt(1, p.bot), pt(0, p.bot));
-  poly(S(col, 1.6), pt(0.94, p.top + 2), pt(1, p.top + 1), pt(1, p.top + 4), pt(0.94, p.top + 4));
-  for (const d of [0.2, 0.84]) {
-    // same size as the rear tyres (y 24..38) and resting on the same ground line, scaled for distance
-    const ry = 7 * (1 - d * c), x = X(d), y = Y(d, 38) - ry, rx = Math.max(1.2, fw * 0.11);
-    E(g, x, y - 1, rx + 1, ry + 1, S(col, 0.35));
-    E(g, x, y, rx, ry, '#111');
-    E(g, x, y, rx * 0.45, ry * 0.45, '#5a5a5a');
+  const sh = p.deck + 1, dark = S(col, 0.5);
+  poly('rgba(0,0,0,0.5)', pt(0, p.bot), pt(1, p.bot), pt(0.9, 37), pt(0, 37)); // shade under the car
+  poly('#1a1a1a', pt(0, p.bot - 4), pt(1, p.bot - 4), pt(1, p.bot), pt(0, p.bot)); // sill
+  for (const d of [0.16, 0.86]) { // wheels seen nearly edge-on, their tops hidden in the arches
+    const [x, gy] = pt(d, 38), ry = 7 * (1 - Q * t(d)), rx = Math.max(1, fw * 0.1);
+    E(g, x - rx * 0.5, gy - ry, rx + 1.5, ry, '#111');
+    E(g, x + rx * 0.3, gy - ry, rx * 0.6, ry * 0.6, '#3a3a3a');
   }
-  const cl = fw * (p.open ? 0.3 : 0.6); // cabin length on screen
+  poly(S(col, 0.8), pt(0, p.top), pt(1, p.top), pt(1, p.bot - 4), pt(0, p.bot - 4)); // door panel
+  poly(S(col, 1.12), [ex - 3, p.deck], pt(1, sh, ex - 3), pt(1, p.top), pt(0, p.top)); // shoulder
+  poly(S(col, 1.45), pt(0, p.top - 1), pt(1, p.top - 1), pt(1, p.top + 0.6), pt(0, p.top + 0.6)); // crease
+  poly(dark, pt(0.36, p.top + 3), pt(0.62, p.top + 3), pt(0.62, p.top + 6), pt(0.36, p.top + 6)); // side intake
+  poly(S(col, 1.6), pt(0, p.top + 2), pt(0.05, p.top + 2), pt(0.05, p.top + 4), pt(0, p.top + 4)); // side marker
   if (p.open) { // convertible: just the windscreen frame and the door top
-    poly('#222', [cb, p.cab[1]], [cb + cl, Y(0.3, p.cab[1] + 1)], [ct + cl * 0.8, Y(0.3, p.cab[3] + 1)], [ct, p.cab[3]], [ct + 1, p.cab[3]], [cb + 1, p.cab[1] - 1]);
+    poly('#222', [cb, p.cab[1]], pt(0.3, p.cab[1] + 1, cb), pt(0.3, p.cab[3] + 1, ct), [ct, p.cab[3]], [ct + 1, p.cab[3]], [cb + 1, p.cab[1] - 1]);
     return;
   }
-  poly(S(col, 0.62), [cb, p.cab[1]], [cb + cl, Y(0.6, p.cab[1] + 1)], [ct + cl * 0.75, Y(0.45, p.cab[3] + 1)], [ct, p.cab[3]]);
-  poly(p.glass, [cb + 1, p.cab[1] - 1], [cb + cl - 1, Y(0.6, p.cab[1])], [ct + cl * 0.75 - 1.5, Y(0.45, p.cab[3] + 2)], [ct + 1, p.cab[3] + 1.5]);
+  poly(S(col, 0.62), [cb, p.cab[1]], pt(0.62, p.cab[1], cb), pt(0.42, p.cab[3], ct), [ct, p.cab[3]]);
+  poly(p.glass, [cb + 1, p.cab[1] - 1], pt(0.58, p.cab[1] - 1, cb), pt(0.4, p.cab[3] + 1.5, ct), [ct + 1, p.cab[3] + 1.5]);
 }
 
 // steer: -2..2 (0 straight, 1 slight, 2 full lock). Left turns mirror the layout, not the rear art.
@@ -95,7 +98,7 @@ function drawCar(g, model, col, steer, brake) {
   const p = PROFILE[model], [f, fw] = TURN[k], ox = 36 - (72 * f + fw) / 2;
   const rear = make(72, 40, h => drawRear(h, model, col, k * dir, brake));
   g.drawImage(rear, dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
-  const side = make(72, 40, h => drawFlank(h, p, col, k, ox + (p.edge + k) * f - 0.5, fw,
+  const side = make(72, 40, h => drawFlank(h, p, col, ox + (p.edge + k) * f - 0.5, fw,
     ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f));
   g.drawImage(dir > 0 ? side : flip(side), 0, 0);
 }
