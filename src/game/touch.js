@@ -31,6 +31,27 @@ function el(tag, cls, parent, label) {
 }
 // A pointer in stage coordinates. Upright, the stage is turned a quarter clockwise: its x runs down the screen.
 const upright = () => matchMedia('(orientation: portrait)').matches;
+
+// The stage is the screen less its safe-area insets on the camera side(s): an iPhone fades whatever sits under
+// its status bar and hides it behind the camera. Only the home bar may overlap it; the buttons keep clear of that.
+let safe = null;
+function fit() {
+  if (!root) return;
+  const s = getComputedStyle(safe), i = {};
+  for (const k of ['Top', 'Right', 'Bottom', 'Left']) i[k] = parseFloat(s['padding' + k]) || 0;
+  const up = upright(), w = innerWidth;
+  let h = innerHeight;
+  // A home screen app under a see-through status bar gets a viewport short by the bar, still starting at the top
+  // of the screen, so the screen goes on below it.
+  if (up && standalone() && Math.abs(screen.height - h - i.Top) < 4) h += i.Top;
+  const x0 = i.Left, x1 = w - i.Right, y0 = i.Top, y1 = h;
+  const v = up ? [x1, y0, y1 - y0, x1 - x0, 'rotate(90deg)'] : [x0, y0, x1 - x0, y1 - y0, 'none'];
+  const d = document.documentElement.style;
+  ['--sl', '--st', '--sw', '--sh'].forEach((k, n) => d.setProperty(k, v[n] + 'px'));
+  d.setProperty('--rot', v[4]);
+  root.style.setProperty('--r', (up ? i.Bottom : 0) + 'px');
+  root.style.setProperty('--b', (up ? 0 : i.Bottom) + 'px');
+}
 function local(e) {
   const b = root.getBoundingClientRect();
   return upright() ? { x: e.clientY - b.top, y: b.right - e.clientX } : { x: e.clientX - b.left, y: e.clientY - b.top };
@@ -130,6 +151,7 @@ function releaseAll() {
 
 function show(v) {
   on = v;
+  if (v) fit();
   document.body.classList.toggle('touching', v);
   Input.setAuto(v);
   if (!v) releaseAll();
@@ -184,6 +206,11 @@ export const Touch = {
     window.addEventListener('keydown', () => { if (on) show(false); });
     noScroll();
     homeIcon();
+    safe = el('div', 'safe', document.body);
+    const refit = () => { fit(); setTimeout(fit, 300); }; // iOS settles its insets a moment after turning
+    window.addEventListener('resize', refit);
+    window.addEventListener('orientationchange', refit);
+    if (window.visualViewport) visualViewport.addEventListener('resize', fit);
   },
   // Whether to tell the player that the home screen gives full screen: on touch, with no fullscreen to ask for.
   homeHint() { return on && !fsEnabled() && !standalone(); },

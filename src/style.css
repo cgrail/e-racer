@@ -25,25 +25,25 @@ canvas:fullscreen {
   height: min(62.5vw, 100vh);
 }
 
-/* Touch controls (game/touch.js): hidden until the first touch. On touch the game fills the screen, stretched
-   to its shape; a phone held upright gets the game and the controls turned a quarter, so they fill its height. */
+/* Touch controls (game/touch.js): hidden until the first touch. On touch the game fills the 'stage': the screen
+   less the camera side(s), stretched to its shape. A phone held upright gets the stage turned a quarter, so the
+   game fills its height. fit() in touch.js sets the stage (--sl, --st, --sw, --sh, --rot) and, on .touch, how far
+   the home bar reaches into it (--r, --b). */
 html, body, canvas { touch-action: none; }
 body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-body.touching canvas { width: 100vw; height: 100vh; height: 100dvh; }
 .touch {
   display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace;
-  --l: env(safe-area-inset-left, 0px); --r: env(safe-area-inset-right, 0px); --t: env(safe-area-inset-top, 0px); --b: env(safe-area-inset-bottom, 0px);
+  --l: 0px; --r: 0px; --t: 0px; --b: 0px;
 }
 body.touching .touch { display: block; }
-@media (orientation: portrait) {
-  body.touching canvas, body.touching .touch {
-    position: fixed; inset: auto; left: 50%; top: 50%;
-    width: 100vh; width: 100dvh; height: 100vw;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  body.touching .touch { /* the screen's notch and home bar, seen from the turned stage */
-    --l: env(safe-area-inset-top, 0px); --r: env(safe-area-inset-bottom, 0px); --t: env(safe-area-inset-right, 0px); --b: env(safe-area-inset-left, 0px);
-  }
+body.touching canvas, body.touching .touch {
+  position: fixed; inset: auto; left: var(--sl, 0px); top: var(--st, 0px);
+  width: var(--sw, 100vw); height: var(--sh, 100dvh);
+  transform: var(--rot, none); transform-origin: 0 0;
+}
+.safe { /* read by fit() */
+  position: fixed; visibility: hidden; pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 .touch .layer { display: none; position: absolute; inset: 0; pointer-events: auto; touch-action: none; }
 .touch.drive .drive, .touch.menu .menu { display: block; }
