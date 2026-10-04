@@ -12,6 +12,7 @@ import { Results } from './game/scenes/results.js';
 import { Standings } from './game/scenes/standings.js';
 import { GameEnd } from './game/scenes/gameend.js';
 import { Lobby } from './game/scenes/lobby.js';
+import { NameEntry } from './game/scenes/name.js';
 import { Online } from './game/online.js';
 import { Touch } from './game/touch.js';
 
@@ -42,7 +43,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-Object.assign(scenes, { Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd, Lobby });
+Object.assign(scenes, { Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd, Lobby, NameEntry });
 
 // Debug handle for the console and scripts/smoke.js.
 window.__ecr = {

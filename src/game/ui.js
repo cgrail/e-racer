@@ -105,13 +105,13 @@ export function nameRow(st, p, label) {
   return { key: 'name' + p, label, car: p, value: typing ? st.buf + (blinkOn(st.t, 3) ? '_' : ' ') : settings.names[p] || '-',
     action: () => { st.editing = true; st.who = p; st.buf = settings.names[p]; } };
 }
-// While st.editing: letters and digits, up to 6; Enter keeps the name, Esc cancels.
-export function typeName(st) {
+// While st.editing: letters and digits, up to 6; Enter keeps the name (with need, only once there is one), Esc cancels.
+export function typeName(st, need = false) {
   for (const ch of Input.typed()) {
     if (ch === '\b') st.buf = st.buf.slice(0, -1);
     else if (/^[a-z0-9]$/i.test(ch) && st.buf.length < 6) { st.buf += ch.toUpperCase(); Sound.fx.tick(); }
   }
-  if (Input.pressed('Enter') || Input.pressed('NumpadEnter')) {
+  if ((Input.pressed('Enter') || Input.pressed('NumpadEnter')) && (st.buf || !need)) {
     st.editing = false; settings.names[st.who] = st.buf; saveAll(); Sound.fx.select();
   } else if (Input.pressed('Escape')) { st.editing = false; Sound.fx.back(); }
 }
