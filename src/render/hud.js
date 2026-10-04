@@ -1,4 +1,5 @@
 import { K, U } from '../core/util.js';
+import { SUPER_T } from '../race/specs.js';
 import { text } from './text.js';
 
 // In-race HUD: position, laps or time left, speed, gear, rev bar and messages.
@@ -20,6 +21,7 @@ export function hud(g, w, h, race, car, split, opts) {
     text(g, '/' + race.cars.length, pad + big * String(car.place).length + 2, pad + 11 + big - 8, sm, '#c0c8ff');
     text(g, `LAP ${U.clamp(car.lap, 1, race.laps)}/${race.laps}`, w / 2, pad, split ? 8 : 16, '#ffffff', 'center');
     if (car.energy != null) energyGauge(g, pad, pad + 15 + big, race, car, split);
+    if (car.power != null) powerGauge(g, pad, pad + 15 + big + (car.energy != null ? 22 : 0), race, car, split);
   }
   text(g, 'TIME ' + U.fmtTime(race.time), w - pad, pad, sm, '#ffffff', 'right');
   text(g, 'LAP  ' + U.fmtTime(car.lap >= 1 && !car.finished ? race.time - car.lapStart : car.lastLap), w - pad, pad + 10, sm, '#c0c8ff', 'right');
@@ -75,4 +77,25 @@ function energyGauge(g, x, y, race, car, split) {
   g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, bw + 2, bh + 2); g.fillRect(x + bw + 2, by + 2, 2, bh - 2);
   g.fillStyle = e > 0.5 ? '#40e080' : !low ? '#ffd040' : Math.floor(race.wtime * 4) % 2 ? '#ff3030' : '#801818';
   g.fillRect(x + 1, by + 1, Math.round(bw * e), bh);
+}
+
+// Held super-power charges as bolts; while super power is active, a draining bar.
+function powerGauge(g, x, y, race, car, split) {
+  const on = car.superT > 0;
+  if (!on && !car.power) return;
+  text(g, 'POWER', x, y, 8, on && Math.floor(race.wtime * 8) % 2 ? '#ffffff' : '#ff70ff');
+  const by = y + 10;
+  if (on) {
+    const bw = split ? 44 : 60;
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, bw + 2, 7);
+    g.fillStyle = '#ff60ff'; g.fillRect(x + 1, by + 1, Math.round(bw * car.superT / SUPER_T), 5);
+    return;
+  }
+  for (let i = 0; i < car.power; i++) {
+    const bx = x + i * 12;
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(bx, by, 10, 10);
+    g.fillStyle = '#fff060'; g.beginPath();
+    for (const [px, py] of [[6, 1], [2, 6], [5, 6], [4, 9], [8, 4], [5, 4]]) g.lineTo(bx + px, by + py);
+    g.closePath(); g.fill();
+  }
 }

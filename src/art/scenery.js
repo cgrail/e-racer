@@ -147,6 +147,11 @@ export function cell(g) { // energy cell pickup
   R(g, 6, 4, 12, 22, '#0c3a2a'); R(g, 7, 5, 10, 20, '#20d080'); R(g, 7, 5, 3, 20, '#80ffc0');
   P(g, '#fff6a0', [14, 7, 8, 16, 12, 16, 10, 23, 16, 13, 12, 13]);
 }
+export function orb(g) { // power-up orb: a glowing sphere with a lightning bolt
+  glow(g, 12, 12, 12, '#ff60ff', 0.6);
+  C(g, 12, 12, 8, '#7a1890'); C(g, 12, 12, 7, '#d040e8'); C(g, 10, 9, 3, '#ffb0ff');
+  P(g, '#fff060', [13, 4, 7, 13, 11, 13, 9, 20, 17, 10, 13, 10]);
+}
 export function cone(g) {
   R(g, 0, 14, 12, 2, '#222');
   P(g, '#ff6a00', [6, 0, 10.5, 14, 1.5, 14]);

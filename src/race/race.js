@@ -5,10 +5,11 @@ import * as driving from './driving.js';
 import * as ai from './ai.js';
 import * as contact from './contact.js';
 import * as energy from './energy.js';
+import * as power from './power.js';
 
 // One race (or time challenge stage) on a track: simulation of every car, hazards, laps and timing.
 export class Race {
-  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy }
+  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power }
   constructor(o) {
     this.track = o.track; this.mode = o.mode; this.attract = !!o.attract;
     this.laps = o.mode === 'time' ? 1 : o.laps || 3;
@@ -20,6 +21,8 @@ export class Race {
     this.dyn = [];
     this.energy = !!o.energy && this.mode === 'race';
     if (this.energy) this.placeCells();
+    this.power = !!o.power && this.mode === 'race';
+    if (this.power) this.placeOrbs();
     for (const s of this.track.segments) for (const ob of s.obs) {
       ob.hit = false; ob.fly = null; ob.gone = false; ob.x = ob.bx;
       if (ob.moving) this.dyn.push(ob);
@@ -42,7 +45,11 @@ export class Race {
       for (let i = 1; i < marks.length; i++) this.legTime.push((marks[i] - marks[i - 1]) / pace + (i === 1 ? 4 : 1));
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
-    if (this.energy) for (const h of this.humans) { h.energy = 1; h.taken = new Set(); }
+    for (const h of this.humans) {
+      if (this.energy || this.power) h.taken = new Set();
+      if (this.energy) h.energy = 1;
+      if (this.power) h.power = 0;
+    }
     this.rank();
   }
 
@@ -56,7 +63,7 @@ export class Race {
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
-      energy: null, taken: null, flatT: 0, lowWarned: false,
+      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);
@@ -181,4 +188,4 @@ export class Race {
   rank() { this.results().forEach((c, i) => { c.place = i + 1; }); }
 }
 
-Object.assign(Race.prototype, driving, ai, contact, energy);
+Object.assign(Race.prototype, driving, ai, contact, energy, power);

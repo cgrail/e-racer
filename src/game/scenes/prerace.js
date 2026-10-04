@@ -44,6 +44,7 @@ export const PreRace = {
       info.push(['CHECKPOINTS', String(game.race.track.cps.length)], ['START TIME', Math.round(game.race.legTime[0]) + ' SEC']);
     }
     if (game.race.energy) info.push(['ENERGY', 'COLLECT CELLS']);
+    if (game.race.power) info.push(['POWER KEY', game.race.humans.length > 1 ? 'SPACE / ENTER' : 'SPACE']);
     info.push(['DISTANCE', U.km(game.race.track.length * game.race.laps).toFixed(1) + ' KM']);
     if (th.weather || th.wind || th.night || th.fog > 8) {
       info.push(['CONDITIONS', th.night ? 'DARK' : th.weather === 'snow' ? 'SNOW' : th.weather === 'rain' ? 'STORM' : th.wind ? 'GUSTS' : 'FOGGY']);
@@ -54,7 +55,7 @@ export const PreRace = {
       text(a, 268, 84 + i * 18, 8, '#9fb0ff');
       text(b, 436, 84 + i * 18, 8, '#ffe040', 'right');
     });
-    text('CODE ' + game.race.track.code, 352, 210, 8, '#7fffb0', 'center');
+    text('CODE ' + game.race.track.code, 352, 228, 8, '#7fffb0', 'center');
     if (blinkOn(this.t)) text('PRESS ENTER TO RACE', W / 2, 244, 8, '#ffffff', 'center');
   },
 };

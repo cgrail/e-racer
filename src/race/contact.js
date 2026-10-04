@@ -34,19 +34,22 @@ export function hitObstacle(c, ob, halfW) {
     }
     return;
   }
-  if (fx === 'energy') {
-    if (c.taken && !c.taken.has(ob)) this.collectEnergy(c, ob);
+  if (fx === 'energy' || fx === 'power') {
+    if (c.taken && !c.taken.has(ob)) {
+      if (fx === 'energy') this.collectEnergy(c, ob); else this.collectPower(c, ob);
+    }
     return;
   }
   if (c.air) return;
-  if (fx === 'soft') {
+  const smash = c.superT > 0 && fx === 'crash'; // super power knocks barriers flying like cones
+  if (fx === 'soft' || smash) {
     ob.fly = { t: 0, y: 0, vx: (ob.x >= c.x ? 1 : -1) * (0.8 + Math.random()), vy: 1500 + c.speed * 0.15 };
     ob.hit = true; this.dyn.push(ob);
-    c.speed *= c.human ? 0.88 : 0.95;
-    if (c.human) Sound.fx.cone();
+    if (!smash) c.speed *= c.human ? 0.88 : 0.95;
+    if (c.human) (smash ? Sound.fx.bump : Sound.fx.cone)();
     return;
   }
-  if (!c.human) return;
+  if (!c.human || (c.superT > 0 && fx !== 'boost')) return;
   c.lastObs = ob; c.lastObsT = this.time;
   if (fx === 'crash') {
     this.crash(c);
@@ -75,6 +78,11 @@ export function collide() {
       const dz = U.wrap(o.z - h.z + this.L / 2, this.L) - this.L / 2;
       if (Math.abs(dz) > K.CAR_LEN || Math.abs(o.x - h.x) > halfW * 1.8 || h.jumpY > 200 || o.jumpY > 200) continue;
       const [back, front] = dz > 0 ? [h, o] : [o, h];
+      if (back.superT > 0 && back.speed > front.speed) { // super power shoves the other car aside
+        front.x += (Math.sign(front.x - back.x) || 1) * 0.3; front.speed *= 0.85;
+        if (h.bumpT <= 0) { Sound.fx.bump(); h.bumpT = 0.35; }
+        continue;
+      }
       if (back.speed > front.speed) {
         const v = back.speed;
         back.speed = front.speed * 0.85;

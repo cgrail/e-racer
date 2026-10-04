@@ -8,4 +8,5 @@ export const MODELS = ['volt', 'spark', 'ion'];
 export const GEAR_TOP = [0.3, 0.48, 0.66, 0.83, 1.0];
 export const GEAR_ACC = [1.6, 1.32, 1.1, 0.9, 0.72];
 export const CAR_COLORS = ['#d81e1e', '#1e5ad8', '#f0d020', '#f2f2f2', '#22a040', '#26262a', '#a8b0b8', '#f07818', '#8a2be2', '#20c0d0'];
-export const NO_INPUT = { throttle: 0, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false };
+export const SUPER_T = 3; // seconds of super power per power-up charge
+export const NO_INPUT = { throttle: 0, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false, power: false };

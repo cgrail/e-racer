@@ -8,10 +8,11 @@ export const Input = (() => {
   let pads = [], padPrev = [], padNow = [];
   const gestureHandlers = [];
 
-  const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], gearUp: ['KeyE'], gearDown: ['KeyQ'] };
+  const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], gearUp: ['KeyE'], gearDown: ['KeyQ'], power: ['Space'] };
   const P2 = {
     up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
     gearUp: ['Period', 'ShiftRight', 'Numpad2'], gearDown: ['Comma', 'ControlRight', 'Numpad1'],
+    power: ['Enter', 'NumpadEnter', 'Numpad0'],
   };
   const BLOCK = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace']);
 
@@ -45,10 +46,10 @@ export const Input = (() => {
   // Driving controls for player idx. In one-player mode both key sets drive player 1.
   function player(idx, twoPlayers) {
     const maps = twoPlayers ? [idx === 0 ? P1 : P2] : [P1, P2];
-    let up = false, dn = false, l = false, r = false, gu = false, gd = false;
+    let up = false, dn = false, l = false, r = false, gu = false, gd = false, pw = false;
     for (const m of maps) {
       up = up || any(m.up); dn = dn || any(m.down); l = l || any(m.left); r = r || any(m.right);
-      gu = gu || anyPressed(m.gearUp); gd = gd || anyPressed(m.gearDown);
+      gu = gu || anyPressed(m.gearUp); gd = gd || anyPressed(m.gearDown); pw = pw || anyPressed(m.power);
     }
     if (!twoPlayers) { gu = gu || pressed.has('ShiftLeft'); gd = gd || pressed.has('ControlLeft'); }
     let throttle = up ? 1 : 0, brake = dn ? 1 : 0, steer = (r ? 1 : 0) - (l ? 1 : 0), analog = false;
@@ -61,9 +62,10 @@ export const Input = (() => {
       throttle = Math.max(throttle, padBtn(p, 0) ? 1 : 0, padVal(p, 7), padBtn(p, 12) ? 1 : 0);
       brake = Math.max(brake, padBtn(p, 1) ? 1 : 0, padVal(p, 6), padBtn(p, 13) ? 1 : 0);
       gu = gu || padHit(p, 5) || padHit(p, 3);
-      gd = gd || padHit(p, 4) || padHit(p, 2);
+      gd = gd || padHit(p, 4);
+      pw = pw || padHit(p, 2);
     }
-    return { throttle, brake, steer, analog, gearUp: gu, gearDown: gd };
+    return { throttle, brake, steer, analog, gearUp: gu, gearDown: gd, power: pw };
   }
 
   // Edge-triggered menu navigation from any keyboard set or pad.

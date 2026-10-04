@@ -104,6 +104,30 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`energy: ${cells.length} cells, collected up to ${took} per lap, flat battery drops to last OK`);
 }
 
+{ // power-ups: orbs get collected, a charge fires super power past top speed and smashes barriers
+  const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'spark', color: CAR_COLORS[0] }], ai: [], power: true });
+  const h = race.humans[0];
+  const orbs = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'power').map(o => ({ o, z: sg.index * K.SEG_LEN })));
+  if (orbs.length < 2) throw new Error('power: too few orbs placed');
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false, power: false };
+  for (let s = 0; s < 120 * 40 && !h.power; s++) {
+    const next = orbs.find(c => U.wrap(c.z - h.z, race.L) < 6000);
+    inp.steer = next ? U.clamp((next.o.x - h.x) * 4, -1, 1) : 0;
+    race.update(K.STEP, [inp]);
+  }
+  if (!h.power) throw new Error('power: no orb collected');
+  const seg = track.findSegment(h.z + 3000), barrier = { name: 'barrier', v: 0, x: h.x, bx: h.x, ww: 1300, hw: 0.4, fx: 'crash', hit: false, fly: null };
+  seg.obs.push(barrier);
+  race.update(K.STEP, [Object.assign({}, inp, { steer: 0, power: true })]);
+  if (!(h.superT > 0) || h.power !== 0) throw new Error('power: charge did not fire');
+  let top = 0;
+  for (let s = 0; s < 120 * 2.5; s++) { race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1) })]); top = Math.max(top, h.speed); }
+  if (!(top > h.spec.top * K.MAX_SPEED)) throw new Error('power: super power did not pass top speed');
+  if (!barrier.hit || h.crashT > 0) throw new Error('power: barrier was not smashed aside');
+  console.log(`power: ${orbs.length} orbs, charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
+}
+
 // ---------------------------------------------------------------- game flow through the real key handlers
 await import('../src/main.js');
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };

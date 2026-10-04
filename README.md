@@ -29,6 +29,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
   - **Time Challenge:** five point-to-point stages per level against the clock. Each checkpoint extends your time.
   - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
 - **Limited energy (option):** in races your battery drains as you drive, and braking recovers a little. Drive through the glowing energy cells on the road to recharge them; they come back every lap, and in two-player mode each player has their own. If your battery runs empty, you are put behind the last car with a partial recharge. Set **ENERGY** to *Limited* in the main menu.
+- **Power-ups (option):** glowing power orbs on the road charge your super power, and you can hold up to two charges. Fire one for three seconds of extra acceleration past top speed: barriers fly aside, puddles and ice can't touch you, and rivals get shoved out of the way. Set **POWER-UPS** to *On* in the main menu.
 - **Original chiptune soundtrack** with three tracks. You pick the "radio station" in the menu or press **M** while racing.
 - **Lap and stage records** are saved in the browser.
 
@@ -41,10 +42,11 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
 | Steer       | ← → or A D                | A D           | ← →                |
 | Gear up     | E, Shift or .             | E             | . or Right Shift   |
 | Gear down   | Q, Ctrl or ,              | Q             | , or Right Ctrl    |
+| Super power | Space or Enter            | Space         | Enter or Numpad 0  |
 
 Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles fullscreen, and **Enter** confirms in menus.
 
-**Gamepads** use the standard mapping: the left stick or d-pad steers, A or RT accelerates, B or LT brakes, RB/Y shifts up, LB/X shifts down, and Start pauses. In two-player mode, pad 1 drives player 1 and pad 2 drives player 2.
+**Gamepads** use the standard mapping: the left stick or d-pad steers, A or RT accelerates, B or LT brakes, RB/Y shifts up, LB shifts down, X fires super power, and Start pauses. In two-player mode, pad 1 drives player 1 and pad 2 drives player 2.
 
 ## Code layout
 

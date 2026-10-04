@@ -102,6 +102,8 @@ export const Sound = (() => {
     back: () => tone(440, 0.09, 'square', 0.09, 0, 300),
     timeout: () => tone(400, 0.9, 'sawtooth', 0.16, 0, 80),
     warn: () => tone(1500, 0.06, 'square', 0.07),
+    powerup: () => [660, 880, 1320, 1760].forEach((f, i) => tone(f, 0.1, 'triangle', 0.12, i * 0.05)),
+    superboost: () => { tone(160, 0.9, 'sawtooth', 0.14, 0, 1600); hiss(0.8, 0.25, 'bandpass', 2400, 0, 3); },
     charge: () => { tone(520, 0.18, 'triangle', 0.14, 0, 1560); tone(1040, 0.12, 'square', 0.06, 0.08, 2080); },
   };
 

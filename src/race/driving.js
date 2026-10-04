@@ -17,6 +17,7 @@ export function driveHuman(c, inp, dt, racing) {
   if (c.crashT > 0) { c.crashT -= dt; thr = 0; }
   if (c.outOfTime) { thr = 0; brk = Math.max(brk, 0.3); }
   if (c.energy != null) thr = this.useEnergy(c, thr, brk, sp, dt);
+  if (c.power != null) this.usePower(c, inp, dt);
   c.immuneT = Math.max(0, c.immuneT - dt); c.bumpT = Math.max(0, c.bumpT - dt);
   c.slideT = Math.max(0, c.slideT - dt); c.boostT = Math.max(0, c.boostT - dt); c.splashT = Math.max(0, c.splashT - dt);
   const grip = c.spec.grip * T.theme.grip * (c.slideT > 0 ? 0.45 : 1);
