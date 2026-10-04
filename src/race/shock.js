@@ -1,7 +1,7 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
-import { SHOCK_T, SHOCK_CAP } from './specs.js';
+import { SHOCK_T, SHOCK_CAP, AI_ATTACK } from './specs.js';
 
 // Race methods for the electro shock, in every race. Humans and some rivals (AI_SHOCKS) pick up a shock charge
 // on the road (per car via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
@@ -60,11 +60,14 @@ export function shockHit(t) {
   else if (t.human) this.msg(t, 'SHOCKED!', 1.5, '#60e0ff');
 }
 
-// Rivals hold a shock for a moment, then fire it once a car is close ahead.
+// Rivals hold a shock for a moment, then fire it once a car is close ahead, unless that car is shocked already.
+// On Hard, with a player in the top three ahead of them, they save it for that player.
 export function aiShock(c, dt) {
   if ((c.aiFireT -= dt) > 0) return;
   const t = this.shockTarget(c);
-  if (t && t.travel - c.travel < 5000) this.useShock(c, { shock: true });
+  if (!t || t.travel - c.travel > 5000 || t.shockT > 0) return;
+  const save = AI_ATTACK[this.diff] && this.humans.some(h => h.place <= 3 && !h.finished && h.travel > c.travel);
+  if (t.human || !save) this.useShock(c, { shock: true });
 }
 
 // Any car: while shocked its motor is held back, easing the speed down to the cap.

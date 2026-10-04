@@ -83,13 +83,13 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   if (!(race().cars.some(c => !c.human && c.travel > 2000))) fail('rivals do not move in the browser');
 
   me.shock = 1; me.superT = 0; // fire a shock: it lands on the server's car
-  const target = race().shockTarget(me), ti = race().cars.indexOf(target);
-  if (!target) fail('no car ahead to shock');
+  if (!race().shockTarget(me)) fail('no car ahead to shock');
   tap('KeyE'); frames(2);
-  if (!(sv().cars[ti].shockT > 0) || (ti === bi && !bob.some(m => m.type === 'shocked'))) fail('shock did not reach the server');
+  const ti = race().cars.findIndex(c => c.net && c.shockT > 2.5); // the car it hit here (the nearest ahead when it fired)
+  if (ti < 0 || !(sv().cars[ti].shockT > 0) || (ti === bi && !bob.some(m => m.type === 'shocked'))) fail('shock did not reach the server');
   frames(60 * 4);
   sv().shockHit(sv().cars[mi]); frames(3); // a rival's shock on the server lands in the browser
-  if (!(me.shockT > 0)) fail('shock from the server did not land');
+  if (!(me.shockT > 0)) fail(`shock from the server did not land (state ${Online.state}, superT ${me.superT}, power ${me.power}, svShockT ${sv().cars[mi].shockT}, svSuper ${sv().cars[mi].superT})`);
 
   Lobby.close(cl2); frames(3); // the second player drops: a rival takes the car back
   if (race().cars[bi].human || sv().cars[bi].human || sv().humans.length !== 1 || race().cars[bi].plate) fail('dropped player not replaced by a rival');

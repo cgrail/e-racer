@@ -1,12 +1,15 @@
 import { K, U } from '../core/util.js';
 import { Art } from '../art/index.js';
-import { MOTOR_BASE, REGEN_MAX } from './specs.js';
+import { MOTOR_BASE, REGEN_MAX, AI_ATTACK } from './specs.js';
 
-// Race methods for computer drivers: target speed, rubber band, racing line, drafting, overtaking, defending,
-// pickups and hazard avoidance. Mixed into Race.
+// Race methods for computer drivers: target speed, rubber band, hunting players at the front, racing line, drafting,
+// overtaking, defending, pickups and hazard avoidance. Mixed into Race.
 const BAND = [0.16, 0.12, 0.09]; // rubber-band strength by difficulty (easy, medium, hard)
 const BAND_DEAD = 6000;          // world units around the humans where rivals race unaided
 const BAND_RANGE = 50000;        // distance beyond the dead zone at which the full effect applies
+const HUNT_RANGE = 20000;        // a rival starts a run at a player this far ahead of it (under 2 seconds)
+const HUNT_PAST = 4000;          // and keeps going until it is this far past
+const HUNTERS = 2;               // rivals after one player at a time
 
 // Speed factor that keeps the field together around the human players: rivals ahead of the
 // leading human ease off, rivals behind the last human push harder. Races only.
@@ -18,6 +21,29 @@ export function rubberBand(c) {
   const ahead = c.travel - front - BAND_DEAD, behind = back - c.travel - BAND_DEAD;
   const pull = ahead > 0 ? -Math.min(1, ahead / BAND_RANGE) : behind > 0 ? Math.min(1, behind / BAND_RANGE) : 0;
   return 1 + BAND[this.diff] * pull;
+}
+
+// Hard: rivals hunt the players at the front. An aggressive rival up to HUNT_RANGE behind a player in the top three
+// makes a run at them, faster than that player's car can go (AI_ATTACK): it closes in, fires its shock if it holds
+// one (aiShock saves it for the front) and drives on until HUNT_PAST ahead, then backs off for a while.
+// Returns the player being hunted, or null.
+export function hunt(c, dt) {
+  if (!AI_ATTACK[this.diff] || c.aiAggro < 0.4) return null;
+  if (c.aiRun < 0) { c.aiRun = Math.min(0, c.aiRun + dt); return null; } // backing off
+  const p = c.aiPrey;
+  if (p) {
+    if ((c.aiRun -= dt) > 0 && p.human && !p.finished && c.travel - p.travel < HUNT_PAST) return p;
+    c.aiPrey = null; c.aiRun = -(8 + Math.random() * 8);
+    return null;
+  }
+  for (const h of this.humans) {
+    const gap = h.travel - c.travel;
+    if (h.finished || h.place > 3 || gap <= 0 || gap > HUNT_RANGE) continue;
+    if (this.cars.filter(o => o.aiPrey === h).length >= HUNTERS) continue;
+    c.aiPrey = h; c.aiRun = 20;
+    return h;
+  }
+  return null;
 }
 
 // Rivals steer for an energy cell when their battery runs low, or for an electro shock when they can hold one.
@@ -38,6 +64,8 @@ export function driveAI(c, dt, racing) {
   // rivals in a race drive actively; time-challenge traffic and finished cars just cruise
   const rival = !c.human && !c.finished && this.mode === 'race';
   let target = c.human ? c.spec.top * MAX * 0.7 : c.aiTop * MAX;
+  const prey = rival ? this.hunt(c, dt) : null;
+  if (prey) target = Math.max(target, prey.spec.top * MAX * (1 + AI_ATTACK[this.diff]));
   let maxC = 0, turn = 0;
   for (let n = 0; n < 14; n += 2) {
     const cv = T.segments[(seg.index + n) % T.N].curve;
@@ -68,6 +96,7 @@ export function driveAI(c, dt, racing) {
   if (blocked) {
     const lx = blocked.x - halfW * 2.6, rx = blocked.x + halfW * 2.6;
     desired = (Math.abs(lx - c.x) < Math.abs(rx - c.x) && lx > -0.85) || rx > 0.85 ? lx : rx;
+    c.aiLane = desired; // stay out in the passing lane, rather than drift back in behind the car
     if (bd < K.CAR_LEN * 1.4) c.speed = Math.min(c.speed, blocked.speed);
   } else if (rival) {
     const want = this.aiPickup(c, seg);

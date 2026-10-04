@@ -68,7 +68,7 @@ export class Race {
       offroad: false, skid: 0, rough: 0, lastObs: null, lastObsT: 0,
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
-      aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0,
+      aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0, aiRun: 0, aiPrey: null,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
       energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
     };
