@@ -7,6 +7,7 @@ export const Input = (() => {
   const typed = [];
   let pads = [], padPrev = [], padNow = [];
   const gestureHandlers = [];
+  let auto = false; // touch controls: the car accelerates by itself unless braking
 
   const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], power: ['Space'], shock: ['KeyE'] };
   const P2 = {
@@ -50,7 +51,7 @@ export const Input = (() => {
       up = up || any(m.up); dn = dn || any(m.down); l = l || any(m.left); r = r || any(m.right);
       pw = pw || anyPressed(m.power); sh = sh || anyPressed(m.shock);
     }
-    let throttle = up ? 1 : 0, brake = dn ? 1 : 0, steer = (r ? 1 : 0) - (l ? 1 : 0), analog = false;
+    let throttle = up || (auto && idx === 0 && !dn) ? 1 : 0, brake = dn ? 1 : 0, steer = (r ? 1 : 0) - (l ? 1 : 0), analog = false;
     const p = twoPlayers ? idx : 0;
     if (pads[p]) {
       const ax = pads[p].axes[0] || 0;
@@ -84,8 +85,16 @@ export const Input = (() => {
 
   function endFrame() { pressed.clear(); typed.length = 0; }
 
+  // On-screen buttons (game/touch.js) hold and release key codes like a keyboard would.
+  function virtual(code, on) {
+    if (on && !down.has(code)) pressed.add(code);
+    if (on) down.add(code); else down.delete(code);
+  }
+
   return {
-    poll, player, menu, endFrame,
+    poll, player, menu, endFrame, virtual,
+    setAuto: v => { auto = v; },
+    type: s => typed.push(...s),
     pressed: code => pressed.has(code),
     typed: () => typed.slice(),
     onGesture: fn => gestureHandlers.push(fn),
