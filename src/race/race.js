@@ -52,11 +52,11 @@ export class Race {
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
     this.rank();
-    for (const c of this.cars) { // pickups: energy and flashes for every car, boosts for humans
+    for (const c of this.cars) { // pickups: energy for every car; players use boosts and flashes, each rival one of the two
       if (this.energy || this.power || this.shocks) c.taken = new Set();
       if (this.energy) { c.energy = 1; this.cellNeed(c, 0); }
-      if (this.power && c.human) c.power = 0;
       if (this.shocks && (c.human || Math.random() < AI_SHOCKS[this.diff])) c.shock = 0;
+      if (this.power && (c.human || c.shock == null)) c.power = 0;
     }
   }
 
@@ -71,7 +71,7 @@ export class Race {
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0, aiRun: 0, aiPrey: null,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
-      energy: null, cellD: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
+      energy: null, cellD: null, cellAim: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);

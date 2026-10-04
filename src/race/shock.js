@@ -3,7 +3,7 @@ import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
 import { SHOCK_T, SHOCK_CAP, AI_ATTACK } from './specs.js';
 
-// Race methods for the flash (electro shock), in every race. Humans and some rivals (AI_SHOCKS) pick up a flash
+// Race methods for the flash (electro shock), in every race. Humans and some rivals (AI_SHOCKS; the others use boosts) pick up a flash
 // on the road (per car via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
 // human or AI, which is held to SHOCK_CAP of its top speed for SHOCK_T seconds. Super power blocks it.
 // A car holds one flash or one boost at a time (power.js), and the same key fires either.

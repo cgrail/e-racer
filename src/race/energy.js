@@ -4,18 +4,21 @@ import { Art } from '../art/index.js';
 
 // Race methods for limited energy: battery drain, energy cells, running flat. Mixed into Race.
 // Every car, rivals included (they steer for cells when low). Cells show up by need: the further back a car is, the more
-// of them are on its road (cellNeed, sees in contact.js). The leader gets one in TIERS, and has to take LEAD_NEED of those
-// to keep going at full power; the last car gets them all, about five times what it needs. Each car tracks the cells it took
-// this lap (c.taken), so they reappear for the other player and on the next lap. A cell a rival drives over is used up
-// for a while (ob.takenAt, sees in contact.js), the longer the further ahead a car is: the pack ahead of the last car
-// never leaves it short.
+// of them are on its road (cellNeed, sees in contact.js). The leader has none until its battery is nearly empty (LOW),
+// and then just one, a good way ahead (cellAim): miss it and the car runs flat. The car right behind it gets about one in
+// TIERS, and has to take LEAD_NEED of those to keep going at full power; the last car gets them all, about five times
+// what it needs. Each car tracks the cells it took this lap (c.taken), so they reappear for the other player and on the
+// next lap. A cell a rival drives over is used up for a while (ob.takenAt, sees in contact.js), the longer the further
+// ahead a car is: the pack ahead of the last car never leaves it short.
 const DRAIN = 1 / 20;   // per second at full rated power
 const REGEN = 0.02;     // per second at full rated regen
 const AI_DRAIN = 0.45;  // rivals drive more frugally: they keep the front contested, the player has to fight for cells
 const CELL_GAP = 36;    // segments between cells on the last car's road
-const TIERS = 4;        // the leader gets one cell in TIERS
-const LEAD_NEED = 0.85; // share of its cells the leader has to take at full power
-const LOW = 0.2;
+const TIERS = 4;        // the front of the field gets one cell in TIERS
+const LEAD_NEED = 0.85; // share of those cells a car has to take at full power
+const LOW = 0.2;        // nearly empty: the warning, and the leader's one cell
+const AIM = 80;         // segments ahead, at least, of the leader's one cell, so it is in sight in good time
+const LEAD_CHARGE = 0.4; // what the leader's one cell charges: 8 seconds at full power
 const RECHARGE = 0.6;   // energy after running flat
 const FLAT_T = 1.2;     // seconds without power after running flat
 
@@ -43,11 +46,23 @@ export function freeSeg(i) {
   return -1;
 }
 
-// The share of cells on car c's road (c.cellD): those with a tier below it. It eases after the car's place,
-// so cells don't blink in and out while two cars swap places.
+// The share of cells on car c's road (c.cellD): those with a tier below it, none for the leader. It eases after
+// the car's place, so cells don't blink in and out while two cars swap places. A leader nearly out of energy
+// gets its one cell (c.cellAim), until it takes it, runs flat or loses the lead.
 export function cellNeed(c, dt) {
-  const d = (1 + (TIERS - 1) * this.share(c)) / TIERS;
+  const lead = c.place === 1 && !c.finished, d = lead ? 0 : (1 + (TIERS - 1) * this.share(c)) / TIERS;
   c.cellD = c.cellD == null ? d : c.cellD + (d - c.cellD) * Math.min(1, dt * 0.5);
+  if (!lead) c.cellAim = null;
+  else if (!c.cellAim && c.energy < LOW) c.cellAim = this.aimCell(c);
+}
+
+// The first cell at least AIM segments ahead of car c that it hasn't taken this lap.
+export function aimCell(c) {
+  const T = this.track, i = Math.floor(c.z / K.SEG_LEN);
+  for (let n = AIM; n < AIM + 200; n++) {
+    for (const ob of T.segments[(i + n) % T.N].obs) if (ob.fx === 'energy' && !c.taken.has(ob)) return ob;
+  }
+  return null;
 }
 
 // Returns the throttle the battery allows.
@@ -64,9 +79,10 @@ export function useEnergy(c, thr, brk, sp, dt) {
 export function collectEnergy(c, ob) {
   c.taken.add(ob);
   if (!c.human) ob.takenAt = this.time;
-  // the leader's cells are TIERS * CELL_GAP apart: each gives what full power uses there at top speed, over LEAD_NEED
+  // cells at the front are TIERS * CELL_GAP apart: each gives what full power uses there at top speed, over LEAD_NEED
   const gapT = (TIERS * CELL_GAP * K.SEG_LEN) / (c.spec.top * K.MAX_SPEED);
-  c.energy = Math.min(1, c.energy + (DRAIN * gapT) / LEAD_NEED);
+  c.energy = Math.min(1, c.energy + (ob === c.cellAim ? LEAD_CHARGE : (DRAIN * gapT) / LEAD_NEED));
+  if (ob === c.cellAim) c.cellAim = null;
   if (c.energy >= LOW) c.lowWarned = false;
   if (c.human) Sound.fx.charge();
 }
@@ -82,7 +98,7 @@ export function runFlat(c) {
     const lap = c.travel < 0 ? 0 : Math.floor(c.travel / this.L) + 1;
     if (lap < c.lap) c.lap = lap; // the lap line has to be crossed again
   }
-  c.speed = 0; c.pwr = 0; c.flatT = FLAT_T; c.immuneT = FLAT_T + 1;
+  c.speed = 0; c.pwr = 0; c.flatT = FLAT_T; c.immuneT = FLAT_T + 1; c.superT = 0; c.cellAim = null;
   c.air = false; c.vy = 0; c.alt = this.roadY(c.z); c.jumpY = 0;
   c.energy = RECHARGE; c.lowWarned = false; c.taken.clear();
   this.msg(c, 'OUT OF ENERGY!', 2.5, '#ff4040');
