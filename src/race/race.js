@@ -1,6 +1,6 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
-import { CARSPEC, NO_INPUT } from './specs.js';
+import { CARSPEC, NO_INPUT, AI_SHOCKS } from './specs.js';
 import * as driving from './driving.js';
 import * as ai from './ai.js';
 import * as contact from './contact.js';
@@ -48,11 +48,11 @@ export class Race {
       for (let i = 1; i < marks.length; i++) this.legTime.push((marks[i] - marks[i - 1]) / pace + (i === 1 ? 4 : 1));
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
-    for (const h of this.humans) {
-      if (this.energy || this.power || this.shocks) h.taken = new Set();
-      if (this.energy) h.energy = 1;
-      if (this.power) h.power = 0;
-      if (this.shocks) h.shock = 0;
+    for (const c of this.cars) { // pickups: energy and shocks for every car, super power for humans
+      if (this.energy || this.power || this.shocks) c.taken = new Set();
+      if (this.energy) c.energy = 1;
+      if (this.power && c.human) c.power = 0;
+      if (this.shocks && (c.human || Math.random() < AI_SHOCKS[this.diff])) c.shock = 0;
     }
     this.rank();
   }
@@ -66,6 +66,7 @@ export class Race {
       offroad: false, skid: 0, rough: 0, lastObs: null, lastObsT: 0,
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
+      aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
       energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, shock: null, shockT: 0,
     };

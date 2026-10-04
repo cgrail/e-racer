@@ -127,8 +127,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   }
   if (!took) throw new Error('energy: no cell collected');
   if (!(low < 1)) throw new Error('energy: battery did not drain');
+  race.setTravel(h, Math.max(...race.cars.map(c => c.travel)) + 3000); race.rank(); // lead, so dropping to last shows
   const before = h.travel;
-  if (h.place === race.cars.length) throw new Error('energy: player should be ahead of someone before running flat');
   h.energy = 0.0001;
   for (let s = 0; s < 10; s++) race.update(K.STEP, [inp]);
   if (!(h.travel < before) || h.place !== race.cars.length || !(h.energy > 0.5)) {
@@ -167,6 +167,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'ion', color: CAR_COLORS[k + 2], aiTop: 0.95 }));
   const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai });
   const h = race.humans[0], [a, b] = race.cars.filter(c => !c.human);
+  a.shock = b.shock = null; // these rivals don't use shocks, so only the player's shock is in play
   const pads = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'shock').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (pads.length < 2) throw new Error('shock: too few pickups placed');
   const inp = { throttle: 1, brake: 0, steer: 0, analog: false, power: false, shock: false };
@@ -187,12 +188,36 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   const cap = a.spec.top * K.MAX_SPEED * SHOCK_CAP;
   let held = 0;
   for (let s = 0; s < 120 * (SHOCK_T + 0.5); s++) {
-    drive();
+    drive({ throttle: 0 }); // coast, so ramming the shocked car can't push it past the cap
     if (a.shockT > 0 && s > 120) held = Math.max(held, a.speed / cap);
     if (s % 120 === 0) Render.view(g, { x: 0, y: 0, w: K.W, h: K.H }, race, h, {}, { dt: 0.5 }); // arcs on the shocked car
   }
   if (!(held > 0.5 && held <= 1.001) || a.shockT !== 0) throw new Error(`shock: speed not held to the cap (${held}, shockT ${a.shockT})`);
   console.log(`shock: ${pads.length} pickups, collected, kept with no target, nearest car ahead held to ${Math.round(SHOCK_CAP * 100)}% OK`);
+}
+
+{ // active rivals: they recharge from cells, collect and fire shocks, and keep changing lanes
+  const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 4 }));
+  const ai = Array.from({ length: 10 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k % 10], aiTop: 0.7 + k * 0.01 }));
+  const race = new Race({ track, mode: 'race', laps: 9, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, energy: true, diff: 2 });
+  const h = race.humans[0], rivals = race.cars.filter(c => !c.human), inp = { throttle: 1, brake: 0, steer: 0, analog: false };
+  rivals.forEach(c => { c.shock = 0; }); // every rival uses shocks here
+  let charged = 0, fired = 0, zapped = 0, wasShocked = false;
+  const prev = rivals.map(c => ({ e: c.energy, s: c.shock, x: c.x, moved: 0 }));
+  for (let s = 0; s < 120 * 90; s++) {
+    race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1), throttle: race.time % 10 < 8 ? 1 : 0 })]);
+    rivals.forEach((c, i) => {
+      const p = prev[i];
+      if (c.energy > p.e + 0.05) charged++;
+      if (p.s === 1 && c.shock === 0) fired++;
+      p.moved += Math.abs(c.x - p.x); p.e = c.energy; p.s = c.shock; p.x = c.x;
+    });
+    if (h.shockT > 0 && !wasShocked) zapped++;
+    wasShocked = h.shockT > 0;
+  }
+  const busy = prev.filter(p => p.moved > 4).length;
+  if (!charged || !fired || busy < rivals.length * 0.7) throw new Error(`rivals: cells ${charged}, shocks fired ${fired}, lane-changing ${busy}/${rivals.length}`);
+  console.log(`rivals: ${charged} cells taken, ${fired} shocks fired (${zapped} at the player), ${busy}/${rivals.length} changing lanes in 90s OK`);
 }
 
 { // rubber band: rivals far ahead of the humans slow down, far behind speed up, close ones race unaided

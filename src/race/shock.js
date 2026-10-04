@@ -3,8 +3,8 @@ import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
 import { SHOCK_T, SHOCK_CAP } from './specs.js';
 
-// Race methods for the electro shock, in every race. Humans pick up a shock charge on the
-// road (per player via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
+// Race methods for the electro shock, in every race. Humans and some rivals (AI_SHOCKS) pick up a shock charge
+// on the road (per car via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
 // human or AI, which is held to SHOCK_CAP of its top speed for SHOCK_T seconds. Super power blocks it.
 const SHOCK_GAP = 450;     // segments between pickups (offset from the orbs and energy cells)
 const SHOCK_RANGE = 60000; // how far ahead a shock reaches, in world units
@@ -21,11 +21,11 @@ export function placeShocks() {
 }
 
 export function collectShock(c, ob) {
+  if (c.shock == null) return; // a rival that doesn't use shocks
   c.taken.add(ob);
   if (c.shock) return;
-  c.shock = 1;
-  this.msg(c, 'SHOCK READY!', 1.2, '#60e0ff');
-  Sound.fx.powerup();
+  c.shock = 1; c.aiFireT = 1 + Math.random() * 3;
+  if (c.human) { this.msg(c, 'SHOCK READY!', 1.2, '#60e0ff'); Sound.fx.powerup(); }
 }
 
 // The nearest car ahead on the road that is still racing, within range.
@@ -44,11 +44,18 @@ export function useShock(c, inp) {
   const t = this.shockTarget(c);
   if (!t) { this.msg(c, 'NO CAR IN RANGE', 1, '#60e0ff'); return; }
   c.shock = 0;
-  Sound.fx.zap();
+  if (c.human || t.human) Sound.fx.zap();
   if (t.superT > 0) { this.msg(c, 'SHOCK BLOCKED', 1.2, '#60e0ff'); return; }
   t.shockT = SHOCK_T;
   this.msg(c, 'SHOCK HIT!', 1.2, '#60e0ff');
   if (t.human) this.msg(t, 'SHOCKED!', 1.5, '#60e0ff');
+}
+
+// Rivals hold a shock for a moment, then fire it once a car is close ahead.
+export function aiShock(c, dt) {
+  if ((c.aiFireT -= dt) > 0) return;
+  const t = this.shockTarget(c);
+  if (t && t.travel - c.travel < 5000) this.useShock(c, { shock: true });
 }
 
 // Any car: while shocked its motor is held back, easing the speed down to the cap.

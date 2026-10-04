@@ -3,7 +3,7 @@ import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
 
 // Race methods for the limited-energy option: battery drain, energy cells, running flat. Mixed into Race.
-// Humans only. Cells are per player: each car tracks the ones it took this lap (c.taken), so they
+// Every car, rivals included (they steer for cells when low). Cells are per car: each car tracks the ones it took this lap (c.taken), so they
 // reappear for the other player and on the next lap.
 const DRAIN = 1 / 38;  // per second at full rated power
 const REGEN = 0.02;    // per second at full rated regen
@@ -30,7 +30,7 @@ export function useEnergy(c, thr, brk, sp, dt) {
   if (c.flatT > 0) { c.flatT -= dt; return 0; }
   c.energy += (c.pwr < 0 ? -c.pwr * REGEN : -c.pwr * DRAIN) * dt; // follows the kW meter
   c.energy = U.clamp(c.energy, 0, 1);
-  if (c.energy < LOW && !c.lowWarned) { c.lowWarned = true; this.msg(c, 'LOW ENERGY', 1.5, '#ffb030'); Sound.fx.warn(); }
+  if (c.energy < LOW && !c.lowWarned) { c.lowWarned = true; this.msg(c, 'LOW ENERGY', 1.5, '#ffb030'); if (c.human) Sound.fx.warn(); }
   if (c.energy <= 0) { this.runFlat(c); return 0; }
   return thr;
 }
@@ -39,7 +39,7 @@ export function collectEnergy(c, ob) {
   c.taken.add(ob);
   c.energy = Math.min(1, c.energy + CELL);
   if (c.energy >= LOW) c.lowWarned = false;
-  Sound.fx.charge();
+  if (c.human) Sound.fx.charge();
 }
 
 // Out of energy: the car is put behind the last car on the road and recharged.
@@ -57,6 +57,6 @@ export function runFlat(c) {
   c.air = false; c.vy = 0; c.alt = this.roadY(c.z); c.jumpY = 0;
   c.energy = RECHARGE; c.lowWarned = false; c.taken.clear();
   this.msg(c, 'OUT OF ENERGY!', 2.5, '#ff4040');
-  Sound.fx.timeout();
+  if (c.human) Sound.fx.timeout();
   this.rank();
 }
