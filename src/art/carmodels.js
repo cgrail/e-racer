@@ -1,8 +1,9 @@
-import { S, R, P, E } from './draw.js';
+import { S, R, P } from './draw.js';
 
 // The car models: rear views in a 72x40 box (ground at y 38) and the matching flank geometry. The body styles
-// follow today's electric cars; names and badges are the game's own. s (-2..2) slides the parts that sit
-// further forward towards the turn: the body by s, the deck by about 1.5s, the cabin by 2.5s to 3s.
+// follow today's electric cars: rounded shells, big glass, slim light signatures; names and badges are the
+// game's own. s (-2..2) slides the parts that sit further forward towards the turn: the body by s, the deck
+// by about 1.5s, the cabin by 2s to 3s.
 const tyres = (g, y, w = 11, x0 = 5) => {
   for (const x of [x0, 72 - x0 - w]) {
     R(g, x, y, w, 38 - y, '#111'); R(g, x + 1, y + 1, w - 2, 2, '#2c2c2c');
@@ -26,7 +27,7 @@ const plate = (g, x, y, name) => {
   }));
 };
 const pair = (g, s, x, y, w, h, c) => { R(g, x + s, y, w, h, c); R(g, 72 - x - w + s, y, w, h, c); }; // mirrored
-const fins = (g, x, y, w, h) => { for (let i = x + 6; i < x + w - 4; i += 6) R(g, i, y, 1, h, '#333'); };
+const fins = (g, x, y, w, h) => { for (let i = x + 4; i < x + w - 3; i += 5) R(g, i, y, 1, h, '#2e2e2e'); };
 const round = (g, c, x, y, w, h, r) => {
   g.fillStyle = c; g.beginPath();
   if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
@@ -34,123 +35,169 @@ const round = (g, c, x, y, w, h, r) => {
 };
 const UPPER = '#eeeadc'; // the microbus's pale upper half
 
+// Smooth body parts: an outline given by the [dx, y, r, k] corners of its right half, mirrored about x 36. Each
+// corner is rounded by r, and slides by k * s (default 1), since parts further forward slide further as the car turns.
+function trace(g, half, s) {
+  const pts = [...half, ...half.slice().reverse().map(([x, y, r, k]) => [-x, y, r, k])]
+    .map(([x, y, r = 0, k = 1]) => [36 + x + k * s, y, r]);
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], n = pts.length;
+  g.beginPath(); g.moveTo(...mid(pts[n - 1], pts[0]));
+  pts.forEach((p, i) => g.arcTo(p[0], p[1], ...mid(p, pts[(i + 1) % n]), p[2]));
+  g.closePath();
+}
+const shape = (g, c, half, s) => { trace(g, half, s); g.fillStyle = c; g.fill(); };
+const within = (g, half, s, fn) => { g.save(); trace(g, half, s); g.clip(); fn(); g.restore(); };
+// The body: its colour inset from a darker rim where it curves away, then fn draws the details inside the outline.
+function shell(g, k, s, half, fn, col = k.col, rim = k.bD) {
+  shape(g, rim, half, s);
+  shape(g, col, half.map(([x, y, r, q]) => [x - 1.5, y, r, q]), s);
+  within(g, half, s, fn);
+}
+const glass = (g, k, s, half) => { // tinted glass with a streak of reflection
+  shape(g, k.glass, half, s);
+  const y0 = half[0][1], y1 = half[half.length - 1][1], x = 36 + s * 2.5;
+  within(g, half, s, () => P(g, '#2b3d57', [x + 7, y0, x + 11, y0, x + 5, y1, x + 1, y1]));
+};
+// Inside a shell: the lower body shaded from y0, and a black bumper or cladding from y1 down.
+const skirt = (g, k, y0, y1, c = '#181818') => { R(g, 0, y0, 72, y1 - y0, S(k.col, 0.8)); R(g, 0, y1, 72, 40 - y1, c); };
+// A lamp outline [x, y]... on the left, drawn with its mirror image on the right.
+const lamps = (g, s, c, pts) => {
+  P(g, c, pts.flatMap(([x, y]) => [x + s, y])); P(g, c, pts.flatMap(([x, y]) => [72 - x + s, y]));
+};
+const mirrors = (g, s, c, dx, y) => { // door mirrors sticking out dx from the centre, seen from behind
+  for (const x of [36 - dx - 4, 36 + dx]) { round(g, c, x + s * 2, y, 4, 3, 1); R(g, x + s * 2 + 0.5, y + 2, 3, 1, '#141414'); }
+};
+
 // k: palette { col, bD (dark), bL (light), bDD, glass, tl (tail lamp), tlL (lamp highlight) } and the plate text
 export const REAR = {
-  pixel(g, k, s) { // compact hatchback: upright tailgate, a black band joining the lamps
-    tyres(g, 25);
-    P(g, k.col, [6 + s, 15, 66 + s, 15, 59 + s * 2.5, 4, 13 + s * 2.5, 4]);
-    P(g, k.glass, [10 + s * 2, 14, 62 + s * 2, 14, 57 + s * 2.5, 6, 15 + s * 2.5, 6]);
-    R(g, 13 + s * 2.5, 3, 46, 2, k.bD);
-    P(g, k.col, [5 + s, 31, 67 + s, 31, 66 + s, 15, 6 + s, 15]);
-    R(g, 7 + s, 16, 58, 3, '#121417');
-    R(g, 6 + s, 16, 15, 4, k.tl); R(g, 51 + s, 16, 15, 4, k.tl);
-    R(g, 7 + s, 17, 5, 1, k.tlL); R(g, 60 + s, 17, 5, 1, k.tlL);
-    R(g, 5 + s, 28, 62, 5, '#1a1a1a'); plate(g, 29 + s, 22, k.plate);
-    R(g, 6 + s, 15, 60, 1, k.bL);
-  },
-  ridge(g, k, s) { // compact SUV: high, dark cladding, C-shaped lamps, roof rails
-    tyres(g, 23);
-    P(g, k.bD, [7 + s, 15, 65 + s, 15, 58 + s * 2.5, 4, 14 + s * 2.5, 4]);
-    P(g, k.glass, [11 + s * 2, 14, 61 + s * 2, 14, 56 + s * 2.5, 6, 16 + s * 2.5, 6]);
-    R(g, 13 + s * 2.5, 3, 46, 2, k.bDD);
-    R(g, 16 + s * 2.5, 2, 3, 1, '#222'); R(g, 53 + s * 2.5, 2, 3, 1, '#222');
-    P(g, k.col, [4 + s, 29, 68 + s, 29, 67 + s, 15, 5 + s, 15]);
-    pair(g, s, 6, 16, 13, 2, k.tl); pair(g, s, 6, 16, 2, 6, k.tl); pair(g, s, 6, 20, 8, 2, k.tl); // C lamps
-    pair(g, s, 7, 16, 4, 1, k.tlL);
-    R(g, 4 + s, 27, 64, 6, '#222'); R(g, 26 + s, 31, 20, 1, '#b0b4b8');
-    plate(g, 29 + s, 20, k.plate);
-    R(g, 5 + s, 15, 62, 1, k.bL);
-  },
-  granite(g, k, s) { // mid-size SUV: tall and broad, slim lamps reaching into the tailgate, chrome trim
-    tyres(g, 22, 12, 4);
-    P(g, k.bD, [6 + s, 14, 66 + s, 14, 60 + s * 2.5, 2, 12 + s * 2.5, 2]);
-    P(g, k.glass, [10 + s * 2, 13, 62 + s * 2, 13, 58 + s * 2.5, 4, 14 + s * 2.5, 4]);
-    R(g, 12 + s * 2.5, 2, 48, 2, k.bDD);
-    R(g, 14 + s * 2.5, 1, 4, 1, '#c0c4c8'); R(g, 54 + s * 2.5, 1, 4, 1, '#c0c4c8');
-    P(g, k.col, [3 + s, 29, 69 + s, 29, 68 + s, 14, 4 + s, 14]);
-    P(g, k.tl, [5 + s, 15, 25 + s, 15, 25 + s, 17, 9 + s, 19, 5 + s, 19]);
-    P(g, k.tl, [67 + s, 15, 47 + s, 15, 47 + s, 17, 63 + s, 19, 67 + s, 19]);
-    R(g, 6 + s, 16, 6, 1, k.tlL); R(g, 60 + s, 16, 6, 1, k.tlL);
-    R(g, 25 + s, 16, 22, 1, '#c0c4c8');
-    R(g, 3 + s, 26, 66, 5, '#202020'); R(g, 12 + s, 29, 48, 1, '#c0c4c8');
-    plate(g, 29 + s, 20, k.plate);
-    R(g, 4 + s, 14, 64, 1, k.bL);
-  },
-  beach(g, k, s) { // retro-styled electric microbus: tall, boxy, two-tone
-    tyres(g, 23);
-    P(g, k.col, [5 + s, 30, 67 + s, 30, 67 + s, 16, 5 + s, 16]);
-    round(g, UPPER, 6 + s * 1.5, 1, 60, 17, 5);
-    round(g, k.glass, 11 + s * 2, 4, 50, 10, 3);
-    R(g, 9 + s * 2, 1, 54, 2, S(UPPER, 0.85));
-    R(g, 5 + s, 17, 62, 4, '#151515');
-    R(g, 6 + s, 17, 13, 4, k.tl); R(g, 53 + s, 17, 13, 4, k.tl);
-    R(g, 7 + s, 18, 4, 1, k.tlL); R(g, 61 + s, 18, 4, 1, k.tlL);
-    R(g, 4 + s, 27, 64, 6, '#1a1a1a'); plate(g, 29 + s, 22, k.plate);
-  },
-  aero(g, k, s) { // sportback: raked rear glass, ducktail, full-width segmented light bar
-    tyres(g, 25);
-    P(g, k.bD, [12 + s * 2, 15, 60 + s * 2, 15, 52 + s * 3, 6, 20 + s * 3, 6]);
-    P(g, k.glass, [16 + s * 2.5, 14, 56 + s * 2.5, 14, 50 + s * 3, 7, 22 + s * 3, 7]);
-    P(g, k.col, [3 + s, 32, 69 + s, 32, 68 + s, 18, 4 + s, 18]);
-    P(g, k.bL, [5 + s * 1.5, 18, 67 + s * 1.5, 18, 62 + s * 2, 14, 10 + s * 2, 14]);
-    R(g, 10 + s * 2, 14, 52, 1, S(k.col, 1.6));
-    R(g, 5 + s, 19, 62, 2, k.tl);
-    for (let i = 0; i < 4; i++) { R(g, 6 + s + i * 3, 19, 2, 2, k.tlL); R(g, 64 + s - i * 3, 19, 2, 2, k.tlL); }
-    R(g, 4 + s, 28, 64, 5, '#161616'); fins(g, 4 + s, 29, 64, 4);
+  pixel(g, k, s) { // compact hatchback: upright tailgate, black glass running down into a band joining the lamps
+    tyres(g, 27);
+    const H = [[21, 3, 3, 2.5], [27, 12, 4, 1.8], [31, 16, 3, 1.3], [32, 26, 3], [31, 33, 2], [24, 34]];
+    mirrors(g, s, k.bD, 26, 11);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[18, 5, 2, 2.5], [25, 18, 1, 1.5]]);
+      R(g, 14 + s * 2.5, 3, 44, 2, '#121417'); R(g, 31 + s * 2.5, 3, 10, 1, k.tl); // spoiler, third brake lamp
+      R(g, 9 + s * 1.5, 15, 54, 4, '#121417');
+      lamps(g, s, k.tl, [[4, 15], [20, 15], [18, 19], [4, 19]]); lamps(g, s, k.tlL, [[5, 16], [10, 16], [10, 17], [5, 17]]);
+      skirt(g, k, 27, 30); pair(g, s, 7, 31, 3, 1, '#6a1010');
+    });
     plate(g, 29 + s, 22, k.plate);
   },
-  wave(g, k, s) { // sleek sedan: rounded body, lit haunches, a light bar that thickens at the corners
-    tyres(g, 25);
-    P(g, k.bD, [13 + s * 2, 16, 59 + s * 2, 16, 51 + s * 3, 7, 21 + s * 3, 7]);
-    P(g, k.glass, [16 + s * 2.5, 15, 56 + s * 2.5, 15, 50 + s * 3, 8, 22 + s * 3, 8]);
-    round(g, k.col, 3 + s, 16, 66, 16, 6);
-    E(g, 14 + s, 19, 10, 3, k.bL); E(g, 58 + s, 19, 10, 3, k.bL);
-    P(g, k.bL, [10 + s * 1.5, 17, 62 + s * 1.5, 17, 58 + s * 2, 15, 14 + s * 2, 15]);
-    R(g, 5 + s, 20, 62, 1, k.tl); R(g, 5 + s, 19, 13, 3, k.tl); R(g, 54 + s, 19, 13, 3, k.tl);
-    R(g, 6 + s, 20, 4, 1, k.tlL); R(g, 62 + s, 20, 4, 1, k.tlL);
-    R(g, 5 + s, 28, 62, 5, '#161616'); fins(g, 5 + s, 29, 62, 4);
-    plate(g, 29 + s, 22, k.plate);
-  },
-  flux(g, k, s) { // low sports sedan: wide hips, raised active spoiler, ring lamps joined by a thin bar
+  ridge(g, k, s) { // compact SUV: tall and rounded, lamps in a grid of square pixels, dark cladding, roof rails
     tyres(g, 25, 12, 4);
-    P(g, k.bD, [14 + s * 2, 15, 58 + s * 2, 15, 50 + s * 3, 6, 22 + s * 3, 6]);
-    P(g, k.glass, [17 + s * 2.5, 14, 55 + s * 2.5, 14, 49 + s * 3, 7, 23 + s * 3, 7]);
-    P(g, k.col, [2 + s, 32, 70 + s, 32, 69 + s, 19, 3 + s, 19]);
-    E(g, 12 + s, 20, 10, 3.5, k.col); E(g, 60 + s, 20, 10, 3.5, k.col);
-    P(g, k.bL, [7 + s * 1.5, 19, 65 + s * 1.5, 19, 60 + s * 2, 15, 12 + s * 2, 15]);
-    R(g, 22 + s * 2, 13, 2, 2, '#111'); R(g, 48 + s * 2, 13, 2, 2, '#111'); R(g, 10 + s * 2, 12, 52, 2, '#151515');
-    R(g, 6 + s, 21, 60, 1, k.tl);
-    for (const x of [4, 56]) { R(g, x + s, 19, 12, 5, k.tl); R(g, x + 3 + s, 20, 6, 3, '#2a0808'); }
-    R(g, 5 + s, 20, 2, 1, k.tlL); R(g, 65 + s, 20, 2, 1, k.tlL);
-    R(g, 3 + s, 28, 66, 5, '#141414'); fins(g, 3 + s, 29, 66, 4);
+    const H = [[22, 2, 3, 2.5], [28, 12, 3, 1.8], [32, 15, 3, 1.3], [33, 25, 3], [32, 33, 2], [24, 34]];
+    mirrors(g, s, k.bD, 27, 10);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[19, 4, 2, 2.5], [25, 14, 1, 1.6]]);
+      R(g, 14 + s * 2.5, 2, 44, 2, k.bDD);
+      R(g, 0, 16, 72, 5, '#141418'); // a black band across, lamps of square pixels at its ends
+      for (const x of [4, 52]) for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) R(g, x + s + i * 3, 17 + j * 2, 2, 1, j ? k.tl : k.tlL);
+      skirt(g, k, 24, 27, '#232323'); R(g, 26 + s, 31, 20, 1, '#b0b4b8');
+    });
+    pair(g, s * 2.5, 16, 0.5, 6, 1.5, '#222'); // roof rails
+    plate(g, 29 + s, 21, k.plate);
+  },
+  granite(g, k, s) { // mid-size SUV: tall, smooth and broad, slim lamps joined by a light bar, chrome trim
+    tyres(g, 24, 12, 4);
+    const H = [[22, 1, 4, 2.5], [28, 11, 4, 1.8], [33, 14, 3, 1.3], [34, 24, 3], [33, 32, 3], [25, 34]];
+    mirrors(g, s, k.bD, 28, 9);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[20, 3, 3, 2.5], [26, 12.5, 1, 1.7]]);
+      R(g, 13 + s * 2.5, 1, 46, 2, k.bDD);
+      R(g, 0, 14, 72, 1, k.bL);
+      lamps(g, s, k.tl, [[2, 15], [22, 15], [22, 16], [3, 18]]); R(g, 22 + s, 15, 28, 1, k.tl);
+      lamps(g, s, k.tlL, [[4, 15], [10, 15], [10, 16], [4, 16]]);
+      skirt(g, k, 25, 29, '#202020'); R(g, 14 + s, 31, 44, 1, '#c0c4c8');
+    });
+    plate(g, 29 + s, 21, k.plate);
+  },
+  beach(g, k, s) { // retro-styled electric microbus: tall, rounded and two-tone, lamps joined by a light line
+    tyres(g, 28, 11, 6);
+    const L = [[29, 16, 0, 1.5], [29, 34, 4]], U = [[27.5, 0, 7, 2], [28.5, 18, 0, 1.5]];
+    mirrors(g, s, S(UPPER, 0.8), 29, 12);
+    shell(g, k, s, L, () => {
+      R(g, 7 + s * 1.5, 19, 58, 1, k.tl);
+      lamps(g, s, k.tl, [[6, 18], [20, 18], [19, 21], [6, 21]]); lamps(g, s, k.tlL, [[7, 19], [12, 19], [12, 20], [7, 20]]);
+      skirt(g, k, 27, 30); pair(g, s, 8, 31, 3, 1, '#6a1010');
+    });
+    shell(g, k, s, U, () => {
+      glass(g, k, s, [[24, 3, 3, 2], [24.5, 14, 3, 1.6]]);
+      R(g, 32 + s * 2, 1, 8, 1, k.tl);
+    }, UPPER, S(UPPER, 0.82));
     plate(g, 29 + s, 23, k.plate);
   },
-  blitz(g, k, s) { // low roadster: wide hips, small cabin under a black targa roof, slim lamps
-    tyres(g, 26, 12, 4);
-    P(g, k.bD, [20 + s * 2.5, 16, 52 + s * 2.5, 16, 47 + s * 3, 9, 25 + s * 3, 9]);
-    P(g, k.glass, [22 + s * 2.5, 15, 50 + s * 2.5, 15, 46 + s * 3, 10, 26 + s * 3, 10]);
-    R(g, 25 + s * 3, 8, 22, 2, '#141414');
-    P(g, k.col, [3 + s, 33, 69 + s, 33, 68 + s, 21, 4 + s, 21]);
-    E(g, 12 + s, 22, 10, 3, k.col); E(g, 60 + s, 22, 10, 3, k.col);
-    P(g, k.bL, [7 + s * 1.5, 21, 65 + s * 1.5, 21, 58 + s * 2, 16, 14 + s * 2, 16]);
-    P(g, k.tl, [5 + s, 22, 22 + s, 22, 20 + s, 24, 5 + s, 24]);
-    P(g, k.tl, [67 + s, 22, 50 + s, 22, 52 + s, 24, 67 + s, 24]);
-    R(g, 5 + s, 22, 4, 1, k.tlL); R(g, 63 + s, 22, 4, 1, k.tlL);
-    R(g, 4 + s, 29, 64, 4, '#141414'); fins(g, 4 + s, 29, 64, 4);
-    plate(g, 29 + s, 24, k.plate);
+  aero(g, k, s) { // sportback: glass raked down to a ducktail, a full-width light blade
+    tyres(g, 27);
+    const H = [[14, 6, 3, 3], [23, 13, 3, 2.2], [31, 17, 3, 1.3], [33, 24, 2], [32, 32, 3], [24, 34]];
+    mirrors(g, s, k.bD, 22, 12);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[12.5, 7.5, 2, 3], [21, 14, 1, 2.2]]);
+      R(g, 0, 15.5, 72, 1, k.bL);
+      R(g, 0, 19, 72, 1, k.tl); lamps(g, s, k.tl, [[2, 18], [14, 19], [14, 21], [2, 22]]);
+      lamps(g, s, k.tlL, [[3, 19], [8, 19], [8, 20], [3, 20]]);
+      skirt(g, k, 26, 29); R(g, 12 + s, 33, 48, 1, '#3a3a3a');
+    });
+    plate(g, 29 + s, 23, k.plate);
+  },
+  wave(g, k, s) { // sleek sedan: rounded all over, glass roof, slim wrap-around lamps, ducktail
+    tyres(g, 27);
+    const H = [[13, 6, 4, 3], [22, 14, 3, 2.2], [30, 16, 3, 1.5], [33, 21, 3], [33, 27, 2], [31, 33, 3], [24, 34]];
+    mirrors(g, s, k.bD, 21, 12);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[12, 6.5, 3, 3], [21.5, 14.5, 1, 2.2]]);
+      R(g, 0, 16, 72, 1, k.bL);
+      lamps(g, s, k.tl, [[2, 18], [19, 18.5], [17, 20.5], [3, 21]]); lamps(g, s, k.tlL, [[4, 19], [9, 19], [9, 20], [4, 20]]);
+      skirt(g, k, 26, 30);
+    });
+    plate(g, 29 + s, 23, k.plate);
+  },
+  flux(g, k, s) { // low sports sedan: wide hips, narrow glass, a light strip across, finned diffuser
+    tyres(g, 27, 12, 4);
+    const H = [[12, 6, 3, 3], [21, 14, 3, 2.2], [27, 16, 3, 1.6], [33, 18, 3, 1.2], [34, 23, 3], [33, 33, 3], [24, 34]];
+    mirrors(g, s, k.bD, 20, 12);
+    shell(g, k, s, H, () => {
+      glass(g, k, s, [[11, 7.5, 2, 3], [19.5, 14, 1, 2.2]]);
+      R(g, 0, 16.5, 72, 1, k.bL);
+      R(g, 0, 19, 72, 3, '#1a0808'); R(g, 0, 20, 72, 1, k.tl);
+      lamps(g, s, k.tl, [[1, 18], [13, 19], [13, 22], [1, 22]]); lamps(g, s, k.tlL, [[2, 19], [7, 19], [7, 20], [2, 20]]);
+      skirt(g, k, 26, 29); fins(g, 20 + s, 30, 32, 4);
+    });
+    plate(g, 29 + s, 23, k.plate);
+  },
+  blitz(g, k, s) { // low roadster: wings rising over the rear wheels, a bubble cabin under a black glass roof
+    tyres(g, 27, 12, 3);
+    const H = [[10, 17, 2, 1.6], [20, 16, 3, 1.5], [26, 14.5, 4, 1.4], [32, 17, 3, 1.2], [34, 22, 3], [33, 31, 3], [26, 34]];
+    mirrors(g, s, k.bD, 14, 13);
+    shape(g, '#141414', [[9, 7, 4, 3], [15, 18, 0, 2.5]], s);
+    glass(g, k, s, [[8, 9.5, 3, 3], [12.5, 17, 0, 2.5]]);
+    shell(g, k, s, H, () => {
+      lamps(g, s, k.tl, [[2, 19.5], [17, 18], [16, 20], [2.5, 21.5]]); lamps(g, s, k.tlL, [[3, 19.5], [8, 19], [8, 20], [3, 20.5]]);
+      skirt(g, k, 26, 29); fins(g, 18 + s, 30, 36, 4);
+    });
+    plate(g, 29 + s, 23, k.plate);
   },
 };
 
-// Right-hand flank geometry, in straight-on rear-art coordinates: body side top/bottom, deck height, body edge x,
-// cabin rear edge [bottom x, bottom y, top x, top y], how far s slides it [bottom, top], and optionally how far
-// the cabin reaches forward along the side [bottom, top] and its colour (default: the body's, darkened).
+// Right-hand flank geometry, in straight-on rear-art coordinates: body side top/bottom, body edge x,
+// cabin rear edge [bottom x, bottom y, top x, top y] and how far s slides it [bottom, top]. Along the side (0 tail,
+// 1 nose): len, where the windscreen meets the bonnet and the roof [bottom, top]; hood, the wing's height at the
+// windscreen and at the nose; whl, the wheels [rear, front, radius]; lamp, the tail lamp's rows; cpil, where the
+// side glass starts; doors, where the door pillars stand; clad, dark arches and sills; upper, the cabin's colour.
 export const PROFILE = {
-  pixel: { top: 15, bot: 33, deck: 14, edge: 67, cab: [66, 15, 59, 4], slide: [1, 2.5], len: [0.8, 0.65] },
-  ridge: { top: 15, bot: 33, deck: 14, edge: 68, cab: [65, 15, 58, 4], slide: [1, 2.5], len: [0.8, 0.65] },
-  granite: { top: 14, bot: 31, deck: 13, edge: 69, cab: [66, 14, 60, 2], slide: [1, 2.5], len: [0.82, 0.68] },
-  beach: { top: 17, bot: 33, deck: 16, edge: 67, cab: [66, 16, 66, 1], slide: [1.5, 1.5], len: [0.95, 0.9], upper: UPPER },
-  aero: { top: 18, bot: 33, deck: 14, edge: 69, cab: [60, 15, 52, 6], slide: [2, 3] },
-  wave: { top: 16, bot: 33, deck: 15, edge: 69, cab: [59, 16, 51, 7], slide: [2, 3] },
-  flux: { top: 19, bot: 33, deck: 15, edge: 70, cab: [58, 15, 50, 6], slide: [2, 3] },
-  blitz: { top: 21, bot: 33, deck: 16, edge: 69, cab: [52, 16, 47, 9], slide: [2.5, 3], len: [0.55, 0.4] },
+  pixel: { top: 16, bot: 33, edge: 68, cab: [64, 15, 57, 3], slide: [1.8, 2.5], len: [0.78, 0.6],
+    hood: [17, 20], whl: [0.16, 0.85, 6.5], lamp: [15, 19], cpil: 0.06, doors: [0.42] },
+  ridge: { top: 15, bot: 33, edge: 69, cab: [64, 14, 58, 2], slide: [1.8, 2.5], len: [0.76, 0.58],
+    hood: [16, 19], whl: [0.17, 0.83, 7.5], lamp: [16, 22], cpil: 0.08, doors: [0.42], clad: true },
+  granite: { top: 14, bot: 32, edge: 70, cab: [64, 13, 58, 1], slide: [1.8, 2.5], len: [0.74, 0.56],
+    hood: [15, 18], whl: [0.17, 0.83, 8], lamp: [15, 18], cpil: 0.08, doors: [0.42], clad: true },
+  beach: { top: 18, bot: 33, edge: 65, cab: [64.5, 18, 63.5, 2], slide: [1.5, 2], len: [0.95, 0.84],
+    hood: [19, 21], whl: [0.14, 0.86, 7], lamp: [18, 21], cpil: 0.06, doors: [0.3, 0.62], upper: UPPER },
+  aero: { top: 18, bot: 33, edge: 69, cab: [59, 14, 50, 6], slide: [2.2, 3], len: [0.66, 0.42],
+    hood: [19, 22], whl: [0.19, 0.82, 7], lamp: [19, 21], cpil: 0.04, doors: [0.36] },
+  wave: { top: 18, bot: 33, edge: 69, cab: [58, 14.5, 49, 6], slide: [2.2, 3], len: [0.68, 0.44],
+    hood: [18, 22], whl: [0.19, 0.82, 7], lamp: [18, 21], cpil: 0.06, doors: [0.38] },
+  flux: { top: 19, bot: 33, edge: 70, cab: [57, 14, 48, 6], slide: [2.2, 3], len: [0.64, 0.42],
+    hood: [20, 23], whl: [0.2, 0.82, 7.5], lamp: [19, 22], cpil: 0.04, doors: [0.34] },
+  blitz: { top: 18, bot: 33, edge: 70, cab: [51, 17.5, 45, 7], slide: [2.5, 3], len: [0.55, 0.4],
+    hood: [21, 24], whl: [0.2, 0.84, 7.5], lamp: [18, 21.5], cpil: 0.04, doors: [] },
 };
