@@ -64,15 +64,16 @@ const TURN = [[1, 0], [0.86, 10], [0.74, 18]]; // per steer level: rear-face squ
 
 // Side of the car as seen when it yaws right: starts at the rear face's edge (ex) and recedes over fw px.
 function drawFlank(g, p, col, k, ex, fw, cb, ct) {
-  const c = 0.07 * k, X = d => ex + d * fw, Y = (d, y) => y * (1 - d * c), pt = (d, y) => [X(d), Y(d, y)];
+  const c = 0.03 * k, X = d => ex + d * fw, Y = (d, y) => y * (1 - d * c), pt = (d, y) => [X(d), Y(d, y)];
   const poly = (colr, ...pts) => P(g, colr, pts.flat());
   const corner = [ex - 3, p.deck]; // rear deck's outer corner, so the shoulder meets the rear face
-  poly(S(col, 0.78), corner, pt(0.3, p.deck + 1), pt(1, p.top - 1), pt(1, p.bot - 2), pt(0, p.bot), pt(0, p.top));
+  poly(S(col, 0.78), corner, pt(0.3, p.deck + 1), pt(1, p.top - 1), pt(1, p.bot), pt(0, p.bot), pt(0, p.top));
   poly(S(col, 1.35), corner, pt(0.3, p.deck + 1), pt(1, p.top - 1), pt(1, p.top), pt(0.3, p.deck + 2), [ex - 3, p.deck + 1]);
-  poly('#1a1a1a', pt(0, p.bot - 4), pt(1, p.bot - 5), pt(1, p.bot - 2), pt(0, p.bot));
+  poly('#1a1a1a', pt(0, p.bot - 4), pt(1, p.bot - 4), pt(1, p.bot), pt(0, p.bot));
   poly(S(col, 1.6), pt(0.94, p.top + 2), pt(1, p.top + 1), pt(1, p.top + 4), pt(0.94, p.top + 4));
   for (const d of [0.2, 0.84]) {
-    const x = X(d), y = Y(d, 31), ry = 6.5 * (1 - d * c), rx = Math.max(1.2, fw * 0.11);
+    // same size as the rear tyres (y 24..38) and resting on the same ground line, scaled for distance
+    const ry = 7 * (1 - d * c), x = X(d), y = Y(d, 38) - ry, rx = Math.max(1.2, fw * 0.11);
     E(g, x, y - 1, rx + 1, ry + 1, S(col, 0.35));
     E(g, x, y, rx, ry, '#111');
     E(g, x, y, rx * 0.45, ry * 0.45, '#5a5a5a');

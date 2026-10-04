@@ -1,11 +1,8 @@
 # Todo
 
-[x] when the cars moves left or right it doesn't look good. you should see the side of the car instead of the current animation
-[x] get rid of all lotus remarks. name the game electro car racer. mention something like a tribute to race games from the 80/90s. 
-[x] create a claude.md file and write down everything important
-[x] keep the files below 300 lines of code. split if needed and create a good code structure
-[x] add vite build step
-[x] add option where you run out of energy and you need to collect energy along the way. if you run empty you will put behind the last place.
-[x] add option for power boost where you can collect super power
-[x] implement the rubberbanding effect to keep the field closer together
-[x] update the todo skill to match this project
+[x] when the car moves left or right it looks like if the front wheel is in the air
+[ ] add another soundtrack which sounds similar to the Louts 3 Ultimate challenge title soundtrack
+[ ] it's an electric car. it does not make sense that you have gears and rpm. it's more about energy spent like used kw. 
+[ ] the motor sounds like a gas vehicle. it should sound like an electric car
+[ ] the obstacles should not directly be behind a hill. otherwise the player has no time to react
+[ ] add an electro shock goodie. which reduces the speed of the car in front to 70-80% of the max speed. it should be a collectible like  a banana in mario kart
