@@ -55,4 +55,5 @@ window.__ecr = {
 
 Touch.init();
 go('Title');
+if (Input.touch() && !settings.names[0]) go('NameEntry'); // a phone asks a new player's name first, upright
 requestAnimationFrame(frame);
