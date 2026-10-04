@@ -153,3 +153,4 @@ await import('./pickups.js'); // energy cells by place, one boost or flash at a 
 }
 
 await import('./flows.js'); // game flow through the real key handlers, then online
+await import('./pages.js'); // the touch menus' pages, tapped through

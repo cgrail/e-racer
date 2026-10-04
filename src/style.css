@@ -12,7 +12,7 @@ body {
   align-items: center;
   justify-content: center;
 }
-canvas {
+#screen {
   display: block;
   width: min(100vw, 160vh);
   height: min(62.5vw, 100vh);
@@ -20,7 +20,7 @@ canvas {
   image-rendering: crisp-edges;
   background: #000;
 }
-canvas:fullscreen {
+#screen:fullscreen {
   width: min(100vw, 160vh);
   height: min(62.5vw, 100vh);
 }
@@ -29,14 +29,14 @@ canvas:fullscreen {
    less the camera side(s), stretched to its shape. A phone held upright gets the stage turned a quarter, so the
    game fills its height. fit() in touch.js sets the stage (--sl, --st, --sw, --sh, --rot) and, on .touch, how far
    the home bar reaches into it (--r, --b). */
-html, body, canvas { touch-action: none; }
+html, body, #screen { touch-action: none; }
 body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .touch {
   display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace;
   --l: 0px; --r: 0px; --t: 0px; --b: 0px;
 }
 body.touching .touch { display: block; }
-body.touching canvas, body.touching .touch {
+body.touching #screen, body.touching .touch {
   position: fixed; inset: auto; left: var(--sl, 0px); top: var(--st, 0px);
   width: var(--sw, 100vw); height: var(--sh, 100dvh);
   transform: var(--rot, none); transform-origin: 0 0;
@@ -91,24 +91,119 @@ body.touching canvas, body.touching .touch {
   background: rgba(255, 255, 255, 0.22);
 }
 
-/* Menus: buttons in the panel style of the game's menus (ui.js panel and the selected-row gradient) */
+/* Elsewhere: BACK in the panel style of the game's menus (ui.js panel and the selected-row gradient) */
 .mb {
   color: #ffe040; font-size: 16px; text-shadow: 2px 2px 0 #0a0a30;
   background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; box-shadow: inset 0 0 0 3px rgba(8, 10, 40, 0.86), inset 0 0 0 4px #1c2a80;
 }
 .mb.on { color: #fff; background: linear-gradient(90deg, rgba(255, 40, 160, 0.75), rgba(60, 80, 255, 0.5)); }
-.mb.prev, .mb.next { display: none; width: 72px; height: 52px; bottom: calc(10px + var(--b)); }
-.touch.rows .mb.prev, .touch.rows .mb.next { display: flex; }
-.mb.prev { left: calc(10px + var(--l)); }
-.mb.next { right: calc(10px + var(--r)); }
 .mb.back { width: 72px; height: 36px; top: calc(8px + var(--t)); left: calc(8px + var(--l)); font-size: 9px; }
-.touch .type {
-  display: none; position: absolute; left: 50%; top: calc(10px + var(--t)); transform: translateX(-50%);
-  width: 180px; padding: 8px; pointer-events: auto; font: inherit; font-size: 10px; color: #fff; caret-color: transparent;
-  background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; text-align: center;
-  -webkit-user-select: text; user-select: text; /* iOS won't type into a field that inherits body's 'none' */
+
+/* Menus on a touch screen (game/page.js), laid out like mech.grails.de in the game's own colours: a nav bar with the
+   way back, a scrolling column of cards (all as wide as --col) and the green action pinned below it, so neither
+   ever scrolls away. An upright page covers the screen; a staged one (pause) sits in the stage, over the race.
+   touch-action pan-y, on everything in it (it isn't inherited), lets the column scroll but leaves out pinch and
+   double-tap zoom. */
+.page {
+  position: fixed; inset: 0; z-index: 5; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  --col: min(440px, calc(100vw - 24px));
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  font-family: 'Press Start 2P', monospace; color: #fff; text-align: center; pointer-events: auto;
+  background: linear-gradient(#101a70, #0a0a30 45%, #05051c);
+  -webkit-tap-highlight-color: transparent;
 }
-.touch.typing .type { display: block; }
+.page, .page * { box-sizing: border-box; touch-action: pan-y; }
+.page.staged { position: absolute; --col: min(380px, 92%); padding: var(--t) var(--r) var(--b) var(--l); background: rgba(0, 0, 20, 0.62); }
+.page .nav {
+  position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 60px;
+  background: rgba(8, 10, 40, 0.92); border-bottom: 2px solid #4a6cff; box-shadow: 0 2px 0 #1c2a80;
+}
+.page .title { font-size: 13px; letter-spacing: 3px; color: #ffe040; text-shadow: 2px 2px 0 #0a0a30; }
+.page button {
+  margin: 0; padding: 0; font: inherit; color: #9fb0ff; border-radius: 0; -webkit-appearance: none; appearance: none;
+  background: rgba(20, 26, 80, 0.9); border: 1px solid #2a3a9a; border-top-color: #6a8aff; border-left-color: #4a6cff;
+  box-shadow: inset 0 0 0 1px rgba(8, 10, 40, 0.6);
+}
+.page .back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 44px; height: 34px; font-size: 14px; color: #ffe040; }
+.page .list {
+  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: #4a6cff transparent;
+}
+.page .list::before, .page .list::after { content: ''; flex: 1 0 0; } /* centred while short, from the top while long */
+.page .list > *, .page .foot > * { width: var(--col); }
+/* a card: the canvas menus' panel, its title bar on top */
+.page .card {
+  flex: none; display: flex; flex-direction: column; padding: 4px; text-align: left;
+  background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; box-shadow: inset 0 0 0 3px rgba(8, 10, 40, 0.86), inset 0 0 0 4px #1c2a80;
+}
+.page .head {
+  display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 4px 8px;
+  background: linear-gradient(#3050ff, #101a70); font-size: 10px; letter-spacing: 2px; color: #ffe040;
+}
+.page .head .ico { font-size: 12px; }
+.page .body { display: flex; flex-direction: column; gap: 8px; padding: 10px 6px 6px; }
+/* ◂ LABEL VALUE ▸ (a field fills the whole row) */
+.page .opt { display: flex; gap: 6px; height: 44px; }
+.page .step { flex: none; width: 44px; height: 100%; font-size: 14px; color: #ffe040; }
+.page .opt .main {
+  flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px;
+  background: rgba(20, 26, 80, 0.9); border: 1px solid #2a3a9a; border-top-color: #6a8aff; border-left-color: #4a6cff;
+}
+.page .k { flex: 1 1 0; min-width: 0; font-size: 9px; line-height: 1.5; color: #9fb0ff; text-align: left; }
+.page .v { flex: none; max-width: 70%; font-size: 10px; color: #ffe040; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page .v.notches { display: flex; gap: 2px; width: 60%; max-width: 150px; height: 12px; }
+.page .notches i { flex: 1; background: rgba(255, 255, 255, 0.12); }
+.page .field .k { flex: none; }
+.page .field .main:focus-within { border-color: #ff28a0; }
+.page button:active, .page .opt .main:active { color: #fff; background: linear-gradient(90deg, rgba(255, 40, 160, 0.75), rgba(60, 80, 255, 0.5)); }
+.page input.v {
+  flex: 1 1 0; max-width: none; height: 100%; margin: 0; padding: 0; font: inherit; font-size: 16px; color: #ffe040; caret-color: #ff28a0;
+  background: none; border: 0; border-radius: 0; outline: none; -webkit-user-select: text; user-select: text; /* iOS won't type otherwise */
+}
+.page input.v::placeholder { color: #4a5a9a; }
+.page .act { height: 44px; font-size: 10px; letter-spacing: 2px; color: #7fffb0; }
+/* the car (or course) picture, lines under it, bars */
+.page .pic { display: flex; justify-content: center; padding: 6px; background: rgba(0, 0, 0, 0.35); }
+.page .pic canvas { display: block; max-width: 100%; image-rendering: pixelated; }
+.page .pic canvas.fill { width: 100%; image-rendering: auto; }
+.page .lines { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 9px; line-height: 1.5; text-align: center; }
+.page .lines .big { font-size: 18px; }
+.page .bars { display: flex; flex-direction: column; gap: 7px; padding: 0 4px; }
+.page .bar { display: grid; grid-template-columns: 1fr 1.3fr; align-items: center; gap: 8px; font-size: 8px; color: #9fb0ff; }
+.page .bar > span:last-child { height: 6px; background: rgba(255, 255, 255, 0.12); }
+.page .bar i { display: block; height: 100%; background: #ffe040; }
+.page .note, .page .sub { font-size: 8px; line-height: 1.7; color: #7080b0; text-align: center; }
+/* how to drive: the racing buttons as they look, and what they do */
+.page .help { display: flex; flex-direction: column; gap: 10px; }
+.page .tip { display: flex; align-items: center; gap: 10px; font-size: 8px; line-height: 1.7; color: #c0c8ff; }
+.page .chip {
+  flex: none; width: 56px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 17px;
+  font-size: 7px; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+.page .chip.brake { color: #ffd0d0; background: radial-gradient(circle at 50% 35%, rgba(255, 96, 96, 0.42), rgba(200, 16, 16, 0.26)); border-color: rgba(255, 80, 80, 0.8); }
+.page .chip.boost { color: #ffd0ff; background: radial-gradient(circle at 50% 35%, rgba(255, 128, 255, 0.45), rgba(200, 32, 200, 0.28)); border-color: rgba(255, 112, 255, 0.85); }
+.page .chip.flash { color: #d0f6ff; background: radial-gradient(circle at 50% 35%, rgba(112, 228, 255, 0.45), rgba(16, 150, 220, 0.28)); border-color: rgba(64, 216, 255, 0.85); }
+.page .chip.cell { color: #d8ffe8; background: radial-gradient(circle at 50% 35%, rgba(127, 255, 176, 0.45), rgba(32, 180, 96, 0.28)); border-color: rgba(127, 255, 176, 0.85); }
+/* the footer: the green action (the first go row), the others under it */
+.page .foot {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 12px 12px;
+  background: linear-gradient(rgba(5, 5, 28, 0), rgba(5, 5, 28, 0.94) 35%);
+}
+.page .foot:empty { display: none; }
+.page .go {
+  height: 54px; font-size: 16px; letter-spacing: 4px; color: #06210b;
+  background: linear-gradient(#7ce065, #2f9d3a); border: 2px solid #bcffa8; box-shadow: 0 0 18px rgba(54, 201, 74, 0.45);
+}
+.page .go:active { color: #06210b; background: linear-gradient(#9cf085, #3fb04a); }
+.page .alt { height: 44px; font-size: 11px; letter-spacing: 2px; }
+@media (max-height: 460px) { /* a phone on its side */
+  .page .nav { min-height: 40px; }
+  .page .back { height: 30px; }
+  .page .list { gap: 8px; padding: 8px 12px; }
+  .page .foot { padding: 6px 12px 8px; }
+  .page .go { height: 44px; }
+}
 
 /* A phone's first stop while it has no name (game/askname.js): a plain page, upright and over everything, kept to
    the top so the keyboard leaves it in view */
@@ -129,9 +224,9 @@ body.touching canvas, body.touching .touch {
 }
 .ask input:focus { border-color: #ff28a0; }
 .ask button { font: inherit; border-radius: 0; -webkit-appearance: none; appearance: none; }
-.ask .go {
-  padding: 14px 32px; font-size: 16px; color: #ffe040; text-shadow: 2px 2px 0 #0a0a30;
-  background: linear-gradient(90deg, rgba(255, 40, 160, 0.75), rgba(60, 80, 255, 0.5)); border: 2px solid #4a6cff;
+.ask .go { /* the menu pages' green action */
+  padding: 14px 32px; font-size: 16px; letter-spacing: 4px; color: #06210b;
+  background: linear-gradient(#7ce065, #2f9d3a); border: 2px solid #bcffa8; box-shadow: 0 0 18px rgba(54, 201, 74, 0.45);
 }
 .ask .skip { padding: 8px 16px; color: #7080b0; background: none; border: 0; }
 @media (max-height: 500px) { /* a phone on its side: just the question */

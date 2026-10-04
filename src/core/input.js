@@ -76,7 +76,7 @@ export const Input = (() => {
       ok: anyPressed(['Enter', 'Space', 'NumpadEnter']), back: anyPressed(['Escape', 'Backspace']),
       pause: anyPressed(['Escape', 'KeyP']), tap: tapAt,
     };
-    if (tapAt) m.ok = true; // a tap confirms; rowsNav (game/ui.js) turns a tap on a row into picking it
+    if (tapAt) m.ok = true; // a tap goes on (menus with rows are pages of their own on a touch screen, game/page.js)
     for (let i = 0; i < pads.length; i++) {
       m.up = m.up || padHit(i, 12); m.down = m.down || padHit(i, 13);
       m.left = m.left || padHit(i, 14); m.right = m.right || padHit(i, 15);
@@ -100,7 +100,6 @@ export const Input = (() => {
     touch: () => auto,
     setSteer: v => { touchSteer = v; },
     tap: (x, y) => { tapAt = { x, y }; },
-    type: s => typed.push(...s),
     pressed: code => pressed.has(code),
     typed: () => typed.slice(),
     onGesture: fn => gestureHandlers.push(fn),

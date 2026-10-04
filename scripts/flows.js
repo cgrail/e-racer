@@ -48,20 +48,9 @@ hold('KeyW'); hold('ArrowUp'); frames(60 * 10); moved();
   const x0 = car.x;
   Input.setSteer(1); frames(30); Input.setSteer(null);
   if (!(car.x > x0 + 0.1)) throw new Error('touch: dragging right did not steer right');
-  const touch = (x, y) => { Input.tap(x, y); frames(1); }, race = window.__ecr.scenes.RaceScene;
-  tap('Escape'); // pause menu rows from y 110, spread 20 apart on touch: CONTINUE, RESTART RACE, QUIT TO MENU, BUTTONS
-  touch(200, 152); if (!race.paused || race.psel !== 2) throw new Error('touch: menu rows did not spread out for touch');
-  touch(200, 132); if (!race.paused || race.psel !== 1) throw new Error('touch: tapping a row did not select it');
-  touch(200, 112); if (!race.paused || race.psel !== 0) throw new Error('touch: tapping a row confirmed it before selecting');
-  touch(20, 20); if (!race.paused) throw new Error('touch: a tap beside the rows did something');
-  const side = () => [window.__ecr.settings.buttons, JSON.parse(store.get('ecr.settings')).buttons].join();
-  touch(200, 172); if (race.psel !== 3 || side() !== '0,0') throw new Error('touch: BUTTONS row missing from the pause menu, or changed on selecting');
-  touch(200, 172); if (!race.paused || side() !== '1,1') throw new Error('touch: BUTTONS did not move the racing buttons right and save it');
-  touch(300, 172); if (side() !== '0,0') throw new Error('touch: BUTTONS did not move the racing buttons back left');
-  touch(200, 112); touch(200, 112); if (race.paused) throw new Error('touch: tapping the selected row did not confirm it');
   Input.setAuto(false); hold('KeyW'); hold('ArrowUp');
 }
-console.log('game flow: title, name for a new player, menu, championship, 2P time challenge, course builder race, touch driving and menus OK');
+console.log('game flow: title, name for a new player, menu, championship, 2P time challenge, course builder race, touch driving OK');
 
 // ---------------------------------------------------------------- online: the real server lobby behind a fake WebSocket
 {

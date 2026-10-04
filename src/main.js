@@ -38,7 +38,7 @@ function frame(now) {
   Touch.update();
   game.scene.update(dt);
   g.imageSmoothingEnabled = false;
-  game.scene.draw(dt);
+  if (!Touch.covers()) game.scene.draw(dt); // not while a touch menu page hides the canvas
   Input.endFrame();
   requestAnimationFrame(frame);
 }
