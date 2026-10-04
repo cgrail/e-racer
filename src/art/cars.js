@@ -5,10 +5,10 @@ import { REAR, PROFILE } from './carmodels.js';
 // the 72x40 layout, so they stay smooth when scaled down to the screen, and carry a 72x40 copy (mip) for far away.
 const carCache = new Map(), SS = 2, CACHE_MAX = 320; // drawn on demand, so a full cache just starts again
 const lamps = brake => [brake ? '#ff4a3a' : '#b81410', brake ? '#ffe0c0' : '#ff6048'];
-function drawRear(g, model, col, s, brake, plate, near = 0) { // near: the side whose rear tyre the flank draws
+function drawRear(g, model, col, s, brake, plate, turned = false) { // turned: the flank draws the rear tyres
   const [tl, tlL] = lamps(brake), p = PROFILE[model];
   REAR[model](g, { col, bD: S(col, 0.62), bL: S(col, 1.35), bDD: S(col, 0.4), glass: '#1d2a3c', tl, tlL, plate,
-    glow: brake ? 'rgba(255,70,40,1)' : 'rgba(255,30,20,0.8)', blur: (brake ? 4 : 2.5) * SS, sh: p.lamp[0], tyre: p.tyre, near }, s);
+    glow: brake ? 'rgba(255,70,40,1)' : 'rgba(255,30,20,0.8)', blur: (brake ? 4 : 2.5) * SS, sh: p.lamp[0], tyre: p.tyre, turned }, s);
 }
 
 const TURN = [[1, 0], [0.88, 10], [0.78, 18]]; // per steer level: rear-face squash, flank width
@@ -18,9 +18,9 @@ const GLASS = '#1d2a3c', SHINE = 'rgba(160,190,230,0.35)';
 // Side of the car as seen when it yaws right: it starts at the rear face's edge (ex) and recedes over
 // fw px towards a vanishing point up on the horizon, so the nose sits higher and smaller than the tail.
 // Points are (d, y, x): d runs 0 at the tail to 1 at the nose, y and x are in rear-art pixels. It is drawn in
-// two layers: under the rear face, the shade beneath the car and the wheels' treads, reaching tw in from the side
-// (so the rear wheel is one tyre with the tread seen from behind); over it, everything else.
-function drawFlank(g, under, p, col, tl, ex, fw, cb, ct, tw) {
+// two layers: under the rear face, the shade beneath the car and the treads, tw wide, of the near wheels and the
+// far rear one (whose outer face is at fx), each tyre whole and in perspective; over it, everything else.
+function drawFlank(g, under, p, col, tl, ex, fw, cb, ct, [fx, tw]) {
   const VX = ex + fw / Q, a = Q / (1 - Q), sc = d => 1 / (1 + a * d);
   const pt = (d, y, x = ex) => { const s = sc(d); return [VX + (x - VX) * s, VY + (y - VY) * s]; };
   const poly = (colr, pts) => P(g, colr, pts.flat());
@@ -40,12 +40,16 @@ function drawFlank(g, under, p, col, tl, ex, fw, cb, ct, tw) {
 
   if (under) {
     poly('rgba(0,0,0,0.5)', [pt(0, bot), pt(1, bot), pt(0.9, 38), pt(0, 38)]); // shade under the car
-    for (const d of [p.whl[0], p.whl[1]]) {
-      const s = sc(d), ey = r * s, ew = ey * fw / 46, [x1, y1] = hub(d), [ix, iy] = hub(d, ex - tw);
-      E(g, ix, iy, ew, ey, '#050505');
-      poly(grad(g, ix, 0, x1, 0, [[0, '#050505'], [0.55, '#2c2c2e'], [1, '#0c0c0c']]), [[ix, iy - ey], [x1, y1 - ey], [x1, y1 + ey], [ix, iy + ey]]);
-      for (let ty = 3 * s; ty < ey; ty += 3 * s) poly('rgba(0,0,0,0.55)', [[ix, iy + ty], [x1, y1 + ty], [x1, y1 + ty + 0.7 * s], [ix, iy + ty + 0.7 * s]]);
-    }
+    // a tread between the faces at xa and xb, rounded off by the face at xa, and by a sidewall facing us at xb
+    const tread = (d, xa, xb, side) => {
+      const s = sc(d), ey = r * s, ew = ey * fw / 46, [ax, ay] = hub(d, xa), [bx, by] = hub(d, xb);
+      E(g, ax, ay, ew, ey, '#050505');
+      poly(grad(g, ax, 0, bx, 0, [[0, '#050505'], [0.5, '#2c2c2e'], [1, '#0c0c0c']]), [[ax, ay - ey], [bx, by - ey], [bx, by + ey], [ax, ay + ey]]);
+      for (let ty = 3 * s; ty < ey; ty += 3 * s) poly('rgba(0,0,0,0.55)', [[ax, ay + ty], [bx, by + ty], [bx, by + ty + 0.7 * s], [ax, ay + ty + 0.7 * s]]);
+      if (side) { E(g, bx, by, ew, ey, '#161618'); E(g, bx + ew * 0.15, by, ew * 0.6, ey * 0.6, '#26292d'); } // the back of the rim
+    };
+    tread(p.whl[0], fx, fx + tw, true); // far rear: its inner side faces us
+    for (const d of [p.whl[0], p.whl[1]]) tread(d, ex - tw, ex, false); // near: the sidewall and rim come over the body
     return;
   }
   const top = Math.min(cy, h0) - 1; // deck and bonnet mirror the sky, brightest towards the cabin
@@ -91,10 +95,10 @@ function drawCar(g, model, col, steer, brake, plate) {
   if (!k) { drawRear(g, model, col, 0, brake, plate); return; }
   const p = PROFILE[model], [f, fw] = TURN[k], ox = 36 - (72 * f + fw) / 2;
   const flank = under => big(h => drawFlank(h, under, p, col, lamps(brake)[0], ox + (p.edge + k) * f - 0.5, fw,
-    ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f, p.tyre[1] * f));
+    ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f, [ox + (72 - p.edge + k) * f + 0.5, p.tyre[1] * f]));
   const put = c => g.drawImage(dir > 0 ? c : flip(c), 0, 0, 72, 40);
   put(flank(true));
-  g.drawImage(big(h => drawRear(h, model, col, k * dir, brake, plate, dir)), dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
+  g.drawImage(big(h => drawRear(h, model, col, k * dir, brake, plate, true)), dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
   put(flank(false));
 }
 export function car(model, col, steer, brake, plate = '') {

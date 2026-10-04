@@ -5,12 +5,12 @@ import { S, R, P, grad } from './draw.js';
 // game's own. s (-2..2) slides the parts that sit further forward towards the turn: the body by s, the deck
 // by about 1.5s, the cabin by 2s to 3s.
 const W = a => `rgba(255,255,255,${a})`, B = a => `rgba(0,0,0,${a})`;
-// The rear tyres' treads, rounded, in the arches' shadow at the top. When the car turns, the flank draws the tyre
-// on its side (k.near: 1 right, -1 left) whole, so it is left out here.
+// The rear tyres' treads, rounded, in the arches' shadow at the top. When the car turns (k.turned), the flank
+// draws them in perspective instead.
 const tyres = (g, k) => {
   const [y, w, x0] = k.tyre;
-  for (const x of [k.near < 0 ? null : x0, k.near > 0 ? null : 72 - x0 - w]) {
-    if (x === null) continue;
+  if (k.turned) return;
+  for (const x of [x0, 72 - x0 - w]) {
     round(g, grad(g, x, 0, x + w, 0, [[0, '#050505'], [0.5, '#2c2c2e'], [1, '#050505']]), x, y, w, 38.5 - y, 1.5);
     for (let ty = y + 5; ty < 37; ty += 3) R(g, x + 1, ty, w - 2, 0.7, B(0.55));
     R(g, x, y, w, 3, B(0.6));
@@ -119,7 +119,7 @@ const mirrors = (g, s, c, dx, y) => { // door mirrors sticking out dx from the c
 };
 
 // k: palette { col, bD (dark), bL (light), bDD, glass, tl (tail lamp), tlL (lamp highlight) }, the lamps' glow and
-// blur, the shoulder line sh, the tyres (PROFILE's tyre, and near) and the plate text
+// blur, the shoulder line sh, the tyres (PROFILE's tyre, and turned) and the plate text
 export const REAR = {
   pixel(g, k, s) { // compact hatchback: upright tailgate, black glass running down into a band joining the lamps
     tyres(g, k);
