@@ -6,7 +6,7 @@ import { panel, logo, rowsDraw, rowsNav, carPanel } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES, startSession } from '../session.js';
 
-// Main menu: players, game mode, level, cars, gears, music and units.
+// Main menu: players, game mode, level, cars, music and units.
 export const MainMenu = {
   sel: 0, t: 0,
   enter() { this.t = 0; Sound.enginesOff(); },
@@ -22,7 +22,6 @@ export const MainMenu = {
     }
     for (let p = 0; p < s.players; p++) {
       opt(`P${p + 1} CAR`, MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[p]), v => { s.cars[p] = MODELS[v]; }, { car: p });
-      opt(`P${p + 1} GEARS`, ['AUTOMATIC', 'MANUAL'], () => (s.manual[p] ? 1 : 0), v => { s.manual[p] = v === 1; }, { car: p });
     }
     opt('MUSIC', Sound.songs.concat(['OFF']), () => (s.music < 0 ? Sound.songs.length : s.music), v => {
       s.music = v >= Sound.songs.length ? -1 : v;
@@ -49,8 +48,8 @@ export const MainMenu = {
     const cur = rows[this.sel];
     carPanel(296, 40, 174, 214, cur && cur.car != null ? cur.car : 0, this.t);
     const help = settings.players === 2
-      ? 'P1: WASD Q/E GEARS   P2: ARROWS ,/. GEARS'
-      : 'ARROWS/WASD DRIVE  Q/E OR CTRL/SHIFT GEARS';
+      ? 'P1: WASD SPACE POWER   P2: ARROWS ENTER POWER'
+      : 'ARROWS/WASD DRIVE   SPACE/ENTER POWER-UP';
     text(help, W / 2, 262, 8, '#c0c8ff', 'center');
     text('ESC PAUSE   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },

@@ -56,8 +56,8 @@ export class Race {
   addCar(d, travel, x) {
     const c = {
       id: d.id, name: d.name, human: !!d.human, pidx: d.human ? d.pidx : -1,
-      model: d.model, color: d.color, spec: CARSPEC[d.model], manual: !!d.manual,
-      travel, x, z: 0, prevZ: 0, speed: 0, gear: 1, rpm: 0.1, thr: 0, steer: 0, frame: 0, brake: false,
+      model: d.model, color: d.color, spec: CARSPEC[d.model],
+      travel, x, z: 0, prevZ: 0, speed: 0, pwr: 0, thr: 0, steer: 0, frame: 0, brake: false,
       crashT: 0, immuneT: 0, bumpT: 0, alt: 0, vy: 0, air: false, jumpY: 0, slideT: 0, boostT: 0, splashT: 0,
       offroad: false, skid: 0, rough: 0, lastObs: null, lastObsT: 0,
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,

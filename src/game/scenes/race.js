@@ -35,10 +35,10 @@ export const RaceScene = {
     let first = true;
     while (this.acc >= K.STEP) {
       game.race.update(K.STEP, inputs);
-      if (first) { inputs.forEach(i => { i.gearUp = false; i.gearDown = false; i.power = false; }); first = false; }
+      if (first) { inputs.forEach(i => { i.power = false; }); first = false; }
       this.acc -= K.STEP;
     }
-    game.race.humans.forEach((h, i) => Sound.engine(i, true, Math.max(0.12, h.rpm), h.thr || 0, h.skid, h.rough, two ? (i ? 0.6 : -0.6) : 0));
+    game.race.humans.forEach((h, i) => Sound.engine(i, true, Math.max(0.12, h.speed / (h.spec.top * K.MAX_SPEED)), h.thr || 0, h.skid, h.rough, two ? (i ? 0.6 : -0.6) : 0));
     if (game.race.over) { Sound.enginesOff(); go('Results'); }
   },
   draw(dt) {

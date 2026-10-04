@@ -27,7 +27,7 @@ export const STAGES = [
 export function makeDrivers(nAI) {
   const hum = [];
   for (let p = 0; p < settings.players; p++) {
-    hum.push({ id: 'P' + (p + 1), name: 'PLAYER ' + (p + 1), human: true, pidx: p, model: settings.cars[p], color: CAR_COLORS[p], manual: settings.manual[p], points: 0 });
+    hum.push({ id: 'P' + (p + 1), name: 'PLAYER ' + (p + 1), human: true, pidx: p, model: settings.cars[p], color: CAR_COLORS[p], points: 0 });
   }
   const names = U.shuffle(Math.random, AI_NAMES);
   const ai = [];

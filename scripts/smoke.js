@@ -63,7 +63,7 @@ THEMES.forEach((th, i) => {
     { id: 'P2', name: 'P2', human: true, pidx: 1, model: MODELS[(i + 1) % 3], color: CAR_COLORS[1] }];
   const ai = Array.from({ length: 8 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k + 2], aiTop: 0.8 }));
   const race = new Race({ track, mode: i % 2 ? 'time' : 'race', laps: 2, humans, ai, diff: 1 });
-  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false };
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false };
   const vs = [{}, {}];
   for (let s = 0; s < 120 * 40; s++) {
     inp.steer = Math.sin(s / 90);
@@ -77,6 +77,22 @@ THEMES.forEach((th, i) => {
 });
 console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
+{ // electric drive: single speed up to top speed, the kW meter reads power drawn and goes negative under regen
+  const track = Track.build(Object.assign(Track.random(() => 0.5), { obst: 0, curves: 0, hills: 0 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai: [] });
+  const h = race.humans[0], top = h.spec.top * K.MAX_SPEED, inp = { throttle: 1, brake: 0, steer: 0, analog: false };
+  let t80 = 0, peak = 0;
+  for (let s = 0; s < 120 * 12; s++) {
+    race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1) })]);
+    if (race.phase === 'race') { if (!t80 && h.speed > top * 0.8) t80 = race.time; peak = Math.max(peak, h.pwr); }
+  }
+  if (!(h.speed > top * 0.95) || !t80 || t80 > 4) throw new Error(`drive: did not reach top speed (${Math.round(h.speed / top * 100)}%, 80% after ${t80}s)`);
+  if (!(peak > 0.8)) throw new Error('drive: kW meter never near rated power under full throttle: ' + peak);
+  for (let s = 0; s < 60; s++) race.update(K.STEP, [Object.assign({}, inp, { throttle: 0, brake: 1 })]);
+  if (!(h.pwr < -0.3)) throw new Error('drive: no regen while braking: ' + h.pwr);
+  console.log(`drive: 80% of top speed after ${t80.toFixed(1)}s, peak ${Math.round(peak * h.spec.kw)} kW, regen ${Math.round(h.pwr * h.spec.kw)} kW OK`);
+}
+
 { // limited energy: cells get collected, the battery drains, running flat drops the car behind the last car
   const track = Track.build(Object.assign(Track.random(() => 0.3), { obst: 0 }));
   const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k + 2], aiTop: 0.4 }));
@@ -84,7 +100,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   const h = race.humans[0];
   const cells = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'energy').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (cells.length < 3) throw new Error('energy: too few cells placed');
-  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false };
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false };
   let took = 0, low = 1;
   for (let s = 0; s < 120 * 30; s++) {
     const next = cells.find(c => U.wrap(c.z - h.z, race.L) < 6000); // steer for the next cell
@@ -110,7 +126,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   const h = race.humans[0];
   const orbs = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'power').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (orbs.length < 2) throw new Error('power: too few orbs placed');
-  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false, power: false };
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, power: false };
   for (let s = 0; s < 120 * 40 && !h.power; s++) {
     const next = orbs.find(c => U.wrap(c.z - h.z, race.L) < 6000);
     inp.steer = next ? U.clamp((next.o.x - h.x) * 4, -1, 1) : 0;

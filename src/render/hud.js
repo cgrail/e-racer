@@ -2,7 +2,7 @@ import { K, U } from '../core/util.js';
 import { SUPER_T } from '../race/specs.js';
 import { text } from './text.js';
 
-// In-race HUD: position, laps or time left, speed, gear, rev bar and messages.
+// In-race HUD: position, laps or time left, speed, motor power meter and messages.
 export function hud(g, w, h, race, car, split, opts) {
   const pad = split ? 4 : 8, big = split ? 16 : 24, sm = 8;
   const kmh = opts.units === 1;
@@ -27,24 +27,20 @@ export function hud(g, w, h, race, car, split, opts) {
   text(g, 'LAP  ' + U.fmtTime(car.lap >= 1 && !car.finished ? race.time - car.lapStart : car.lastLap), w - pad, pad + 10, sm, '#c0c8ff', 'right');
   if (car.bestLap && !split) text(g, 'BEST ' + U.fmtTime(car.bestLap), w - pad, pad + 20, sm, '#ffe040', 'right');
 
-  // speed, gear, revs
+  // speed, motor power (kW drawn, cyan bars and a minus sign while regen braking)
   const v = Math.round((car.speed / K.MAX_SPEED) * K.MPH * (kmh ? 1.609 : 1));
   const yb = h - pad - (split ? 16 : 24);
   text(g, String(v).padStart(3, ' '), pad, yb, split ? 16 : 24, '#ffffff');
   text(g, kmh ? 'KM/H' : 'MPH', pad + (split ? 52 : 76), yb + (split ? 8 : 16), sm, '#ffe040');
-  const gx = pad + (split ? 92 : 116), gs = split ? 16 : 22;
-  g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(gx, yb - 2, gs + 4, gs + 4);
-  g.strokeStyle = '#ffe040'; g.lineWidth = 1; g.strokeRect(gx + 0.5, yb - 1.5, gs + 3, gs + 3);
-  text(g, String(car.gear), gx + 2 + (gs - (split ? 8 : 16)) / 2, yb + (split ? 2 : 1), split ? 8 : 16, '#ffffff', 'left', null);
-  text(g, car.manual ? 'M' : 'A', gx + gs + 8, yb + gs - 6, sm, '#c0c8ff');
   const bars = 16, bw = split ? 4 : 6, bh = split ? 14 : 22, rx = w - pad - bars * (bw + 1);
-  const lit = Math.round(U.clamp(car.rpm, 0, 1.05) * bars);
+  const pw = car.pwr || 0, regen = pw < -0.02, lit = Math.round(U.clamp(Math.abs(pw), 0, 1) * bars);
   for (let i = 0; i < bars; i++) {
     const hh = Math.round(bh * (0.35 + (0.65 * i) / bars));
-    g.fillStyle = i < lit ? (i < 10 ? '#40e040' : i < 13 ? '#ffe040' : '#ff3030') : 'rgba(0,0,0,0.45)';
+    g.fillStyle = i >= lit ? 'rgba(0,0,0,0.45)' : regen ? '#40d0ff' : i < 10 ? '#40e040' : i < 13 ? '#ffe040' : '#ff3030';
     g.fillRect(rx + i * (bw + 1), h - pad - hh, bw, hh);
   }
-  text(g, 'RPM', rx, h - pad - bh - 10, sm, '#ffe040');
+  const kw = Math.round(pw * car.spec.kw);
+  text(g, `${regen ? '-' : ''}${Math.abs(kw)} KW`, rx, h - pad - bh - 10, sm, regen ? '#40d0ff' : '#ffe040');
   if (race.track.theme.wind) {
     const wd = race.wind, n = Math.min(3, Math.round(Math.abs(wd) * 4));
     text(g, 'WIND ' + (wd < 0 ? '<'.repeat(n) : '>'.repeat(n)), w - pad, h - pad - bh - (split ? 22 : 24), sm, '#a0d8ff', 'right');

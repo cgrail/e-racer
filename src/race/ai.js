@@ -57,7 +57,7 @@ export function driveAI(c, dt, racing) {
   c.frame = Math.sign(lean) * (Math.abs(lean) > 1.6 ? 2 : Math.abs(lean) > 0.8 ? 1 : 0);
   c.brake = c.speed > target + 50;
   c.offroad = false; c.skid = 0; c.rough = 0;
-  if (c.human) { c.thr = 0.5; c.rpm = 0.7; c.gear = 4; }
+  if (c.human) { c.thr = 0.5; c.pwr = 0.4; }
   this.advance(c, dt, seg);
   this.hits(c);
 }

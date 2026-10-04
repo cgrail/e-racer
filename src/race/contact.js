@@ -65,7 +65,7 @@ export function hitObstacle(c, ob, halfW) {
 
 export function crash(c) {
   if (c.immuneT > 0) return;
-  c.speed *= 0.05; c.crashT = 0.9; c.immuneT = 1.6; c.gear = 1;
+  c.speed *= 0.05; c.crashT = 0.9; c.immuneT = 1.6;
   c.air = true; c.vy = 4000;
   Sound.fx.crash();
 }

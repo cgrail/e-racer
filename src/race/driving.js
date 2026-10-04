@@ -1,17 +1,16 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
-import { GEAR_TOP, GEAR_ACC } from './specs.js';
+import { MOTOR_ACC, MOTOR_BASE, REGEN_MAX } from './specs.js';
 
-// Race methods for human driving: steering, gearbox, speed, ballistic jumps. Mixed into Race.
+// Race methods for human driving: steering, electric drive, speed, ballistic jumps. Mixed into Race.
 export function driveHuman(c, inp, dt, racing) {
   const T = this.track, MAX = K.MAX_SPEED, seg = T.findSegment(c.z), sp = c.speed / MAX;
   let thr = inp.throttle, brk = inp.brake;
   const rate = inp.analog ? 14 : 7;
   c.steer += U.clamp(inp.steer - c.steer, -rate * dt, rate * dt);
   c.frame = Math.sign(c.steer) * (Math.abs(c.steer) > 0.75 ? 2 : Math.abs(c.steer) > 0.3 ? 1 : 0);
-  if (!racing) { // revving on the grid
-    c.rpm += ((thr ? 0.95 : 0.12) - c.rpm) * Math.min(1, dt * (thr ? 3 : 2));
-    c.thr = thr; c.brake = brk > 0;
+  if (!racing) { // waiting on the grid: the motor draws nothing at standstill
+    c.pwr = 0; c.thr = thr; c.brake = brk > 0;
     return;
   }
   if (c.crashT > 0) { c.crashT -= dt; thr = 0; }
@@ -31,22 +30,14 @@ export function driveHuman(c, inp, dt, racing) {
   }
   c.x += this.wind * dt * (0.25 + 0.6 * sp);
 
-  if (c.manual) {
-    if (inp.gearUp && c.gear < 5) { c.gear++; Sound.fx.gear(); }
-    if (inp.gearDown && c.gear > 1) { c.gear--; Sound.fx.gear(); }
-  }
-  const top = c.spec.top * MAX;
-  let gTop = top * GEAR_TOP[c.gear - 1];
-  let rpm = c.speed / gTop;
+  const top = c.spec.top * MAX, st = c.speed / top;
+  const band = Math.min(1, st / MOTOR_BASE); // share of rated power the motor can deliver at this speed
   if (!air) {
     if (thr > 0) {
-      if (rpm < 1) {
-        const torque = 0.6 + 0.55 * Math.sin(Math.min(1, rpm) * Math.PI * 0.85);
-        c.speed += MAX * 0.24 * c.spec.acc * GEAR_ACC[c.gear - 1] * torque * thr * dt;
-      }
+      const torque = (st < MOTOR_BASE ? 1 : MOTOR_BASE / st) * U.clamp((1 - st) * 20, 0, 1);
+      c.speed += MAX * 0.24 * c.spec.acc * MOTOR_ACC * torque * thr * dt;
     } else c.speed -= MAX * (0.1 + sp * 0.08) * dt;
     if (brk > 0) c.speed -= MAX * 0.95 * brk * dt;
-    if (c.boostT <= 0 && c.speed > gTop * 1.02) c.speed = Math.max(gTop * 1.02, c.speed - MAX * 0.5 * dt);
     c.offroad = Math.abs(c.x) > 1;
     if (c.offroad && c.speed > MAX * 0.3) c.speed -= MAX * 0.8 * dt;
     c.speed -= ((seg.p2.world.y - seg.p1.world.y) / K.SEG_LEN) * MAX * 0.25 * dt;
@@ -54,14 +45,9 @@ export function driveHuman(c, inp, dt, racing) {
   if (c.boostT <= 0 && c.speed > top) c.speed = Math.max(top, c.speed - MAX * 0.6 * dt);
   c.speed = U.clamp(c.speed, 0, top * 1.3);
 
-  if (!c.manual) {
-    if (c.speed / gTop > 0.96 && c.gear < 5 && thr > 0) c.gear++;
-    else if (c.gear > 1 && c.speed < top * GEAR_TOP[c.gear - 2] * 0.6) c.gear--;
-    gTop = top * GEAR_TOP[c.gear - 1];
-  }
-  rpm = c.speed / gTop;
-  c.rpm = rpm >= 1 ? 1 + Math.sin(this.time * 60) * 0.02 : Math.max(0.12, rpm);
-  if (air && thr) c.rpm = Math.min(1.02, c.rpm + 0.3);
+  // power draw as a share of rated kW: positive drives, negative is regen braking or coasting
+  const draw = thr > 0 ? thr * Math.max(0.05, band) * (air ? 0.3 : 1) : -(brk > 0 ? REGEN_MAX * brk : 0.08) * band;
+  c.pwr += (draw - c.pwr) * Math.min(1, dt * 8);
 
   const cf = (Math.abs(seg.curve) * sp * sp) / grip;
   c.skid = air ? 0 : U.clamp(Math.max((cf - 1.8) / 2, brk > 0 && sp > 0.35 ? 0.5 : 0, c.slideT > 0 ? sp : 0), 0, 1);

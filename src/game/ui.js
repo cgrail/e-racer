@@ -91,7 +91,7 @@ export function carPanel(x, y, w, h, p, t) {
     g.fillStyle = '#ffe040'; g.fillRect(x + 12, yy + 10, (w - 24) * v, 5);
   });
   const mph = Math.round(spec.top * K.MPH * (settings.units ? 1.609 : 1));
-  text(`${mph} ${settings.units ? 'KM/H' : 'MPH'}  ${settings.manual[p] ? 'MANUAL' : 'AUTO'}`, x + w / 2, y + 192, 8, '#7fffb0', 'center');
+  text(`${mph} ${settings.units ? 'KM/H' : 'MPH'}  ${spec.kw} KW`, x + w / 2, y + 192, 8, '#7fffb0', 'center');
 }
 export function drawMap(pv, x, y, w, h, col = '#ffffff') {
   const { pts } = pv;
