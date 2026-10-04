@@ -21,3 +21,50 @@ canvas:fullscreen {
   width: min(100vw, 160vh);
   height: min(62.5vw, 100vh);
 }
+
+/* Touch controls (game/touch.js): hidden until the first touch */
+body { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.touch { display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace; }
+body.touching .touch { display: block; }
+.touch .layer { display: none; }
+.touch.drive .drive, .touch.menu .menu { display: block; }
+.tb {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  pointer-events: auto; touch-action: none; box-sizing: border-box;
+  color: #fff; font-size: 12px; text-shadow: 1px 1px 0 #0a0a30;
+  background: rgba(40, 60, 200, 0.28); border: 2px solid rgba(120, 150, 255, 0.55); border-radius: 50%;
+}
+.tb.on { background: rgba(255, 40, 160, 0.5); border-color: #fff; }
+.touch .left, .touch .right {
+  position: absolute; bottom: max(14px, env(safe-area-inset-bottom));
+  width: 170px; height: 140px;
+}
+.touch .left { left: max(14px, env(safe-area-inset-left)); }
+.touch .right { right: max(14px, env(safe-area-inset-right)); }
+.steer { position: absolute; inset: 0; pointer-events: auto; touch-action: none; }
+.steer .tb { pointer-events: none; width: 78px; height: 78px; bottom: 10px; font-size: 22px; }
+.steer .tb:first-child { left: 0; }
+.steer .tb:last-child { right: 0; }
+.right .big { width: 86px; height: 86px; right: 0; bottom: 0; }
+.right .small { width: 60px; height: 60px; font-size: 9px; }
+.drive .right .small:nth-child(1) { left: 0; top: 0; background: rgba(120, 220, 255, 0.3); }
+.drive .right .small:nth-child(2) { left: 6px; bottom: 0; background: rgba(255, 200, 40, 0.3); }
+.drive .right .big { background: rgba(255, 60, 40, 0.3); }
+.menu .right .small { left: 6px; bottom: 0; }
+.dpad .tb { width: 54px; height: 54px; border-radius: 12px; font-size: 16px; }
+.dpad .u { left: 58px; top: 0; }
+.dpad .d { left: 58px; bottom: 0; }
+.dpad .l { left: 0; top: 43px; }
+.dpad .r { right: 0; top: 43px; }
+.tb.corner { width: 44px; height: 44px; border-radius: 10px; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
+.tb.fs { right: auto; left: max(10px, env(safe-area-inset-left)); font-size: 18px; }
+.touch .type {
+  display: none; position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%);
+  width: 180px; padding: 8px; pointer-events: auto; font: inherit; font-size: 10px; color: #fff; caret-color: transparent;
+  background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; text-align: center;
+}
+.touch.typing .type { display: block; }
+@media (orientation: portrait) {
+  body.touching { align-items: flex-start; }
+  body.touching canvas { margin-top: 64px; }
+}

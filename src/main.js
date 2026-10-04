@@ -13,8 +13,9 @@ import { Standings } from './game/scenes/standings.js';
 import { GameEnd } from './game/scenes/gameend.js';
 import { Lobby } from './game/scenes/lobby.js';
 import { Online } from './game/online.js';
+import { Touch } from './game/touch.js';
 
-// Entry point: wires up the scenes, audio start-up, fullscreen key and the main loop.
+// Entry point: wires up the scenes, audio start-up, fullscreen key, touch controls and the main loop.
 let musicStarted = false;
 Input.onGesture(() => {
   Sound.init();
@@ -33,6 +34,7 @@ function frame(now) {
   last = now;
   Input.poll();
   Online.poll(dt);
+  Touch.update();
   game.scene.update(dt);
   g.imageSmoothingEnabled = false;
   game.scene.draw(dt);
@@ -50,5 +52,6 @@ window.__ecr = {
   settings,
 };
 
+Touch.init();
 go('Title');
 requestAnimationFrame(frame);

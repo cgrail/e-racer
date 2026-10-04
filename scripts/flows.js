@@ -30,7 +30,18 @@ tap('ArrowUp'); tap('ArrowUp'); tap('Enter'); expect('Builder'); // BUILD COURSE
 for (let i = 0; i < 12; i++) tap('ArrowDown');
 tap('Enter'); frames(5); tap('Enter'); expect('RaceScene'); // RACE! -> pre-race -> race
 hold('KeyW'); hold('ArrowUp'); frames(60 * 10); moved();
-console.log('game flow: title, menu, championship, 2P time challenge, course builder race OK');
+{ // touch controls: the car accelerates by itself, and the on-screen BRAKE holds KeyS
+  const { Input } = await import('../src/core/input.js');
+  release('KeyW'); release('ArrowUp'); Input.setAuto(true);
+  const car = window.__ecr.race.humans[0], t0 = car.travel;
+  frames(60 * 5);
+  if (car.travel - t0 < 2000) throw new Error('touch: the car did not accelerate by itself');
+  const v0 = car.speed;
+  Input.virtual('KeyS', true); frames(60 * 2); Input.virtual('KeyS', false);
+  if (!(car.speed < v0 * 0.8)) throw new Error('touch: BRAKE did not slow the car');
+  Input.setAuto(false); hold('KeyW'); hold('ArrowUp');
+}
+console.log('game flow: title, menu, championship, 2P time challenge, course builder race, touch driving OK');
 
 // ---------------------------------------------------------------- online: the real server lobby behind a fake WebSocket
 {
