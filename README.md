@@ -18,6 +18,17 @@ npm start         # build, then run the race server: game and online races on ht
 
 Online races need the race server (`server/server.js`), which serves the built game and runs the races on a WebSocket at `/ws`. Players open the server's address. To work on online play with hot reload, run `npm run server` next to `npm run dev`: Vite passes `/ws` through to the server on port 8090. The server's settings are environment variables (`PORT`, `HOST`, `TRUST_PROXY`, `ALLOWED_ORIGINS`, `MAX_CLIENTS`, `MAX_CONNS_PER_IP`), described at the top of `server/server.js`.
 
+### Deploying next to mech-vs-mech
+
+`install.sh` puts the game and its race server on the Ubuntu box that [mech-vs-mech](https://github.com/cgrail/mech-vs-mech)'s `install.sh` already set up in Let's Encrypt mode. That script owns the OS hardening, firewall, Node.js and Caddy; this one only deploys the game, the same way calvo sits on that box:
+
+```sh
+git clone <this repo's URL> electro-car-racer && cd electro-car-racer
+sudo DOMAIN=racer.example.com ./install.sh   # first run; later runs: sudo ./install.sh
+```
+
+It builds the game into `/opt/electro-car-racer`, runs the server as the unprivileged user `ecr` in a sandboxed systemd unit (`electro-car-racer`) on `127.0.0.1:8090`, and adds the Caddy site `/etc/caddy/apps/electro-car-racer.caddy`, which serves `https://$DOMAIN` with a Let's Encrypt certificate. Point a plain, un-proxied A/AAAA record for the domain at the box. A systemd timer runs `update.sh` every 5 minutes and deploys whatever lands on `origin/main`; `sudo ./update.sh --force` rebuilds now. Server settings live in `/etc/default/electro-car-racer`.
+
 The pixel font loads from Google Fonts. Without a connection the game falls back to a monospace font.
 
 ## Features
