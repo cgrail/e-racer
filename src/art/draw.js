@@ -17,6 +17,12 @@ export function P(g, c, p) {
 }
 export const C = (g, x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, Math.max(0.1, r), 0, Math.PI * 2); g.fill(); };
 export const E = (g, x, y, rx, ry, c) => { g.fillStyle = c; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); };
+// A linear gradient from (x0,y0) to (x1,y1) through [t, colour] stops, t clamped to 0..1.
+export function grad(g, x0, y0, x1, y1, stops) {
+  const gr = g.createLinearGradient(x0, y0, x1, y1);
+  for (const [t, c] of stops) gr.addColorStop(U.clamp(t, 0, 1), c);
+  return gr;
+}
 export function glow(g, x, y, r, col, a) {
   const gr = g.createRadialGradient(x, y, 0, x, y, r);
   gr.addColorStop(0, U.rgba(col, a)); gr.addColorStop(1, U.rgba(col, 0));

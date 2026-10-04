@@ -16,7 +16,8 @@ export function project(p, camX, camY, camZ, sx, sy, cx, horizon, roadW) {
   p.screen.y = Math.round(horizon - s * p.camera.y * sy);
   p.screen.w = Math.round(s * roadW * sx);
 }
-export function blit(g, img, x, y, w, h) {
+export function blit(g, img, x, y, w, h) { // a sprite may carry a smaller copy (mip) for drawing smaller than that
+  if (img.mip && w < img.mip.width) img = img.mip;
   g.imageSmoothingEnabled = w < img.width;
   g.drawImage(img, x, y, w, h);
 }
