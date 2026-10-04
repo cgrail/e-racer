@@ -22,44 +22,48 @@ export const Sound = (() => {
   }
 
   // ---------------------------------------------------------------- electric motors
-  // Per player: a smooth motor tone and an inverter whine that both rise with road speed, louder under
-  // load, plus wind, tyre squeal and off-road rumble.
+  // Per player, a sports-EV "drive sound": a deep synth drone (two detuned saws through a resonant low-pass,
+  // with a sub octave) that rises steadily with road speed and swells and brightens under power, a motor
+  // whine above it, plus wind, tyre squeal and off-road rumble.
   function makeEngine() {
-    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
-    o1.type = 'triangle'; o2.type = 'sine';
-    const g1 = ctx.createGain(), g2 = ctx.createGain(); g1.gain.value = 0; g2.gain.value = 0;
-    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200; f.Q.value = 0.7;
-    const g = ctx.createGain(); g.gain.value = 0;
+    const osc = (type, to) => { const o = ctx.createOscillator(); o.type = type; o.connect(to); o.start(); return o; };
+    const gain = (v, to) => { const n = ctx.createGain(); n.gain.value = v; if (to) n.connect(to); return n; };
+    const filt = (type, freq, q, to) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = freq; n.Q.value = q; if (to) n.connect(to); return n; };
     const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     const dest = p || sfx;
     if (p) p.connect(sfx);
-    o1.connect(g1); o2.connect(g2); g1.connect(f); g2.connect(f); f.connect(g); g.connect(dest);
-    const ns = ctx.createBufferSource(); ns.buffer = noise; ns.loop = true;
-    const nf = (type, freq, q) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = freq; n.Q.value = q; return n; };
-    const wf = nf('bandpass', 600, 0.6), sf = nf('bandpass', 2400, 1.4), rf = nf('lowpass', 240, 1);
-    const wg = ctx.createGain(), sg = ctx.createGain(), rg = ctx.createGain();
-    for (const [fl, gn] of [[wf, wg], [sf, sg], [rf, rg]]) { gn.gain.value = 0; ns.connect(fl); fl.connect(gn); gn.connect(dest); }
-    o1.start(); o2.start(); ns.start();
-    return { o1, o2, g1, g2, f, g, wf, wg, sg, rg, p };
+    const g = gain(0, dest);
+    const f = filt('lowpass', 400, 5, g);                       // the drone's voice: opens up under power
+    const gd = gain(0.5, f), gs = gain(0.6, g), gw = gain(0, g);
+    const d1 = osc('sawtooth', gd), d2 = osc('sawtooth', gd), sub = osc('sine', gs), wh = osc('sine', gw);
+    const lfo = osc('sine', gain(4, d2.detune)); lfo.frequency.value = 0.7; // slow chorus between the saws
+    const ns = ctx.createBufferSource(); ns.buffer = noise; ns.loop = true; ns.start();
+    const wg = gain(0, dest), sg = gain(0, dest), rg = gain(0, dest);
+    const wf = filt('bandpass', 600, 0.6, wg), sf = filt('bandpass', 2400, 1.4, sg), rf = filt('lowpass', 240, 1, rg);
+    ns.connect(wf); ns.connect(sf); ns.connect(rf);
+    return { d1, d2, sub, wh, lfo, f, g, gd, gw, wf, wg, sg, rg, p };
   }
 
   // speed: share of the car's top speed (above 1 under super power); load: power drawn, -1..1 (negative is regen)
   function engine(i, on, speed, load, skid, rough, pan) {
     if (!ctx) return;
     while (engines.length <= i) engines.push(makeEngine());
-    const e = engines[i], t = ctx.currentTime, sp = Math.max(0, speed), drive = Math.max(0, load);
-    const fr = 70 + sp * 620;
-    e.o1.frequency.setTargetAtTime(fr, t, 0.03);
-    e.o2.frequency.setTargetAtTime(fr * 2.95, t, 0.03); // inverter whine sits above the motor tone
-    e.g1.gain.setTargetAtTime(0.5 + Math.abs(load) * 0.5, t, 0.05);
-    e.g2.gain.setTargetAtTime(0.08 + drive * 0.3 + Math.max(0, -load) * 0.15, t, 0.05);
-    e.f.frequency.setTargetAtTime(900 + sp * 2200 + drive * 1200, t, 0.05);
-    e.g.gain.setTargetAtTime(on ? 0.025 + sp * 0.03 + Math.abs(load) * 0.05 : 0, t, 0.06);
-    e.wf.frequency.setTargetAtTime(400 + sp * 900, t, 0.1);
-    e.wg.gain.setTargetAtTime(on ? sp * sp * 0.05 : 0, t, 0.1);
-    e.sg.gain.setTargetAtTime(on ? skid * 0.09 : 0, t, 0.04);
-    e.rg.gain.setTargetAtTime(on ? rough * 0.35 : 0, t, 0.05);
-    if (e.p) e.p.pan.setTargetAtTime(pan, t, 0.1);
+    const e = engines[i], t = ctx.currentTime, sp = Math.max(0, speed), drive = Math.max(0, load), regen = Math.max(0, -load);
+    const set = (param, v, tc = 0.05) => param.setTargetAtTime(v, t, tc);
+    const fr = 42 + 260 * Math.pow(sp, 0.85);
+    set(e.d1.frequency, fr, 0.04); set(e.d2.frequency, fr * 1.007, 0.04); set(e.sub.frequency, fr / 2, 0.04);
+    set(e.wh.frequency, fr * 6.1, 0.04); // motor whine, well above the drone
+    set(e.lfo.frequency, 0.7 + sp * 3);
+    set(e.f.frequency, fr * (2.2 + drive * 4) + 180);
+    set(e.f.Q, 3 + drive * 5);
+    set(e.gd.gain, 0.35 + drive * 0.65);
+    set(e.gw.gain, 0.05 + sp * 0.08 + regen * 0.12);
+    set(e.g.gain, on ? 0.05 + sp * 0.03 + drive * 0.07 + regen * 0.02 : 0, 0.08);
+    set(e.wf.frequency, 400 + sp * 900, 0.1);
+    set(e.wg.gain, on ? sp * sp * 0.05 : 0, 0.1);
+    set(e.sg.gain, on ? skid * 0.09 : 0, 0.04);
+    set(e.rg.gain, on ? rough * 0.35 : 0);
+    if (e.p) set(e.p.pan, pan, 0.1);
   }
   function enginesOff() { for (let i = 0; i < engines.length; i++) engine(i, false, 0, 0, 0, 0, 0); }
 

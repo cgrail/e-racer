@@ -11,4 +11,4 @@
 - no it should just be available
 [x] decide: should AI rivals also collect and fire electro shocks (they only get hit today)?
 - yes. rivals should also collect and fire shocks. and they should also need to collect energy like other cars. and they should be more active. currently they feel boring
-[ ] the electro car sound is not great. it should sound more like a porsche taycan or another cool electro car
+[x] the electro car sound is not great. it should sound more like a porsche taycan or another cool electro car
