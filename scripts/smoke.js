@@ -233,7 +233,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // audio: a stub Web Audio graph; every song sequences a full loop, and the game flow below runs with sound on
   const made = {};
-  const node = () => new Proxy({}, { get: (o, k) => (k in o ? o[k] : /^(frequency|gain|Q|pan|threshold|ratio)$/.test(k) ? (o[k] = node()) : () => {}) });
+  const node = () => new Proxy({}, { get: (o, k) => (k in o ? o[k] : /^(frequency|gain|Q|pan|threshold|ratio|delayTime|detune)$/.test(k) ? (o[k] = node()) : () => {}) });
   const ctx = new Proxy({ currentTime: 0, sampleRate: 8000, state: 'running', destination: node(),
     createBuffer: (c, len) => ({ getChannelData: () => new Float32Array(len) }) }, {
     get: (o, k) => (k in o ? o[k] : () => { made[k] = (made[k] || 0) + 1; return node(); }),
@@ -249,6 +249,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
     for (let s = 0; s < 40 * 40; s++) { ctx.currentTime += 0.025; tick(); }
     if (!((made.createOscillator || 0) - before > 500)) throw new Error(`music: ${Sound.songs[i]} played no notes`);
   }
+  for (let sp = 0; sp <= 1.3; sp += 0.1) Sound.engine(0, true, sp, 1 - sp, 0, 0, 0); // drone into the jet layer
+  Sound.enginesOff();
   Sound.stopMusic(); window.AudioContext = undefined;
   console.log(`music: ${Sound.songs.length} songs sequenced (${Sound.songs.join(', ')}) OK`);
 }

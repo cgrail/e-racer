@@ -24,7 +24,8 @@ export const Sound = (() => {
   // ---------------------------------------------------------------- electric motors
   // Per player, a sports-EV "drive sound": a deep synth drone (two detuned saws through a resonant low-pass,
   // with a sub octave) that rises steadily with road speed and swells and brightens under power, a motor
-  // whine above it, plus wind, tyre squeal and off-road rumble.
+  // whine above it, plus wind, tyre squeal and off-road rumble. Near top speed, where the pitch stops rising,
+  // the drone softens and a jet layer takes over whose tone keeps moving.
   function makeEngine() {
     const osc = (type, to) => { const o = ctx.createOscillator(); o.type = type; o.connect(to); o.start(); return o; };
     const gain = (v, to) => { const n = ctx.createGain(); n.gain.value = v; if (to) n.connect(to); return n; };
@@ -41,7 +42,18 @@ export const Sound = (() => {
     const wg = gain(0, dest), sg = gain(0, dest), rg = gain(0, dest);
     const wf = filt('bandpass', 600, 0.6, wg), sf = filt('bandpass', 2400, 1.4, sg), rf = filt('lowpass', 240, 1, rg);
     ns.connect(wf); ns.connect(sf); ns.connect(rf);
-    return { d1, d2, sub, wh, lfo, f, g, gd, gw, wf, wg, sg, rg, p };
+    // jet layer, faded in near top speed: a noise roar through a flanger (a feedback delay whose time drifts on two
+    // slow LFOs, so the comb keeps sweeping like a passing jet) and a narrow turbine whistle that spools with power
+    const jg = gain(0, dest), jf = filt('lowpass', 1200, 0.7), dl = ctx.createDelay(0.05);
+    dl.delayTime.value = 0.004;
+    dl.connect(gain(0.55, dl)); dl.connect(jg); jf.connect(jg); jf.connect(dl);
+    const tg = gain(0, dest), tf = filt('bandpass', 2400, 22, tg);
+    ns.connect(jf); ns.connect(tf);
+    for (const [rate, dt, cents] of [[0.13, 0.0022, 140], [0.37, 0.0009, 60]]) {
+      const l = osc('sine', gain(dt, dl.delayTime)); l.frequency.value = rate;
+      l.connect(gain(cents, tf.detune));
+    }
+    return { d1, d2, sub, wh, lfo, f, g, gd, gw, wf, wg, sg, rg, jf, jg, tf, tg, p };
   }
 
   // speed: share of the car's top speed (above 1 under super power); load: power drawn, -1..1 (negative is regen)
@@ -51,14 +63,19 @@ export const Sound = (() => {
     const e = engines[i], t = ctx.currentTime, sp = Math.max(0, speed), drive = Math.max(0, load), regen = Math.max(0, -load);
     const set = (param, v, tc = 0.05) => param.setTargetAtTime(v, t, tc);
     const fr = 42 + 260 * Math.pow(sp, 0.85);
+    const j = Math.min(1, Math.max(0, (sp - 0.6) / 0.4)), jet = j * j * (3 - 2 * j); // drone hands over to the jet
     set(e.d1.frequency, fr, 0.04); set(e.d2.frequency, fr * 1.007, 0.04); set(e.sub.frequency, fr / 2, 0.04);
     set(e.wh.frequency, fr * 6.1, 0.04); // motor whine, well above the drone
     set(e.lfo.frequency, 0.7 + sp * 3);
     set(e.f.frequency, fr * (2.2 + drive * 4) + 180);
-    set(e.f.Q, 3 + drive * 5);
+    set(e.f.Q, 3 + drive * 5 * (1 - 0.6 * jet));
     set(e.gd.gain, 0.35 + drive * 0.65);
-    set(e.gw.gain, 0.05 + sp * 0.08 + regen * 0.12);
-    set(e.g.gain, on ? 0.05 + sp * 0.03 + drive * 0.07 + regen * 0.02 : 0, 0.08);
+    set(e.gw.gain, (0.05 + sp * 0.08) * (1 - 0.7 * jet) + regen * 0.12);
+    set(e.g.gain, on ? (0.05 + sp * 0.03 + drive * 0.07 + regen * 0.02) * (1 - 0.5 * jet) : 0, 0.08);
+    set(e.jf.frequency, 700 + sp * 1800 + drive * 600, 0.3);
+    set(e.jg.gain, on ? jet * (0.06 + drive * 0.06) : 0, 0.25);
+    set(e.tf.frequency, 1500 + sp * 1300 + drive * 700, 0.6); // slow time constant: the turbine spools up and down
+    set(e.tg.gain, on ? jet * (0.5 + drive * 0.5) : 0, 0.3);
     set(e.wf.frequency, 400 + sp * 900, 0.1);
     set(e.wg.gain, on ? sp * sp * 0.05 : 0, 0.1);
     set(e.sg.gain, on ? skid * 0.09 : 0, 0.04);
