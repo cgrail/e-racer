@@ -5,9 +5,10 @@ import { MODELS, CAR_COLORS } from '../race/specs.js';
 import { game, scenes } from './state.js';
 import { rowsDrawn } from './ui.js';
 
-// Touch controls for phones and tablets. They appear with the first touch and hide again on a key press, and
-// each touch asks for fullscreen (in landscape) until the browser gives it. The game then fills the screen: a
-// phone held upright gets it turned a quarter (style.css), so the game and this layer share a 'stage' frame.
+// Touch controls for phones and tablets. They are on from the start on a device whose main pointer is a finger
+// (elsewhere they appear with the first touch) and hide again on a key press, and each touch asks for fullscreen
+// (in landscape) until the browser gives it. The game then fills the screen: a phone held upright gets it turned a
+// quarter (style.css), so it starts in landscape, and the game and this layer share a 'stage' frame.
 // Racing: drag a finger left or right anywhere on the screen to steer (Input.setSteer); the car accelerates by
 // itself (Input.setAuto); faint BRAKE and fire buttons sit under the right thumb, pause top right. The fire button
 // says BOOST or FLASH for what the car holds (one at a time), and is blank while it holds neither.
@@ -229,6 +230,7 @@ export const Touch = {
     window.addEventListener('resize', refit);
     window.addEventListener('orientationchange', refit);
     if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+    if (matchMedia('(pointer: coarse)').matches) { show(true); setTimeout(fit, 300); } // a phone opens in landscape
   },
   // Whether to tell the player that the home screen gives full screen: on touch, with no fullscreen to ask for.
   homeHint() { return on && !fsEnabled() && !standalone(); },
