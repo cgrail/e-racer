@@ -12,7 +12,12 @@ if (window.__ecr.settings.units !== 1 || 'energy' in window.__ecr.settings || 'p
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };
 const moved = () => { if (!(window.__ecr.race.humans.every(h => h.travel > 2000))) throw new Error('player cars did not drive'); };
 frames(5);
-tap('Enter'); expect('MainMenu'); // title -> main menu
+window.__ecr.settings.names[0] = ''; // a new player: the title asks for a name first
+tap('Enter'); expect('NameEntry');
+tap('Enter'); expect('NameEntry'); // no name yet: Enter does nothing
+for (const [code, k] of [['KeyR', 'r'], ['Minus', '-'], ['KeyF', 'f'], ['Digit1', '1']]) tap(code, k);
+tap('Enter'); expect('MainMenu'); // name -> main menu (no race server here)
+if (window.__ecr.settings.names[0] !== 'RF1') throw new Error('name not asked for first: ' + window.__ecr.settings.names[0]);
 tap('ArrowUp'); tap('Enter'); // wrap to START GAME (championship)
 frames(5); expect('PreRace'); tap('Enter'); expect('RaceScene'); // pre-race -> race
 if (!window.__ecr.race.energy || !window.__ecr.race.power) throw new Error('a championship race should have limited energy and power-ups');
@@ -51,7 +56,7 @@ hold('KeyW'); hold('ArrowUp'); frames(60 * 10); moved();
   touch(200, 122); if (race.paused) throw new Error('touch: tapping the selected row did not confirm it');
   Input.setAuto(false); hold('KeyW'); hold('ArrowUp');
 }
-console.log('game flow: title, menu, championship, 2P time challenge, course builder race, touch driving and menus OK');
+console.log('game flow: title, name for a new player, menu, championship, 2P time challenge, course builder race, touch driving and menus OK');
 
 // ---------------------------------------------------------------- online: the real server lobby behind a fake WebSocket
 {
@@ -86,7 +91,8 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   tap('Enter'); frames(2); expect('MainMenu'); // the local game straight away
   if (Online.state !== 'error' || Online.error !== 'NO RACE SERVER FOUND') fail('no server should show as such, got ' + Online.state);
   tap('Escape'); expect('Title'); frames(3); // back on the title it looks again, and now the server is up
-  tap('Enter'); frames(2); expect('Lobby');
+  window.__ecr.settings.names[0] = '';
+  tap('Enter'); expect('NameEntry'); tap('Escape'); frames(2); expect('Lobby'); // no name: asked, and skipped
   if (Online.state !== 'lobby' || Online.status !== null) fail('online menu should show no session, got ' + Online.state);
   // rows: START RACE (the cursor starts here), NAME, CAR, LEVEL, MUSIC, UNITS
   tap('ArrowDown'); tap('Enter'); // NAME: edit
@@ -138,5 +144,5 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   if (Online.state !== 'error' || Online.error !== 'CONNECTION LOST') fail('lost connection not shown, got ' + Online.state);
   tap('ArrowDown'); tap('Enter'); expect('MainMenu'); // PLAY OFFLINE
   if (Online.state !== 'off' || Lobby.clients.size !== 0 || Lobby.session !== null) fail('playing offline should disconnect');
-  console.log('online: no server (silent or refused) -> local game, server -> online menu, start, mid-race join and drop, state sync, shocks both ways, race end, points, next race, leave, connection lost -> offline OK');
+  console.log('online: no server (silent or refused) -> local game, server -> name skipped -> online menu, start, mid-race join and drop, state sync, shocks both ways, race end, points, next race, leave, connection lost -> offline OK');
 }

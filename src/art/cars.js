@@ -1,22 +1,26 @@
-import { S, make, flip, P, E } from './draw.js';
+import { S, make, flip, P, E, grad } from './draw.js';
 import { REAR, PROFILE } from './carmodels.js';
 
-// Player and rival cars: rear view, and a 3/4 view showing the flank when steering.
-const carCache = {};
-const lamps = brake => [brake ? '#ff4a3a' : '#a81010', brake ? '#ffe0c0' : '#ff5040'];
-function drawRear(g, model, col, s, brake, plate) {
-  const [tl, tlL] = lamps(brake);
-  REAR[model](g, { col, bD: S(col, 0.62), bL: S(col, 1.35), bDD: S(col, 0.4), glass: '#1d2a3c', tl, tlL, plate }, s);
+// Player and rival cars: rear view, and a 3/4 view showing the flank when steering. They are drawn at SS times
+// the 72x40 layout, so they stay smooth when scaled down to the screen, and carry a 72x40 copy (mip) for far away.
+const carCache = new Map(), SS = 2, CACHE_MAX = 320; // drawn on demand, so a full cache just starts again
+const lamps = brake => [brake ? '#ff4a3a' : '#b81410', brake ? '#ffe0c0' : '#ff6048'];
+function drawRear(g, model, col, s, brake, plate, turned = false) { // turned: the flank draws the rear tyres
+  const [tl, tlL] = lamps(brake), p = PROFILE[model];
+  REAR[model](g, { col, bD: S(col, 0.62), bL: S(col, 1.35), bDD: S(col, 0.4), glass: '#1d2a3c', tl, tlL, plate,
+    glow: brake ? 'rgba(255,70,40,1)' : 'rgba(255,30,20,0.8)', blur: (brake ? 4 : 2.5) * SS, sh: p.lamp[0], tyre: p.tyre, turned }, s);
 }
 
 const TURN = [[1, 0], [0.88, 10], [0.78, 18]]; // per steer level: rear-face squash, flank width
 const VY = -20, Q = 0.15; // vanishing point height (sprite y) and how far the nose shrinks towards it
-const GLASS = '#1d2a3c', SHINE = '#4a6688';
+const GLASS = '#1d2a3c', SHINE = 'rgba(160,190,230,0.35)';
 
 // Side of the car as seen when it yaws right: it starts at the rear face's edge (ex) and recedes over
 // fw px towards a vanishing point up on the horizon, so the nose sits higher and smaller than the tail.
-// Points are (d, y, x): d runs 0 at the tail to 1 at the nose, y and x are in rear-art pixels.
-function drawFlank(g, p, col, tl, ex, fw, cb, ct) {
+// Points are (d, y, x): d runs 0 at the tail to 1 at the nose, y and x are in rear-art pixels. It is drawn in
+// two layers: under the rear face, the shade beneath the car and the treads, tw wide, of the near wheels and the
+// far rear one (whose outer face is at fx), each tyre whole and in perspective; over it, everything else.
+function drawFlank(g, under, p, col, tl, ex, fw, cb, ct, [fx, tw]) {
   const VX = ex + fw / Q, a = Q / (1 - Q), sc = d => 1 / (1 + a * d);
   const pt = (d, y, x = ex) => { const s = sc(d); return [VX + (x - VX) * s, VY + (y - VY) * s]; };
   const poly = (colr, pts) => P(g, colr, pts.flat());
@@ -27,16 +31,35 @@ function drawFlank(g, p, col, tl, ex, fw, cb, ct) {
   const edge = [[0, p.top], [lb, p.top + 0.5], [Math.min(0.97, lb + 0.08), h0], [0.94, h1], [1, h1 + 2]];
   const side = [...edge, [1, bot - 2.5], [0.96, bot], [0, bot]];
   const band = (y0, y1, colr) => poly(colr, [pt(0, y0), pt(1, y0), pt(1, y1), pt(0, y1)]);
-  const r = p.whl[2], wheels = [p.whl[0], p.whl[1]].map(d => [...pt(d, 38 - r), sc(d)]);
+  // the wheels, dropped so the rear one stands on the ground at the tail like the rear view's tyres
+  const r = p.whl[2], drop = 38 - pt(p.whl[0], 38)[1], hub = (d, x) => { const [hx, hy] = pt(d, 38 - r, x); return [hx, hy + drop]; };
+  const wheels = [p.whl[0], p.whl[1]].map(d => [...hub(d), sc(d)]);
   const discs = (o, colr, dx = 0, dy = 0) => { // wheel-sized ellipses, o px larger, edge-on as the side recedes
     for (const [x, y, s] of wheels) { const ey = (r + o) * s, ew = ey * fw / 46; E(g, x + dx * ew, y + dy * ey, ew, ey, colr); }
   };
 
-  poly('rgba(0,0,0,0.5)', [pt(0, bot), pt(1, bot), pt(0.9, 38), pt(0, 38)]); // shade under the car
-  poly(S(col, 1.18), [[cb, cy], gh(lb, cy), pt(1, h1, cb + 2), ...edge.map(([d, y]) => pt(d, y)).reverse()]); // deck, bonnet
-  g.save(); poly(S(col, 0.82), side.map(([d, y]) => pt(d, y))); g.clip(); // the side panel, shaded round
-  poly(S(col, 1.02), [...edge.map(([d, y]) => pt(d, y + 0.5)), ...edge.map(([d, y]) => pt(d, y + 3.5)).reverse()]);
-  band(bot - 8, bot - 2.5, S(col, 0.62));
+  if (under) {
+    poly('rgba(0,0,0,0.5)', [pt(0, bot), pt(1, bot), pt(0.9, 38), pt(0, 38)]); // shade under the car
+    // a tread between the faces at xa and xb, rounded off by the face at xa, and by a sidewall facing us at xb
+    const tread = (d, xa, xb, side) => {
+      const s = sc(d), ey = r * s, ew = ey * fw / 46, [ax, ay] = hub(d, xa), [bx, by] = hub(d, xb);
+      E(g, ax, ay, ew, ey, '#050505');
+      poly(grad(g, ax, 0, bx, 0, [[0, '#050505'], [0.5, '#2c2c2e'], [1, '#0c0c0c']]), [[ax, ay - ey], [bx, by - ey], [bx, by + ey], [ax, ay + ey]]);
+      for (let ty = 3 * s; ty < ey; ty += 3 * s) poly('rgba(0,0,0,0.55)', [[ax, ay + ty], [bx, by + ty], [bx, by + ty + 0.7 * s], [ax, ay + ty + 0.7 * s]]);
+      if (side) { E(g, bx, by, ew, ey, '#161618'); E(g, bx + ew * 0.15, by, ew * 0.6, ey * 0.6, '#26292d'); } // the back of the rim
+    };
+    tread(p.whl[0], fx, fx + tw, true); // far rear: its inner side faces us
+    for (const d of [p.whl[0], p.whl[1]]) tread(d, ex - tw, ex, false); // near: the sidewall and rim come over the body
+    return;
+  }
+  const top = Math.min(cy, h0) - 1; // deck and bonnet mirror the sky, brightest towards the cabin
+  poly(grad(g, 0, top, 0, p.top + 1, [[0, S(col, 1.45)], [1, S(col, 1.12)]]),
+    [[cb, cy], gh(lb, cy), pt(1, h1, cb + 2), ...edge.map(([d, y]) => pt(d, y)).reverse()]);
+  const t = y => (y - p.top) / (bot - p.top); // the side panel: a bright crease under its edge, then the ground's shadow
+  g.save(); poly(grad(g, 0, p.top, 0, bot, [[0, S(col, 1.1)], [t(p.top + 2.5), S(col, 1.02)], [t(p.top + 3.5), S(col, 0.84)],
+    [t(bot - 5), S(col, 0.7)], [1, S(col, 0.5)]]), side.map(([d, y]) => pt(d, y))); g.clip();
+  poly('rgba(255,255,255,0.45)', [...edge.map(([d, y]) => pt(d, y + 0.3)), ...edge.map(([d, y]) => pt(d, y + 1.1)).reverse()]);
+  band(bot - 6, bot - 5.4, 'rgba(255,255,255,0.18)'); // the sill's crease
   band(bot - 2.5, bot, p.clad ? '#262626' : '#161616');
   discs(1.6, p.clad ? '#202020' : '#0c0c0c'); discs(0.6, '#060606'); // arches
   poly(tl, [pt(0, p.lamp[0]), pt(0.06, p.lamp[0] + 0.5), pt(0.05, p.lamp[1]), pt(0, p.lamp[1])]); // lamp wrap
@@ -49,7 +72,8 @@ function drawFlank(g, p, col, tl, ex, fw, cb, ct) {
   const up = p.upper ? S(p.upper, 0.85) : S(col, 0.62), bend = (lb - lt) * 0.3;
   poly(up, [gh(0, cy), gh(0, ry), gh(lt, ry), gh(lt + bend, ry + 1.2), gh(lb, cy)]);
   const c0 = p.cpil, y0 = cy - 1, y1 = ry + 1.5;
-  poly(GLASS, [gh(c0, y0), gh(c0 + 0.03, y1 + 0.5), gh(c0 + 0.08, y1), gh(lt - 0.02, y1), gh(lt + bend - 0.03, y1 + 1.2), gh(lb - 0.06, y0)]);
+  poly(grad(g, 0, y1, 0, y0, [[0, S(GLASS, 1.4)], [1, S(GLASS, 0.6)]]),
+    [gh(c0, y0), gh(c0 + 0.03, y1 + 0.5), gh(c0 + 0.08, y1), gh(lt - 0.02, y1), gh(lt + bend - 0.03, y1 + 1.2), gh(lb - 0.06, y0)]);
   poly(SHINE, [gh(lt - 0.12, y1), gh(lt - 0.04, y1), gh(lb - 0.2, y0), gh(lb - 0.28, y0)]);
   for (const d of p.doors) poly(up, [gh(d, y0 + 1), gh(d, y1 - 1), gh(d + 0.035, y1 - 1), gh(d + 0.035, y0 + 1)]);
   const m = lb - 0.07, mx = cx(cy);
@@ -58,18 +82,32 @@ function drawFlank(g, p, col, tl, ex, fw, cb, ct) {
 
 // steer: -2..2 (0 straight, 1 slight, 2 full lock). Left turns mirror the layout, not the rear art.
 // plate: the player's name on the number plate ('' for a plain one).
+const big = fn => make(72 * SS, 40 * SS, g => { g.scale(SS, SS); fn(g); }); // a 72x40 layout, drawn at SS
+function shadow(g) { // soft, darkest under the middle of the car
+  g.save(); g.translate(36, 36.5); g.scale(1, 0.13);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, 37);
+  gr.addColorStop(0, 'rgba(0,0,0,0.6)'); gr.addColorStop(0.7, 'rgba(0,0,0,0.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(-37, -37, 74, 74); g.restore();
+}
 function drawCar(g, model, col, steer, brake, plate) {
-  E(g, 36, 37, 34, 3.5, 'rgba(0,0,0,0.45)');
+  shadow(g);
   const k = Math.min(2, Math.abs(steer)), dir = Math.sign(steer);
   if (!k) { drawRear(g, model, col, 0, brake, plate); return; }
   const p = PROFILE[model], [f, fw] = TURN[k], ox = 36 - (72 * f + fw) / 2;
-  const rear = make(72, 40, h => drawRear(h, model, col, k * dir, brake, plate));
-  g.drawImage(rear, dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
-  const side = make(72, 40, h => drawFlank(h, p, col, lamps(brake)[0], ox + (p.edge + k) * f - 0.5, fw,
-    ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f));
-  g.drawImage(dir > 0 ? side : flip(side), 0, 0);
+  const flank = under => big(h => drawFlank(h, under, p, col, lamps(brake)[0], ox + (p.edge + k) * f - 0.5, fw,
+    ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f, [ox + (72 - p.edge + k) * f + 0.5, p.tyre[1] * f]));
+  const put = c => g.drawImage(dir > 0 ? c : flip(c), 0, 0, 72, 40);
+  put(flank(true));
+  g.drawImage(big(h => drawRear(h, model, col, k * dir, brake, plate, true)), dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
+  put(flank(false));
 }
 export function car(model, col, steer, brake, plate = '') {
   const key = model + col + steer + (brake ? 1 : 0) + plate;
-  return carCache[key] || (carCache[key] = make(72, 40, g => drawCar(g, model, col, steer, brake, plate)));
+  let img = carCache.get(key);
+  if (img) return img;
+  if (carCache.size >= CACHE_MAX) carCache.clear();
+  img = big(g => drawCar(g, model, col, steer, brake, plate));
+  img.mip = make(72, 40, g => { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, 72, 40); });
+  carCache.set(key, img);
+  return img;
 }

@@ -1,14 +1,15 @@
 import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
 import { g, W, text } from '../screen.js';
-import { go } from '../state.js';
+import { settings, go } from '../state.js';
 import { logo, blinkOn } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { Online } from '../online.js';
 import { Touch } from '../touch.js';
 
 // Title screen over the attract-mode demo race. It looks for the race server: when it answers, Enter leads to
-// online play (the Lobby), otherwise to the local game. Coming back here looks again.
+// online play (the Lobby), otherwise to the local game. Coming back here looks again. A player with no name is
+// asked for one first (NameEntry), while the server answers.
 export const Title = {
   t: 0, waiting: false,
   enter() {
@@ -17,7 +18,11 @@ export const Title = {
   },
   update(dt) {
     this.t += dt;
-    if (Input.menu().ok && !this.waiting) { Sound.fx.select(); this.waiting = true; }
+    if (Input.menu().ok && !this.waiting) {
+      Sound.fx.select();
+      if (!settings.names[0]) { go('NameEntry'); return; }
+      this.waiting = true;
+    }
     if (this.waiting && Online.state !== 'connecting') go(Online.available() ? 'Lobby' : 'MainMenu');
   },
   draw(dt) {
