@@ -77,9 +77,9 @@ function energyGauge(g, x, y, race, car, split) {
   g.fillRect(x + 1, by + 1, Math.round(bw * e), bh);
 }
 
-// A held electro shock: a crackling arc in a box.
+// A held flash (electro shock): a crackling arc in a box.
 function shockGauge(g, x, y, race) {
-  text(g, 'SHOCK', x, y, 8, '#40d8ff');
+  text(g, 'FLASH', x, y, 8, '#40d8ff');
   const by = y + 10;
   g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, 10, 10);
   g.strokeStyle = Math.floor(race.wtime * 6) % 2 ? '#ffffff' : '#40d8ff'; g.lineWidth = 1; g.beginPath();
@@ -87,11 +87,11 @@ function shockGauge(g, x, y, race) {
   g.stroke();
 }
 
-// Held super-power charges as bolts; while super power is active, a draining bar. Returns whether it drew.
+// A held boost as a bolt; while its super power runs, a draining bar. Returns whether it drew.
 function powerGauge(g, x, y, race, car, split) {
   const on = car.superT > 0;
   if (!on && !car.power) return false;
-  text(g, 'POWER', x, y, 8, on && Math.floor(race.wtime * 8) % 2 ? '#ffffff' : '#ff70ff');
+  text(g, 'BOOST', x, y, 8, on && Math.floor(race.wtime * 8) % 2 ? '#ffffff' : '#ff70ff');
   const by = y + 10;
   if (on) {
     const bw = split ? 44 : 60;
@@ -99,12 +99,9 @@ function powerGauge(g, x, y, race, car, split) {
     g.fillStyle = '#ff60ff'; g.fillRect(x + 1, by + 1, Math.round(bw * Math.min(1, car.superT / (car.superMax || SUPER_T))), 5);
     return true;
   }
-  for (let i = 0; i < car.power; i++) {
-    const bx = x + i * 12;
-    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(bx, by, 10, 10);
-    g.fillStyle = '#fff060'; g.beginPath();
-    for (const [px, py] of [[6, 1], [2, 6], [5, 6], [4, 9], [8, 4], [5, 4]]) g.lineTo(bx + px, by + py);
-    g.closePath(); g.fill();
-  }
+  g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, 10, 10);
+  g.fillStyle = '#fff060'; g.beginPath();
+  for (const [px, py] of [[6, 1], [2, 6], [5, 6], [4, 9], [8, 4], [5, 4]]) g.lineTo(x + px, by + py);
+  g.closePath(); g.fill();
   return true;
 }

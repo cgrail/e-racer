@@ -46,13 +46,13 @@ export function hunt(c, dt) {
   return null;
 }
 
-// Rivals steer for an energy cell when their battery runs low, or for an electro shock when they can hold one.
+// Rivals steer for an energy cell when their battery runs low, or for a flash when they can hold one.
 export function aiPickup(c, seg) {
   const T = this.track, wantE = c.energy != null && c.energy < 0.55, wantS = c.shock === 0;
   if (!wantE && !wantS) return null;
   for (let n = 4; n < 36; n++) {
     for (const ob of T.segments[(seg.index + n) % T.N].obs) {
-      if (((wantE && ob.fx === 'energy') || (wantS && ob.fx === 'shock')) && !c.taken.has(ob) && !(ob.backAt > this.time)) return ob.x;
+      if (((wantE && ob.fx === 'energy') || (wantS && ob.fx === 'shock')) && !c.taken.has(ob) && this.sees(c, ob)) return ob.x;
     }
   }
   return null;

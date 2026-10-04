@@ -9,12 +9,13 @@ import { rowsDrawn } from './ui.js';
 // each touch asks for fullscreen (in landscape) until the browser gives it. The game then fills the screen: a
 // phone held upright gets it turned a quarter (style.css), so the game and this layer share a 'stage' frame.
 // Racing: drag a finger left or right anywhere on the screen to steer (Input.setSteer); the car accelerates by
-// itself (Input.setAuto); faint BRAKE, POWER and SHOCK buttons sit under the right thumb, pause top right.
+// itself (Input.setAuto); faint BRAKE and fire buttons sit under the right thumb, pause top right. The fire button
+// says BOOST or FLASH for what the car holds (one at a time), and is blank while it holds neither.
 // Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap: rowsNav picks the row, anything else
 // takes it as OK); < and > in the bottom corners while the scene shows rows, BACK top left, all in the menus'
 // panel style; and a text field brings up the keyboard while a name is typed.
 // The buttons hold the keyboard's key codes (Input.virtual), so the scenes need nothing touch-specific.
-let root = null, field = null, stick = null, on = false, mode = '';
+let root = null, field = null, stick = null, fire = null, on = false, mode = '', item = '';
 const held = new Set();
 
 function press(code, down) {
@@ -116,8 +117,7 @@ function build() {
   const drive = el('div', 'layer drive', root), menu = el('div', 'layer menu', root);
   stick = steering(drive);
   button(drive, 'tb brake', 'BRAKE', 'KeyS');
-  button(drive, 'tb power', 'POWER', 'Space');
-  button(drive, 'tb shock', 'SHOCK', 'KeyE');
+  fire = button(drive, 'tb fire', '', 'Space');
   button(drive, 'tb pause', '❚❚', 'Escape');
   taps(menu);
   button(menu, 'mb back', 'BACK', 'Escape');
@@ -153,6 +153,16 @@ function show(v) {
   document.body.classList.toggle('touching', v);
   Input.setAuto(v);
   if (!v) releaseAll();
+}
+
+// The fire button's label: what player 1's car holds.
+function showItem() {
+  const c = game.race && game.race.humans.find(h => h.pidx === 0);
+  const k = !c ? '' : c.power > 0 ? 'BOOST' : c.shock > 0 ? 'FLASH' : '';
+  if (k === item) return;
+  item = k; fire.textContent = k;
+  fire.classList.toggle('boost', k === 'BOOST');
+  fire.classList.toggle('flash', k === 'FLASH');
 }
 
 // Fullscreen needs a user gesture, so the first touch (and every one after, while it isn't on) asks for it.
@@ -216,6 +226,7 @@ export const Touch = {
   update() {
     if (!root || !on) return;
     const racing = game.scene === scenes.RaceScene && !scenes.RaceScene.paused;
+    if (racing) showItem();
     const rows = rowsDrawn();
     const m = racing ? 'drive' : 'menu' + (game.scene.editing ? ' typing' : rows ? ' rows' : '');
     if (m === mode) return;

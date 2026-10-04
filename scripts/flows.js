@@ -110,7 +110,7 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   if (!(me.travel > 2000) || Math.abs(sv().cars[mi].travel - me.travel) > 3000) fail(`server copy of the car does not follow (${me.travel} / ${sv().cars[mi].travel})`);
   if (!(race().cars.some(c => !c.human && c.travel > 2000))) fail('rivals do not move in the browser');
 
-  me.shock = 1; me.superT = 0; // fire a shock: it lands on the server's car
+  me.power = 0; me.shock = 1; me.superT = 0; // hold a flash and fire it: it lands on the server's car
   if (!race().shockTarget(me)) fail('no car ahead to shock');
   tap('KeyE'); frames(2);
   const ti = race().cars.findIndex(c => c.net && c.shockT > 2.5); // the car it hit here (the nearest ahead when it fired)

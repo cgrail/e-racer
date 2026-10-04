@@ -1,5 +1,8 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
+import { PICKUPS } from './specs.js';
+
+const BACK = 6; // seconds until a pickup a rival took is back for the leader
 
 // Race methods for contact: hazards, roadside crashes and car-to-car bumps. Mixed into Race.
 export function hits(c) {
@@ -34,8 +37,8 @@ export function hitObstacle(c, ob, halfW) {
     }
     return;
   }
-  if (fx === 'energy' || fx === 'power' || fx === 'shock') {
-    if (c.taken && !c.taken.has(ob) && !(ob.backAt > this.time)) {
+  if (PICKUPS.includes(fx)) {
+    if (c.taken && !c.taken.has(ob) && this.sees(c, ob)) {
       if (fx === 'energy') this.collectEnergy(c, ob); else if (fx === 'power') this.collectPower(c, ob); else this.collectShock(c, ob);
     }
     return;
@@ -61,6 +64,15 @@ export function hitObstacle(c, ob, halfW) {
   } else if (fx === 'boost') {
     c.speed = Math.min(c.speed + MAX * 0.3, c.spec.top * MAX * 1.3); c.boostT = 2; Sound.fx.boost();
   }
+}
+
+// Whether pickup ob is on car c's road: cells by its place (cellNeed in energy.js), boosts and flashes
+// while it holds neither (power.js). One a rival took is gone for up to BACK seconds: that long for the leader,
+// less the further back a car is, and not at all for the last. Anything else on the road is there for every car.
+export function sees(c, ob) {
+  if (ob.takenAt != null && this.time - ob.takenAt < BACK * (1 - this.share(c))) return false;
+  if (ob.fx === 'energy') return ob.tier < c.cellD;
+  return (ob.fx !== 'power' && ob.fx !== 'shock') || !this.holds(c);
 }
 
 export function crash(c) {
