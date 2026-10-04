@@ -35,7 +35,7 @@ export function hitObstacle(c, ob, halfW) {
     return;
   }
   if (fx === 'energy' || fx === 'power' || fx === 'shock') {
-    if (c.taken && !c.taken.has(ob)) {
+    if (c.taken && !c.taken.has(ob) && !(ob.backAt > this.time)) {
       if (fx === 'energy') this.collectEnergy(c, ob); else if (fx === 'power') this.collectPower(c, ob); else this.collectShock(c, ob);
     }
     return;

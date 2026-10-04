@@ -204,6 +204,22 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`shock: ${pads.length} pickups, collected, kept with no target, nearest car ahead held to ${Math.round(SHOCK_CAP * 100)}% OK`);
 }
 
+{ // a cell a rival drives over is used up for every car until it comes back
+  const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 0 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }],
+    ai: [{ id: 'A0', name: 'AI', model: 'wave', color: CAR_COLORS[2], aiTop: 0.8 }], energy: true });
+  const h = race.humans[0], a = race.cars.find(c => !c.human), halfW = K.CAR_W / 2 / track.roadW;
+  const sg = track.segments.find(s => s.obs.some(o => o.fx === 'energy')), cell = sg.obs.find(o => o.fx === 'energy');
+  a.energy = 0.5; a.prevZ = sg.index * K.SEG_LEN - 10; a.z = sg.index * K.SEG_LEN + 10; a.x = cell.x;
+  race.hits(a);
+  if (!(a.energy > 0.5) || !(cell.backAt > race.time)) throw new Error('energy: rival did not use up the cell');
+  h.energy = 0.5; race.hitObstacle(h, cell, halfW);
+  if (h.energy !== 0.5 || h.taken.has(cell)) throw new Error('energy: a cell a rival took was still collectable');
+  race.time += 30; race.hitObstacle(h, cell, halfW);
+  if (!(h.energy > 0.5)) throw new Error('energy: the cell did not come back');
+  console.log('energy: a rival uses up the cell it drives over, it comes back later OK');
+}
+
 { // active rivals: they recharge from cells, collect and fire shocks, and keep changing lanes
   const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 4 }));
   const ai = Array.from({ length: 10 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k % 10], aiTop: 0.7 + k * 0.01 }));

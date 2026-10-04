@@ -4,11 +4,12 @@ import { Art } from '../art/index.js';
 
 // Race methods for the limited-energy option: battery drain, energy cells, running flat. Mixed into Race.
 // Every car, rivals included (they steer for cells when low). Cells are per car: each car tracks the ones it took this lap (c.taken), so they
-// reappear for the other player and on the next lap.
+// reappear for the other player and on the next lap. A cell a rival drives over is used up for every car until it comes back (ob.backAt).
 const DRAIN = 1 / 38;  // per second at full rated power
 const REGEN = 0.02;    // per second at full rated regen
 const CELL = 0.14;     // energy from one cell
 const CELL_GAP = 150;  // segments between cells
+const CELL_BACK = 6;   // seconds until a cell a rival took comes back
 const LOW = 0.2;
 const RECHARGE = 0.6;  // energy after running flat
 const FLAT_T = 1.2;    // seconds without power after running flat
@@ -37,6 +38,7 @@ export function useEnergy(c, thr, brk, sp, dt) {
 
 export function collectEnergy(c, ob) {
   c.taken.add(ob);
+  if (!c.human) ob.backAt = this.time + CELL_BACK;
   c.energy = Math.min(1, c.energy + CELL);
   if (c.energy >= LOW) c.lowWarned = false;
   if (c.human) Sound.fx.charge();

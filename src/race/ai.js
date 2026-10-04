@@ -26,7 +26,7 @@ export function aiPickup(c, seg) {
   if (!wantE && !wantS) return null;
   for (let n = 4; n < 36; n++) {
     for (const ob of T.segments[(seg.index + n) % T.N].obs) {
-      if (((wantE && ob.fx === 'energy') || (wantS && ob.fx === 'shock')) && !c.taken.has(ob)) return ob.x;
+      if (((wantE && ob.fx === 'energy') || (wantS && ob.fx === 'shock')) && !c.taken.has(ob) && !(ob.backAt > this.time)) return ob.x;
     }
   }
   return null;
