@@ -22,31 +22,44 @@ canvas:fullscreen {
   height: min(62.5vw, 100vh);
 }
 
-/* Touch controls (game/touch.js): hidden until the first touch, and kept faint */
+/* Touch controls (game/touch.js): hidden until the first touch. On touch the game fills the screen, stretched
+   to its shape; a phone held upright gets the game and the controls turned a quarter, so they fill its height. */
 html, body, canvas { touch-action: none; }
 body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-@media (orientation: landscape) { /* the game fills the screen on a phone, stretched to its shape */
-  body.touching canvas { width: 100vw; height: 100vh; height: 100dvh; }
+body.touching canvas { width: 100vw; height: 100vh; height: 100dvh; }
+.touch {
+  display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace;
+  --l: env(safe-area-inset-left, 0px); --r: env(safe-area-inset-right, 0px); --t: env(safe-area-inset-top, 0px); --b: env(safe-area-inset-bottom, 0px);
 }
-.touch { display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace; }
 body.touching .touch { display: block; }
+@media (orientation: portrait) {
+  body.touching canvas, body.touching .touch {
+    position: fixed; inset: auto; left: 50%; top: 50%;
+    width: 100vh; width: 100dvh; height: 100vw;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  body.touching .touch { /* the screen's notch and home bar, seen from the turned stage */
+    --l: env(safe-area-inset-top, 0px); --r: env(safe-area-inset-bottom, 0px); --t: env(safe-area-inset-right, 0px); --b: env(safe-area-inset-left, 0px);
+  }
+}
 .touch .layer { display: none; position: absolute; inset: 0; pointer-events: auto; touch-action: none; }
 .touch.drive .drive, .touch.menu .menu { display: block; }
-.tb {
+.btn {
   position: absolute; display: flex; align-items: center; justify-content: center;
-  pointer-events: auto; touch-action: none; box-sizing: border-box; border-radius: 50%;
-  font-size: 7px; color: rgba(255, 255, 255, 0.5);
+  pointer-events: auto; touch-action: none; box-sizing: border-box;
+}
+
+/* Racing: faint round buttons. BRAKE in the right corner, POWER and SHOCK in an arc around it */
+.tb {
+  border-radius: 50%; font-size: 7px; color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(255, 255, 255, 0.22);
 }
 .tb.on { color: #fff; background: rgba(255, 255, 255, 0.24); border-color: rgba(255, 255, 255, 0.65); }
-/* Under the right thumb: BRAKE in the corner, POWER and SHOCK in an arc around it */
-.tb.brake { width: 92px; height: 92px; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); }
+.tb.brake { width: 92px; height: 92px; right: calc(18px + var(--r)); bottom: calc(18px + var(--b)); }
 .tb.power, .tb.shock { width: 58px; height: 58px; }
-.tb.power { right: calc(max(18px, env(safe-area-inset-right)) + 104px); bottom: max(22px, env(safe-area-inset-bottom)); }
-.tb.shock { right: max(30px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 104px); }
-.tb.corner { width: 36px; height: 36px; border-radius: 8px; top: max(8px, env(safe-area-inset-top)); }
-.tb.pause { right: max(8px, env(safe-area-inset-right)); font-size: 9px; }
-.tb.back { width: 52px; left: max(8px, env(safe-area-inset-left)); }
+.tb.power { right: calc(122px + var(--r)); bottom: calc(22px + var(--b)); }
+.tb.shock { right: calc(30px + var(--r)); bottom: calc(122px + var(--b)); }
+.tb.pause { width: 36px; height: 36px; border-radius: 8px; top: calc(8px + var(--t)); right: calc(8px + var(--r)); font-size: 9px; }
 /* Where the steering finger came down, and how far it has moved */
 .stick {
   display: none; position: absolute; width: 96px; height: 28px; margin: -14px 0 0 -48px; pointer-events: none;
@@ -56,16 +69,21 @@ body.touching .touch { display: block; }
   position: absolute; left: 33px; top: -1px; width: 26px; height: 26px; border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
 }
+
+/* Menus: buttons in the panel style of the game's menus (ui.js panel and the selected-row gradient) */
+.mb {
+  color: #ffe040; font-size: 16px; text-shadow: 2px 2px 0 #0a0a30;
+  background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; box-shadow: inset 0 0 0 3px rgba(8, 10, 40, 0.86), inset 0 0 0 4px #1c2a80;
+}
+.mb.on { color: #fff; background: linear-gradient(90deg, rgba(255, 40, 160, 0.75), rgba(60, 80, 255, 0.5)); }
+.mb.prev, .mb.next { display: none; width: 72px; height: 52px; bottom: calc(10px + var(--b)); }
+.touch.rows .mb.prev, .touch.rows .mb.next { display: flex; }
+.mb.prev { left: calc(10px + var(--l)); }
+.mb.next { right: calc(10px + var(--r)); }
+.mb.back { width: 72px; height: 36px; top: calc(8px + var(--t)); left: calc(8px + var(--l)); font-size: 9px; }
 .touch .type {
-  display: none; position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%);
+  display: none; position: absolute; left: 50%; top: calc(10px + var(--t)); transform: translateX(-50%);
   width: 180px; padding: 8px; pointer-events: auto; font: inherit; font-size: 10px; color: #fff; caret-color: transparent;
   background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; text-align: center;
 }
 .touch.typing .type { display: block; }
-/* Upright, the game keeps its shape; a faint hint asks to turn the phone */
-@media (orientation: portrait) {
-  body.touching::after {
-    content: 'TURN SIDEWAYS FOR FULL SCREEN'; position: fixed; left: 0; right: 0; bottom: 24%; text-align: center;
-    font: 8px 'Press Start 2P', monospace; color: rgba(255, 255, 255, 0.35); pointer-events: none;
-  }
-}

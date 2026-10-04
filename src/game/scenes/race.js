@@ -64,7 +64,7 @@ export const RaceScene = {
     if (this.paused) {
       g.fillStyle = 'rgba(0,0,20,0.6)'; g.fillRect(0, 0, W, H);
       panel(140, 90, 200, 100, 'PAUSED');
-      rowsDraw(this.pauseRows(), this.psel, 150, 120, 180);
+      rowsDraw(this.pauseRows(), this.psel, 150, 120, 180, 14, 62);
     }
   },
 };

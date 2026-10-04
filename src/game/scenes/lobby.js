@@ -1,8 +1,9 @@
+import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
 import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES } from '../session.js';
 import { Online } from '../online.js';
@@ -67,10 +68,10 @@ export const Lobby = {
     text('ONLINE: RACE OTHER PLAYERS AND RIVALS', W / 2, 27, 8, INFO, 'center');
     const rows = this.rows();
     panel(10, 40, 278, 214, 'ONLINE RACE');
-    rowsDraw(rows, this.sel, 16, 64, 266);
-    const y0 = 70 + rows.length * 14;
+    const y0 = 70 + rows.length * rowsDraw(rows, this.sel, 16, 64, 266, 14, 108);
     this.lines().slice(0, Math.floor((250 - y0) / 12)).forEach(([s, col], i) => text(s, 22, y0 + i * 12, 8, col));
     carPanel(296, 40, 174, 214, 0, this.t, this.editing ? this.buf : settings.names[0]);
+    if (Input.touch()) { text(this.editing ? TOUCH_TYPE : TOUCH_HELP, W / 2, 268, 8, '#c0c8ff', 'center'); return; }
     text(this.editing ? 'TYPE A NAME (UP TO 6)  ENTER OK  ESC CANCEL' : 'ARROWS/WASD DRIVE  SPACE POWER  E SHOCK', W / 2, 262, 8, '#c0c8ff', 'center');
     text('ESC BACK   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },

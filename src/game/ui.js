@@ -8,6 +8,10 @@ import { g, text } from './screen.js';
 import { settings, saveAll } from './state.js';
 
 // Menu widgets: panels, the logo, option rows, the car panel and course map / elevation previews.
+
+// Help lines for menus on a touch screen (game/touch.js puts < > in the bottom corners).
+export const TOUCH_HELP = 'TAP A ROW, THEN TAP OR < >';
+export const TOUCH_TYPE = 'TAP THE BOX AT THE TOP TO TYPE';
 export function panel(x, y, w, h, title) {
   g.fillStyle = 'rgba(8,10,40,0.86)'; g.fillRect(x, y, w, h);
   g.strokeStyle = '#4a6cff'; g.lineWidth = 2; g.strokeRect(x + 1, y + 1, w - 2, h - 2);
@@ -37,16 +41,20 @@ export function logo(cx, y, size = 40, flat = false) {
     g.fillStyle = gr; g.fillText(str, x0, yy);
   }
 }
-let rowsBox = null; // where the last rowsDraw put its rows, for taps
-export function rowsDraw(rows, sel, x, y, w, lh = 14) {
-  rowsBox = { x, y, w, lh, n: rows.length };
+let rowsBox = null, rowsShown = false; // where the last rowsDraw put its rows, for taps
+// Draws option rows lh apart; on touch they spread to fill h (up to 20 apart) for bigger targets. Returns the spacing.
+export function rowsDraw(rows, sel, x, y, w, lh = 14, h = 0) {
+  if (Input.touch() && h) lh = U.clamp(Math.floor(h / rows.length), lh, 20);
+  rowsBox = { x, y, w, lh, n: rows.length }; rowsShown = true;
+  const dy = Math.round((lh - 14) / 2);
   rows.forEach((r, i) => {
-    const yy = y + i * lh, on = i === sel;
+    const on = i === sel;
     if (on) {
       const gr = g.createLinearGradient(x, 0, x + w, 0);
       gr.addColorStop(0, 'rgba(255,40,160,0.6)'); gr.addColorStop(1, 'rgba(60,80,255,0.25)');
-      g.fillStyle = gr; g.fillRect(x, yy - 3, w, lh - 1);
+      g.fillStyle = gr; g.fillRect(x, y + i * lh - 3, w, lh - 1);
     }
+    const yy = y + i * lh + dy;
     text(r.label, x + 6, yy, 8, on ? '#ffffff' : r.action ? '#7fffb0' : '#9fb0ff');
     if (r.slider != null) {
       const cx = x + w - 6 - r.slider * 6;
@@ -61,7 +69,10 @@ export function rowsDraw(rows, sel, x, y, w, lh = 14) {
       text(r.value, x + w - 6, yy, 8, on ? '#ffe040' : '#ffc040', 'right');
     }
   });
+  return lh;
 }
+// Whether rows were drawn since the last call (game/touch.js shows its < > buttons then).
+export function rowsDrawn() { const d = rowsShown; rowsShown = false; return d; }
 // A tap on a row selects it, and a tap on the selected row confirms it; on a slider or option row, its left
 // or right half steps it down or up. A tap beside the rows does nothing here.
 function tapRow(m, st, rows) {
