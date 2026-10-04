@@ -96,7 +96,7 @@ function powerGauge(g, x, y, race, car, split) {
   if (on) {
     const bw = split ? 44 : 60;
     g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, bw + 2, 7);
-    g.fillStyle = '#ff60ff'; g.fillRect(x + 1, by + 1, Math.round(bw * car.superT / SUPER_T), 5);
+    g.fillStyle = '#ff60ff'; g.fillRect(x + 1, by + 1, Math.round(bw * Math.min(1, car.superT / (car.superMax || SUPER_T))), 5);
     return true;
   }
   for (let i = 0; i < car.power; i++) {

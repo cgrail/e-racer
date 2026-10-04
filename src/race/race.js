@@ -68,7 +68,7 @@ export class Race {
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
-      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, shock: null, shockT: 0,
+      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);

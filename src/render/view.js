@@ -73,8 +73,10 @@ export function view(g, vp, race, car, vs, opts) {
       if (dw < 0.5) continue;
       const dh = (dw * img.height) / img.width * sprMul;
       const bx = p1.x + scale * ob.x * T.roadW * sx;
-      const lift = ob.fly ? ob.fly.y * scale * sy : 0;
+      const lift = ob.fly ? ob.fly.y * scale * sy : 0, a = g.globalAlpha;
+      if (ob.fx === 'power' && car.place <= 3) g.globalAlpha = a * 0.3; // orbs do nothing for the top three
       blit(g, img, bx - dw / 2, p1.y - dh - lift, dw, dh);
+      g.globalAlpha = a;
     }
     const b = buckets[n];
     if (b.length > 1) b.sort((a, c) => c.z - a.z);

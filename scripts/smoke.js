@@ -137,10 +137,13 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`energy: ${cells.length} cells, collected up to ${took} per lap, flat battery drops to last OK`);
 }
 
-{ // power-ups: orbs get collected, a charge fires super power past top speed and smashes barriers
+{ // power-ups: from last place an orb gives the most charges, a charge fires super power past top speed and smashes barriers; the top three get none
+  const { SUPER_T } = await import('../src/race/specs.js');
   const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'pixel', color: CAR_COLORS[0] }], ai: [], power: true });
-  const h = race.humans[0];
+  const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: 'aero', color: CAR_COLORS[k + 2], aiTop: 0.3 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'pixel', color: CAR_COLORS[0] }], ai, power: true });
+  const h = race.humans[0], rivals = race.cars.filter(c => !c.human);
+  rivals.forEach((c, k) => race.setTravel(c, 400000 + k * 3000)); // far ahead: the player runs last
   const orbs = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'power').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (orbs.length < 2) throw new Error('power: too few orbs placed');
   const inp = { throttle: 1, brake: 0, steer: 0, analog: false, power: false };
@@ -149,16 +152,21 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
     inp.steer = next ? U.clamp((next.o.x - h.x) * 4, -1, 1) : 0;
     race.update(K.STEP, [inp]);
   }
-  if (!h.power) throw new Error('power: no orb collected');
+  if (h.power !== 3 || h.place !== 7) throw new Error(`power: last place should get 3 charges, got ${h.power} in P${h.place}`);
   const seg = track.findSegment(h.z + 3000), barrier = { name: 'barrier', v: 0, x: h.x, bx: h.x, ww: 1300, hw: 0.4, fx: 'crash', hit: false, fly: null };
   seg.obs.push(barrier);
   race.update(K.STEP, [Object.assign({}, inp, { steer: 0, power: true })]);
-  if (!(h.superT > 0) || h.power !== 0) throw new Error('power: charge did not fire');
+  if (!(h.superT > SUPER_T * 1.9) || h.power !== 2) throw new Error(`power: charge from last place did not fire long (${h.superT}s)`);
   let top = 0;
   for (let s = 0; s < 120 * 2.5; s++) { race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1) })]); top = Math.max(top, h.speed); }
   if (!(top > h.spec.top * K.MAX_SPEED)) throw new Error('power: super power did not pass top speed');
   if (!barrier.hit || h.crashT > 0) throw new Error('power: barrier was not smashed aside');
-  console.log(`power: ${orbs.length} orbs, charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
+  rivals.forEach((c, k) => race.setTravel(c, h.travel - 50000 - k * 3000)); // now all behind: the player leads
+  race.rank(); h.power = 0;
+  const orb = orbs[0].o; h.taken.delete(orb);
+  race.collectPower(h, orb);
+  if (h.place !== 1 || h.power !== 0 || h.taken.has(orb)) throw new Error('power: the leader should get nothing and leave the orb');
+  console.log(`power: ${orbs.length} orbs, 3 charges in last, none in first, long charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
 }
 
 { // electro shock (every race, no option needed): pickups get collected, a shock needs a car ahead in range and holds it to SHOCK_CAP of top speed

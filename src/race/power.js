@@ -5,10 +5,12 @@ import { SUPER_T } from './specs.js';
 
 // Race methods for the power-up option: collectable power orbs and the super power they charge.
 // Humans only. Like energy cells, orbs are per player (c.taken) and come back every lap.
+// Catch-up: orbs do nothing for the top three (they stay on the road for when the car drops back). Further back,
+// an orb gives more charges and a charge runs longer, so a car at the back can power its way to the front.
 // Super power: fast acceleration past top speed, barriers are smashed aside, puddles and ice
 // are ignored, roadside crashes are blocked and rivals get shoved out of the way.
 const ORB_GAP = 450;   // segments between orbs (offset from the energy cells)
-const MAX_HELD = 2;
+const MAX_HELD = 3;
 const SUPER_ACC = 0.5; // extra acceleration, fraction of MAX_SPEED per second
 
 export function placeOrbs() {
@@ -22,18 +24,26 @@ export function placeOrbs() {
   }
 }
 
+// 0 for 4th place up to 1 for last.
+export function powerShare(c) {
+  const n = this.cars.length;
+  return n > 4 ? U.clamp((c.place - 4) / (n - 4), 0, 1) : 1;
+}
+
 export function collectPower(c, ob) {
+  if (c.place <= 3) return;
   c.taken.add(ob);
   if (c.power >= MAX_HELD) return;
-  c.power++;
-  this.msg(c, 'POWER UP!', 1.2, '#ff70ff');
+  const got = Math.min(MAX_HELD - c.power, 1 + Math.round(this.powerShare(c) * 2));
+  c.power += got;
+  this.msg(c, got > 1 ? `POWER UP x${got}!` : 'POWER UP!', 1.2, '#ff70ff');
   Sound.fx.powerup();
 }
 
 // Fires a held charge on the power key and keeps an active super power going.
 export function usePower(c, inp, dt) {
   if (inp.power && c.power > 0 && c.superT <= 0 && !c.finished) {
-    c.power--; c.superT = SUPER_T;
+    c.power--; c.superT = c.superMax = SUPER_T * (1 + this.powerShare(c));
     this.msg(c, 'SUPER POWER!', 1.2, '#ff70ff');
     Sound.fx.superboost();
   }
