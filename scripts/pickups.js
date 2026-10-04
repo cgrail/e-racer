@@ -5,7 +5,7 @@ import { canvas } from './stubs.js';
 const { K, U } = await import('../src/core/util.js');
 const { Track } = await import('../src/world/track.js');
 const { Race } = await import('../src/race/race.js');
-const { MODELS, CAR_COLORS, SUPER_T, SHOCK_CAP, SHOCK_T } = await import('../src/race/specs.js');
+const { MODELS, CAR_COLORS, SUPER_T, BOOST_TOP, SHOCK_CAP, SHOCK_T } = await import('../src/race/specs.js');
 const { Render } = await import('../src/render/index.js');
 const g = canvas().getContext('2d');
 const P1 = { id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] };
@@ -105,7 +105,7 @@ function placeAt(race, c, first) {
   const seg = track.findSegment(h.z + 3000), barrier = { name: 'barrier', v: 0, x: h.x, bx: h.x, ww: 1300, hw: 0.4, fx: 'crash', hit: false, fly: null };
   seg.obs.push(barrier);
   race.update(K.STEP, [Object.assign({}, inp, { steer: 0, shock: true })]); // either key fires what is held
-  if (!(h.superT > SUPER_T * 1.9) || h.power !== 0) throw new Error(`power: boost from last place did not fire long (${h.superT}s)`);
+  if (!(h.superT > SUPER_T * 1.7) || h.power !== 0) throw new Error(`power: boost from last place did not fire long (${h.superT}s)`);
   if (!race.sees(h, pad)) throw new Error('power: flashes not back on the road after firing');
   let top = 0;
   for (let s = 0; s < 120 * 2.5; s++) { race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1) })]); top = Math.max(top, h.speed); }
@@ -114,7 +114,7 @@ function placeAt(race, c, first) {
   placeAt(race, h, true); h.superT = 0; h.taken.delete(orb); // now the player leads: a boost still, but a short one
   race.collectPower(h, orb);
   race.update(K.STEP, [Object.assign({}, inp, { power: true })]);
-  if (h.place !== 1 || !h.taken.has(orb) || h.power !== 0 || !(h.superT > 0 && h.superT <= SUPER_T * 0.5)) throw new Error(`power: the leader's boost is wrong (${h.superT}s)`);
+  if (h.place !== 1 || !h.taken.has(orb) || h.power !== 0 || !(h.superT > 0 && h.superT <= SUPER_T * 0.75)) throw new Error(`power: the leader's boost is wrong (${h.superT}s)`);
   console.log(`power: one boost at a time, ${orbs.length} orbs, long from last, short in the lead, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
 }
 
@@ -133,15 +133,45 @@ function placeAt(race, c, first) {
   race.phase = 'race'; placeAt(race, h, false); behind(); drive(5); // the player runs last: the rival keeps its boost
   if (r.power !== 1 || r.superT > 0) throw new Error('power: rival fired its boost with no player at the front ahead');
   placeAt(race, h, true); behind(); // the player leads, the rival is right behind it
+  const mid = race.cars.find(c => !c.human && c !== r && c !== o), back = mid.travel;
+  race.setTravel(mid, h.travel - 1500); race.rank(); // with a car between them, the rival keeps its boost
+  if (race.aiPower(r, 0, 0)) throw new Error('power: rival fired its boost with a car between it and the player');
+  race.setTravel(mid, back); race.rank();
   let peak = 0;
   for (let s = 0; s < 120 * 6 && !(r.superT > 0 && r.superT < 0.5); s++) {
     drive(1 / 120);
     if (r.superT > 0) peak = Math.max(peak, r.speed);
   }
-  if (r.power !== 0 || !(r.superMax > SUPER_T * 0.5) || !(peak > r.spec.top * K.MAX_SPEED)) throw new Error(`power: rival did not boost past its top speed (${r.power}, ${r.superMax}s, ${peak})`);
+  if (r.power !== 0 || !(r.superMax > SUPER_T * 0.75) || !(peak > r.spec.top * K.MAX_SPEED)) throw new Error(`power: rival did not boost past its top speed (${r.power}, ${r.superMax}s, ${peak})`);
   race.setTravel(o, r.travel - 2000); r.superT = 1;
   Render.view(g, { x: 0, y: 0, w: K.W, h: K.H }, race, o, {}, { dt: 0.5, hud: false }); // the flames behind a boosting car
   console.log(`power: rivals use flashes or boosts, a rival saves its boost for the leader and fires it to ${Math.round(peak / (r.spec.top * K.MAX_SPEED) * 100)}% of its top speed OK`);
+}
+
+{ // a boost takes a car up to BOOST_TOP at most, never to the front: there it ends and the car slows back to its top
+  // speed. From inside the top six it ends one place up
+  const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, curves: 0, length: 15 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [P1], ai: rivals(12, 0.3), power: true });
+  const h = race.humans[0], others = race.cars.filter(c => !c.human), top = h.spec.top * K.MAX_SPEED;
+  others.forEach((c, k) => { // five far ahead, seven slow ones close ahead and out of the player's lane
+    c.shock = c.power = null;
+    race.setTravel(c, h.travel + (k < 5 ? 60000 + k * 1000 : 1500 * (k - 4))); c.prevZ = c.z; c.x = c.aiLane = k % 2 ? 0.6 : -0.6;
+  });
+  race.phase = 'race'; race.rank(); h.speed = top; h.power = 1;
+  const drive = power => race.update(K.STEP, [{ throttle: 1, brake: 0, steer: U.clamp(-h.x * 3, -1, 1), analog: false, power }]);
+  drive(true);
+  let best = h.place, t = 0;
+  for (; h.superT > 0 && t < 5; t += K.STEP) { drive(false); if (h.superT > 0) best = Math.min(best, h.place); }
+  const over = h.speed;
+  if (h.place !== BOOST_TOP || best < BOOST_TOP || !(t < SUPER_T * 1.7) || !(over > top)) throw new Error(`power: boost from P13 ended in P${h.place} after ${t.toFixed(2)}s (best P${best}, ${Math.round(over / top * 100)}% of top speed)`);
+  for (let s = 0; s < 120 * 1.5; s++) drive(false);
+  if (!(h.speed <= top * 1.01)) throw new Error(`power: speed did not ease back after the boost (${Math.round(h.speed / top * 100)}%)`);
+  h.power = 1; drive(true); drive(false); // from inside the top six: it runs until the car gains a place
+  if (!(h.superT > 0) || h.superTo !== BOOST_TOP - 1) throw new Error(`power: boost in P${h.place} did not fire (${h.superT}s, to P${h.superTo})`);
+  const at = p => race.cars.find(c => c.place === p).travel; // past the car ahead only
+  race.setTravel(h, (at(BOOST_TOP - 1) + at(BOOST_TOP - 2)) / 2); h.prevZ = h.z; race.rank(); drive(false);
+  if (h.superT > 0 || h.place !== BOOST_TOP - 1) throw new Error(`power: boost from P${BOOST_TOP} kept going in P${h.place}`);
+  console.log(`power: boost from P13 ended in P${BOOST_TOP} after ${t.toFixed(2)}s at ${Math.round(over / top * 100)}% of top speed and eased back, from P${BOOST_TOP} it ends one place up OK`);
 }
 
 { // flash (electro shock): pickups get collected, a flash needs a car ahead in range and holds it to SHOCK_CAP of top speed

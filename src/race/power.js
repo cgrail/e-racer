@@ -1,7 +1,7 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
-import { SUPER_T } from './specs.js';
+import { SUPER_T, BOOST_TOP } from './specs.js';
 
 // Race methods for the boost: collectable orbs and the super power they charge. Mixed into Race.
 // Players and the rivals that don't use flashes (shock.js). Like energy cells, orbs are per car (c.taken) and come
@@ -9,7 +9,9 @@ import { SUPER_T } from './specs.js';
 // One at a time: a car holds a boost or a flash (shock.js), never more, and one key fires whichever it holds.
 // While it holds one, neither kind is on its road (sees in contact.js); once it fires, they are back.
 // Catch-up: every place can take a boost, but it runs longer the further back the car is when it fires,
-// from SUPER_T / 2 in the lead to 2 * SUPER_T in last place. Rivals save theirs for a player at the front (aiPower).
+// from 0.75 * SUPER_T in the lead to 1.75 * SUPER_T in last place. It takes the car up to BOOST_TOP at most (from
+// inside the top six, one place up), where it ends and the car slows back to its top speed: never to the front.
+// Rivals save theirs for a player at the front that is the car right ahead of them (aiPower).
 // Super power: fast acceleration past top speed, barriers are smashed aside, puddles and ice
 // are ignored, roadside crashes are blocked and rivals get shoved out of the way.
 const ORB_GAP = 450;   // segments between orbs (offset from the flashes)
@@ -41,10 +43,15 @@ export function collectPower(c, ob) {
 // Fires a held boost on the fire key and keeps an active super power going.
 export function usePower(c, fire, dt) {
   if (fire && c.power > 0 && c.superT <= 0 && !c.finished) {
-    c.power = 0; c.superT = c.superMax = SUPER_T * (0.5 + 1.5 * this.share(c));
+    c.power = 0; c.superT = c.superMax = SUPER_T * (0.75 + this.share(c));
+    c.superTo = Math.min(c.place - 1, BOOST_TOP); // the place where it ends
     if (c.human) { this.msg(c, 'BOOST!', 1.2, '#ff70ff'); Sound.fx.superboost(); }
   }
   if (c.superT <= 0) return;
+  if (c.place <= c.superTo) { // that far up it is over: what it held up goes too, so the speed eases back to the top
+    c.boostT = Math.max(0, c.boostT - c.superT); c.immuneT = Math.max(0, c.immuneT - c.superT); c.superT = 0;
+    return;
+  }
   c.superT = Math.max(0, c.superT - dt);
   c.boostT = Math.max(c.boostT, c.superT); // lifts the speed caps and shows the boost flames
   c.immuneT = Math.max(c.immuneT, c.superT);
@@ -53,8 +60,9 @@ export function usePower(c, fire, dt) {
 }
 
 // Whether rival c fires the boost it holds. It saves it to chase down a player at the front: after a moment, once one
-// of the top three is close ahead, and not into a sharp bend (bend: the sharpest curve ahead).
+// of the top three is the car right ahead and close (the boost ends once it is past), and not into a sharp bend
+// (bend: the sharpest curve ahead).
 export function aiPower(c, dt, bend) {
   if (!(c.power > 0) || (c.aiFireT -= dt) > 0 || bend > 3) return false;
-  return this.humans.some(h => !h.finished && h.place <= 3 && h.travel > c.travel && h.travel - c.travel < CHASE);
+  return this.humans.some(h => !h.finished && h.place <= 3 && h.place === c.place - 1 && h.travel - c.travel < CHASE);
 }
