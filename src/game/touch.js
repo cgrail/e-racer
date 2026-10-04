@@ -184,7 +184,7 @@ const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenEle
 const standalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 function fullscreen(e) {
   const d = document.documentElement, req = d.requestFullscreen || d.webkitRequestFullscreen;
-  if (e.pointerType !== 'touch' || !req || fsOn() || e.target === field) return;
+  if (e.pointerType !== 'touch' || !req || fsOn() || e.target.tagName === 'INPUT') return;
   Promise.resolve(req.call(d, { navigationUI: 'hide' }))
     .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
     .catch(() => {});
@@ -202,10 +202,10 @@ function homeIcon() {
 }
 
 // The page stays put: no scrolling (which would also slide the browser bars in and out), and no double-tap
-// or pinch zoom, which iOS Safari allows despite user-scalable=no. The text field keeps its own touches.
+// or pinch zoom, which iOS Safari allows despite user-scalable=no. Text fields keep their own touches.
 function noScroll() {
   let lastEnd = 0;
-  const stop = e => { if (e.target !== field) e.preventDefault(); };
+  const stop = e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); };
   document.addEventListener('touchend', e => {
     const now = e.timeStamp;
     if (now - lastEnd < 350) stop(e);

@@ -91,3 +91,32 @@ body.touching canvas, body.touching .touch {
   -webkit-user-select: text; user-select: text; /* iOS won't type into a field that inherits body's 'none' */
 }
 .touch.typing .type { display: block; }
+
+/* A phone's first stop while it has no name (game/askname.js): a plain page, upright and over everything, kept to
+   the top so the keyboard leaves it in view */
+.ask {
+  position: fixed; inset: 0; z-index: 10; margin: 0; box-sizing: border-box; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px 16px;
+  background: linear-gradient(#101a70, #0a0a30 60%); color: #fff; text-align: center;
+  font-family: 'Press Start 2P', monospace; font-size: 10px; line-height: 1.6;
+}
+.ask .logo { font-size: 18px; color: #ffe040; text-shadow: 2px 2px 0 #ff2890; }
+.ask .hi, .ask .note { color: #9fb0ff; }
+.ask .note { max-width: 300px; color: #7080b0; }
+.ask input {
+  width: 8em; padding: 10px; box-sizing: content-box; font: inherit; font-size: 24px; text-align: center; text-transform: uppercase;
+  color: #ffe040; caret-color: #ff28a0; background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; border-radius: 0; outline: none;
+  -webkit-user-select: text; user-select: text; /* iOS won't type into a field that inherits body's 'none' */
+}
+.ask input:focus { border-color: #ff28a0; }
+.ask button { font: inherit; border-radius: 0; -webkit-appearance: none; appearance: none; }
+.ask .go {
+  padding: 14px 32px; font-size: 16px; color: #ffe040; text-shadow: 2px 2px 0 #0a0a30;
+  background: linear-gradient(90deg, rgba(255, 40, 160, 0.75), rgba(60, 80, 255, 0.5)); border: 2px solid #4a6cff;
+}
+.ask .skip { padding: 8px 16px; color: #7080b0; background: none; border: 0; }
+@media (max-height: 500px) { /* a phone on its side: just the question */
+  .ask { padding-top: 12px; gap: 10px; }
+  .ask .logo, .ask .note { display: none; }
+}

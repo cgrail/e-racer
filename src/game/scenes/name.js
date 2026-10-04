@@ -5,17 +5,24 @@ import { settings, go } from '../state.js';
 import { panel, logo, carPanel, typeName, blinkOn, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { Online } from '../online.js';
+import { askName } from '../askname.js';
 
 // A new player's first stop: the title leads here while player 1 has no name. Enter needs at least one letter;
 // Esc (or a pad's B, as a pad can't type) goes on without one, and the title asks again next time. Then on to the
 // online menu or the local game, as the title would have: the race server may still be answering meanwhile.
+// On a phone it is a plain page instead, upright (askname.js), and a phone starts here while there is no name (main.js).
 const INFO = '#9fb0ff', SLOT = 28, GAP = 6, X0 = 149 - (6 * SLOT + 5 * GAP) / 2;
 
 export const NameEntry = {
-  t: 0, editing: true, who: 0, buf: '', waiting: false,
-  enter() { this.t = 0; this.editing = true; this.who = 0; this.buf = ''; this.waiting = false; Sound.enginesOff(); },
+  t: 0, editing: true, who: 0, buf: '', waiting: false, asking: false,
+  enter() {
+    this.t = 0; this.who = 0; this.buf = ''; this.waiting = false; Sound.enginesOff();
+    this.asking = Input.touch() && askName(named => { Sound.fx[named ? 'select' : 'back'](); this.asking = false; this.waiting = true; });
+    this.editing = !this.asking;
+  },
   update(dt) {
     this.t += dt;
+    if (this.asking) return;
     if (this.waiting) { if (Online.state !== 'connecting') go(Online.available() ? 'Lobby' : 'MainMenu'); return; }
     if (Input.menu().back && !Input.pressed('Backspace')) { Sound.fx.back(); this.editing = false; this.waiting = true; return; }
     typeName(this, true);

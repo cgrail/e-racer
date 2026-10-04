@@ -146,3 +146,27 @@ console.log('game flow: title, name for a new player, menu, championship, 2P tim
   if (Online.state !== 'off' || Lobby.clients.size !== 0 || Lobby.session !== null) fail('playing offline should disconnect');
   console.log('online: no server (silent or refused) -> local game, server -> name skipped -> online menu, start, mid-race join and drop, state sync, shocks both ways, race end, points, next race, leave, connection lost -> offline OK');
 }
+
+// ---------------------------------------------------------------- a phone asks for a name on a page of its own
+{ // askname.js builds the page with the DOM, which isn't here: a stand-in form takes its events
+  const { Input } = await import('../src/core/input.js');
+  const fail = msg => { throw new Error('phone name: ' + msg); };
+  const el = () => ({ on: {}, addEventListener(t, fn) { this.on[t] = fn; }, blur() {}, focus() {} });
+  const input = el(), skip = el(), form = Object.assign(el(), { remove() { form.gone = true; }, querySelector: s => (s === 'input' ? input : skip) });
+  const make = document.createElement;
+  document.createElement = t => (t === 'form' ? form : make(t));
+  document.body = { appendChild() {} };
+  Input.setAuto(true); window.__ecr.settings.names[0] = '';
+  tap('Escape'); expect('Title'); tap('Enter'); expect('NameEntry'); // the title looks for the server again, and finds it
+  tap('KeyA', 'a'); tap('Enter'); expect('NameEntry'); // keys go to the page, not the canvas entry
+  input.value = 'ab-c'; input.on.input({});
+  if (input.value !== 'ABC') fail('typed name not cleaned up: ' + input.value);
+  form.on.submit({ preventDefault() {} }); frames(3); expect('Lobby');
+  if (!form.gone || window.__ecr.settings.names[0] !== 'ABC') fail('START did not keep the name: ' + window.__ecr.settings.names[0]);
+  window.__ecr.settings.names[0] = ''; form.gone = false;
+  tap('Escape'); expect('Title'); tap('Enter'); expect('NameEntry');
+  skip.on.click(); frames(3); expect('Lobby');
+  if (!form.gone || window.__ecr.settings.names[0] !== '') fail('SKIP did not go on without a name');
+  document.createElement = make; delete document.body; Input.setAuto(false);
+  console.log('phone name page: START keeps the name, SKIP goes on without one OK');
+}
