@@ -77,6 +77,23 @@ THEMES.forEach((th, i) => {
 });
 console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
+{ // hazards never start hidden behind a crest: line of sight from the camera, 18 to 50 segments back, clears the road
+  let groups = 0;
+  for (let n = 0; n < 40; n++) {
+    const t = Track.build(Object.assign(Track.random(U.rng(n + 1)), { obst: 15, hills: 15, steep: 8 + (n % 8) }));
+    const gy = k => t.segments[U.wrap(k, t.N)].p1.world.y;
+    const blocked = i => [18, 34, 50].some(d => { const c = i - d, y0 = gy(c) + K.CAM_H, y1 = gy(i) + 150;
+      for (let k = c + 1; k < i; k++) if (gy(k) > y0 + ((y1 - y0) * (k - c)) / (i - c)) return true; return false; });
+    let last = -99;
+    for (const s of t.segments) {
+      if (!s.obs.length) continue;
+      if (s.index - last > 30 && ++groups && blocked(s.index)) throw new Error(`hazard behind a crest: ${t.code} segment ${s.index}`);
+      last = s.index;
+    }
+  }
+  console.log(`hazards: ${groups} groups on 40 hilly courses, none hidden behind a crest OK`);
+}
+
 { // electric drive: single speed up to top speed, the kW meter reads power drawn and goes negative under regen
   const track = Track.build(Object.assign(Track.random(() => 0.5), { obst: 0, curves: 0, hills: 0 }));
   const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai: [] });

@@ -169,12 +169,26 @@ export const Track = (() => {
           break;
       }
     }
+    // A hazard must be in sight while the driver can still react, not hidden behind a crest: the line
+    // from the camera to its base clears the road at every point between, from SIGHT segments out.
+    const gy = k => segs[U.wrap(k, N)].p1.world.y, SIGHT = 44, CAM_SEGS = Math.ceil(K.PLAYER_Z / K.SEG_LEN);
+    function inSight(i) {
+      for (let d = 12; d <= SIGHT; d += 8) {
+        const c = i - d - CAM_SEGS, y0 = gy(c) + K.CAM_H, y1 = gy(i) + 150;
+        for (let k = c + 1; k < i; k++) if (gy(k) > y0 + ((y1 - y0) * (k - c)) / (i - c)) return false;
+      }
+      return true;
+    }
     const obsProb = (P.obst / 15) * 0.03;
     if (obsProb > 0) {
       for (let i = S0 + 50; i < N - 50; i++) {
         if (rnd() >= obsProb) continue;
-        group(i, U.pickWeighted(rnd, theme.obstacles));
-        i += 40;
+        const type = U.pickWeighted(rnd, theme.obstacles);
+        let at = i; // past a crest, slide the group on until it is in view (barriers start with cones 5 back)
+        while (at < N - 50 && !(inSight(at - 6) && inSight(at))) at++;
+        if (at - i > 60 || at >= N - 50) continue;
+        group(at, type);
+        i = at + 40;
       }
     }
 
