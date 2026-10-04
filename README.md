@@ -47,16 +47,15 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 
 ## Code layout
 
-| File            | Purpose |
-|-----------------|---------|
-| `src/util.js`    | Constants (`K`) and helpers (`U`): math, seeded RNG, colours, storage |
-| `src/input.js`   | Keyboard and gamepad input |
-| `src/audio.js`   | Web Audio engine synth, sound effects, music sequencer and songs |
-| `src/art.js`     | Procedural pixel art: scenery, hazards, cars and parallax layers |
-| `src/themes.js`  | The 12 scenery definitions |
-| `src/track.js`   | Course generator and course-code encoding |
-| `src/race.js`    | Race simulation: driving physics, gearbox, AI, collisions, laps, checkpoints |
-| `src/render.js`  | Segment-based pseudo-3D renderer, weather effects and HUD |
-| `src/main.js`    | Menus, game flow, championship and time-challenge sessions, main loop |
+| Folder         | Purpose |
+|----------------|---------|
+| `src/core/`    | Constants, helpers (math, seeded RNG, colours, storage), keyboard and gamepad input |
+| `src/audio/`   | Web Audio engine synth, sound effects, music sequencer and songs |
+| `src/art/`     | Procedural pixel art: scenery and hazard sprites, cars, parallax backgrounds |
+| `src/world/`   | The 12 scenery definitions, course generator and course codes |
+| `src/race/`    | Race simulation: car specs, driving physics, gearbox, AI, collisions, laps, checkpoints |
+| `src/render/`  | Segment-based pseudo-3D renderer, sky, road, effects, weather and HUD |
+| `src/game/`    | Game state, menus and widgets, sessions, the attract-mode demo, one file per scene |
+| `src/main.js`  | Entry point and main loop |
 
 `npm run check` syntax-checks every module. `npm run smoke` runs the game headlessly in Node against stubbed browser APIs: it builds, races and renders every scenery, and drives the menus through a championship, a two-player time challenge and a course-builder race.

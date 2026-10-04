@@ -1,6 +1,6 @@
-import { K, U } from './util.js';
+import { K, U } from '../core/util.js';
 import { THEMES } from './themes.js';
-import { Art } from './art.js';
+import { Art } from '../art/index.js';
 
 // Course builder: generates a course from slider parameters or a course code.
 // A course is fully described by 8 parameters (0-15) plus a seed, encoded as a 10-letter code.

@@ -45,12 +45,13 @@ const hold = code => key('keydown', code);
 const release = code => key('keyup', code);
 
 // ---------------------------------------------------------------- module-level checks
-const { K } = await import('../src/util.js');
-const { THEMES } = await import('../src/themes.js');
-const { Track } = await import('../src/track.js');
-const { Race, MODELS, CAR_COLORS } = await import('../src/race.js');
-const { Render } = await import('../src/render.js');
-const { Art } = await import('../src/art.js');
+const { K } = await import('../src/core/util.js');
+const { THEMES } = await import('../src/world/themes.js');
+const { Track } = await import('../src/world/track.js');
+const { Race } = await import('../src/race/race.js');
+const { MODELS, CAR_COLORS } = await import('../src/race/specs.js');
+const { Render } = await import('../src/render/index.js');
+const { Art } = await import('../src/art/index.js');
 
 for (const m of MODELS) for (let f = -2; f <= 2; f++) for (const b of [false, true]) Art.car(m, CAR_COLORS[0], f, b);
 const g = canvas().getContext('2d');

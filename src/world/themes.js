@@ -1,4 +1,4 @@
-import { U } from './util.js';
+import { U } from '../core/util.js';
 
 // Scenery types. Each one sets the palette, backgrounds, roadside objects, road hazards and weather.
 // scenery/obstacles are [name, weight] lists. fog = exponential fog density.
