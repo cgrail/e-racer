@@ -97,7 +97,9 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   race().setTravel(me, race().L * race().laps - 2000); me.prevZ = me.z; me.lap = race().laps; // last metres of the race
   frames(60 * 6); expect('Results');
   if (!me.finished || Online.state !== 'results' || !sv().cars[mi].finished) fail('race did not end with the player finished');
-  release('ArrowUp'); frames(60 * 13); expect('RaceScene'); // the next race starts by itself
+  const top = Online.table && Online.table[0];
+  if (!top || top.name !== 'ACE7FX' || top.points !== 20 || top.last !== 20) fail('session points table wrong: ' + JSON.stringify(Online.table));
+  release('ArrowUp'); frames(60 * 13); expect('RaceScene'); // the session's points, then the next race starts by itself
   if (Online.id !== 2 || race().humans[0].name !== 'ACE7FX' || race().cars.indexOf(race().humans[0]) !== 19) fail('next race not joined');
   frames(60 * 3);
   tap('Escape'); tap('ArrowDown'); tap('Enter'); frames(3); expect('Lobby'); // pause -> LEAVE RACE

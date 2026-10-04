@@ -1,15 +1,17 @@
 import { U } from '../../core/util.js';
 import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
-import { CARSPEC } from '../../race/specs.js';
+import { CARSPEC, POINTS } from '../../race/specs.js';
 import { g, W, text } from '../screen.js';
 import { records, game, scenes, go } from '../state.js';
 import { panel, blinkOn } from '../ui.js';
 import { drawAttract } from '../attract.js';
-import { POINTS, QUALIFY, DIFF_NAMES, recordKey } from '../session.js';
+import { QUALIFY, DIFF_NAMES, recordKey } from '../session.js';
 import { Online } from '../online.js';
 
-// Race or stage results, points and records. Online, the server starts the next race after a few seconds.
+// Race or stage results, points and records. Online, the session's points table follows after a few seconds,
+// and the server starts the next race.
+const TABLE_T = 6;
 export const Results = {
   t: 0, list: [], lines: [], qualified: true, newRecord: false,
   enter() {
@@ -23,17 +25,18 @@ export const Results = {
       if (best && (!records[key] || best < records[key])) { records[key] = best; this.newRecord = true; }
     }
     U.save('ecr.records', records);
-    if (game.race.mode === 'race' && game.session.kind === 'champ') {
+    if (game.race.mode === 'race' && this.points()) {
       this.list.forEach((c, i) => {
         const d = game.session.drivers.find(x => x.id === c.id);
         c.pts = i < POINTS.length ? POINTS[i] : 0;
         if (d) d.points += c.pts;
       });
-      this.qualified = humans.some(h => h.place <= QUALIFY[game.session.diff]);
+      this.qualified = game.session.kind === 'online' || humans.some(h => h.place <= QUALIFY[game.session.diff]);
     } else if (game.race.mode === 'time') {
       this.qualified = humans.some(h => h.finished);
     } else this.qualified = true;
   },
+  points() { return game.session.kind === 'champ' || game.session.kind === 'online'; },
   next() {
     if (game.session.kind === 'online') return;
     if (game.session.kind === 'custom') { go('Builder'); return; }
@@ -53,11 +56,12 @@ export const Results = {
   },
   draw(dt) {
     drawAttract(dt, 0.7);
-    if (game.race.mode === 'race') {
+    if (game.session.kind === 'online' && this.t > TABLE_T && Online.table) this.table();
+    else if (game.race.mode === 'race') {
       panel(20, 6, 440, 288, `RESULTS - ${game.race.track.theme.name}`);
       text('POS', 32, 26, 8, '#9fb0ff'); text('DRIVER', 70, 26, 8, '#9fb0ff'); text('CAR', 200, 26, 8, '#9fb0ff');
       text('TIME', 340, 26, 8, '#9fb0ff', 'right');
-      if (game.session.kind === 'champ') text('PTS', 446, 26, 8, '#9fb0ff', 'right');
+      if (this.points()) text('PTS', 446, 26, 8, '#9fb0ff', 'right');
       const winner = this.list[0];
       this.list.forEach((c, i) => {
         const y = 38 + i * 11.4;
@@ -72,7 +76,7 @@ export const Results = {
           tm = winner.finished ? `+${laps} LAP${laps > 1 ? 'S' : ''}` : '--';
         } else tm = i === 0 ? U.fmtTime(c.finishTime) : '+' + U.fmtTime(c.finishTime - winner.finishTime);
         text(tm, 340, y, 8, col, 'right');
-        if (game.session.kind === 'champ' && c.pts) text(String(c.pts), 446, y, 8, '#ffe040', 'right');
+        if (this.points() && c.pts) text(String(c.pts), 446, y, 8, '#ffe040', 'right');
       });
     } else {
       panel(60, 40, 360, 220, `STAGE RESULT - ${game.race.track.theme.name}`);
@@ -90,5 +94,20 @@ export const Results = {
     if (this.newRecord) msg += (msg ? '  ' : '') + 'NEW RECORD!';
     if (msg && blinkOn(this.t, 1.5)) text(msg, W / 2, game.race.mode === 'race' ? 270 : 214, 8, this.qualified ? '#7fffb0' : '#ff5050', 'center');
     if (this.t > 0.5) text(game.session.kind === 'online' ? 'ESC LEAVES THE SESSION' : 'ENTER', W / 2, game.race.mode === 'race' ? 281 : 236, 8, '#ffffff', 'center');
+  },
+  // Online: the session's points so far, players only (the rivals change from race to race).
+  table() {
+    panel(60, 6, 360, 288, `SESSION POINTS AFTER RACE ${Online.id}`);
+    text('POS', 76, 26, 8, '#9fb0ff'); text('PLAYER', 110, 26, 8, '#9fb0ff');
+    text('RACE', 340, 26, 8, '#9fb0ff', 'right'); text('PTS', 404, 26, 8, '#9fb0ff', 'right');
+    const me = Online.me && Online.me.name;
+    Online.table.forEach((p, i) => {
+      const y = 40 + i * 11.2;
+      if (p.name === me) { g.fillStyle = 'rgba(255,40,160,0.4)'; g.fillRect(68, y - 2, 344, 10); }
+      text(String(i + 1).padStart(2, ' '), 76, y, 8, '#ffffff');
+      text(p.name, 110, y, 8, '#ffffff');
+      text(p.last ? '+' + p.last : '-', 340, y, 8, '#c0c8ff', 'right');
+      text(String(p.points), 404, y, 8, '#ffe040', 'right');
+    });
   },
 };

@@ -6,7 +6,6 @@ import { MODELS, CAR_COLORS, AI_NAMES, AI_RANGE, lapsFor } from '../race/specs.j
 import { settings, custom, game, go } from './state.js';
 
 // Sessions: championship, time challenge and custom races, their drivers, courses and race setup.
-export const POINTS = [20, 15, 12, 10, 8, 6, 4, 3, 2, 1];
 export const QUALIFY = [10, 6, 3];
 export const DIFF_NAMES = ['EASY', 'MEDIUM', 'HARD'];
 export const CHAMP = [

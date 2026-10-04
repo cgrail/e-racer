@@ -11,7 +11,8 @@ import { Session, CARS } from './session.js';
 //                       car {id, s} | shock {id, i}    in a race: this player's car, a shock fired at car i
 //   server -> browser   status {session}               to browsers not in the session, now and every second
 //                       race {id, code, laps, diff, energy, power, cars, you, snap}   a race to drive in
-//                       seat {id, i, car} | snap {id, t, ph, n, cars} | shocked {id} | results {id, snap, next}
+//                       seat {id, i, car} | snap {id, t, ph, n, cars} | shocked {id}
+//                       results {id, snap, next, table: [{name, points, last}]}   the session's points after the race
 //                       wait {next}                    joined, for the next race | error {message}
 export const Lobby = {
   clients: new Set(), session: null, statusT: 0,

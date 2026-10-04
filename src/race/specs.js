@@ -23,5 +23,6 @@ export const AI_NAMES = ['K.MORGAN', 'R.BLAKE', 'T.VANCE', 'S.IKEDA', 'L.MORETTI
   'M.OKAFOR', 'H.SCHULZ', 'D.PETROV', 'C.ALVAREZ', 'B.BRENNAN', 'W.CHEN', 'F.FONTAINE', 'G.GALLAGHER',
   'N.HOLM', 'E.JANSEN', 'V.KAPOOR', 'O.LARSEN', 'I.MENDES', 'Z.NOVAK'];
 export const AI_RANGE = [[0.64, 0.8], [0.7, 0.87], [0.76, 0.93]]; // rivals' top speed range by difficulty
+export const POINTS = [20, 15, 12, 10, 8, 6, 4, 3, 2, 1]; // points for the top ten, championship and online sessions
 export const lapsFor = n => (n < 1300 ? 4 : n < 2000 ? 3 : 2); // laps for a course of n segments
 export const NO_INPUT = { throttle: 0, brake: 0, steer: 0, analog: false, power: false, shock: false };

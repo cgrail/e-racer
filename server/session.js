@@ -2,13 +2,13 @@ import { K, U } from '../src/core/util.js';
 import { THEMES } from '../src/world/themes.js';
 import { Track } from '../src/world/track.js';
 import { Race } from '../src/race/race.js';
-import { MODELS, CAR_COLORS, AI_NAMES, AI_RANGE, lapsFor } from '../src/race/specs.js';
+import { MODELS, CAR_COLORS, AI_NAMES, AI_RANGE, POINTS, lapsFor } from '../src/race/specs.js';
 
 // The online session: races run back to back on one course after another, for whoever is online. The player who
 // starts it sets the level and the energy and power-up options. A player who comes later takes over the last
 // rival on the road, mid-race; a player who leaves hands the car back to a rival. The server drives the rivals
-// and referees: the race clock, the end of a race, the results and the next course. Each player's browser drives
-// that player's car and reports it (see src/race/online.js).
+// and referees: the race clock, the end of a race, the results, the session's points table and the next course.
+// Each player's browser drives that player's car and reports it (see src/race/online.js).
 export const CARS = 20;
 const COUNTDOWN = 5.99; // seconds on the grid before GO, so everyone has the course built (the lights show the last 3)
 const LAST_CALL = 60;   // seconds the field has after the winner crosses the line
@@ -33,9 +33,9 @@ export class Session {
   }
   get empty() { return !this.players.size; }
 
-  // p: { name, model, send(obj) }; gets a seat number and, once racing, a car.
+  // p: { name, model, send(obj) }; gets a seat number, session points and, once racing, a car.
   add(p) {
-    p.name = this.uniqueName(p.name); p.seat = ++this.seats; p.car = null;
+    p.name = this.uniqueName(p.name); p.seat = ++this.seats; p.car = null; p.points = 0; p.last = 0;
     this.players.add(p);
     if (!this.race) this.newRace();
     else if (this.state === 'race' && this.takeOver(p)) this.sendRace(p);
@@ -123,9 +123,13 @@ export class Session {
     if (r.cars.some(c => c.finished)) this.lastT += dt;
     if (this.doneT > 3 || this.lastT > LAST_CALL) this.endRace();
   }
+  // Points as in the championship, for the players who raced; the table goes out with the results.
   endRace() {
     this.state = 'results'; this.wait = RESULTS_T;
-    this.broadcast({ type: 'results', id: this.id, snap: this.race.snapshot(), next: RESULTS_T });
+    const order = this.race.results();
+    for (const p of this.players) { p.last = p.car ? POINTS[order.indexOf(p.car)] || 0 : 0; p.points += p.last; }
+    const table = [...this.players].sort((a, b) => b.points - a.points).map(p => ({ name: p.name, points: p.points, last: p.last }));
+    this.broadcast({ type: 'results', id: this.id, snap: this.race.snapshot(), next: RESULTS_T, table });
   }
 
   status() {

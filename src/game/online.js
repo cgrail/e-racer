@@ -12,7 +12,7 @@ const SEND_T = 0.05;
 
 export const Online = {
   ws: null, state: 'off', status: null, error: '', inbox: [], snap: null,
-  id: 0, me: null, sendT: 0, next: 0, waitNext: 0,
+  id: 0, me: null, sendT: 0, next: 0, waitNext: 0, table: null,
 
   url() { // next to the page, so the game also works from a sub-path behind a proxy
     const u = new URL('ws', location.href);
@@ -76,7 +76,7 @@ export const Online = {
       case 'results':
         if (!mine) break;
         r.applySnapshot(m.snap);
-        this.state = 'results'; this.next = m.next;
+        this.state = 'results'; this.next = m.next; this.table = m.table || null;
         Sound.enginesOff(); go('Results');
         break;
       case 'error': {
