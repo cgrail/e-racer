@@ -8,10 +8,10 @@ export const Input = (() => {
   let pads = [], padPrev = [], padNow = [];
   const gestureHandlers = [];
 
-  const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], power: ['Space'] };
+  const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], power: ['Space'], shock: ['KeyE'] };
   const P2 = {
     up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
-    power: ['Enter', 'NumpadEnter', 'Numpad0'],
+    power: ['Enter', 'NumpadEnter', 'Numpad0'], shock: ['Period', 'ShiftRight', 'Numpad1'],
   };
   const BLOCK = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace']);
 
@@ -45,10 +45,10 @@ export const Input = (() => {
   // Driving controls for player idx. In one-player mode both key sets drive player 1.
   function player(idx, twoPlayers) {
     const maps = twoPlayers ? [idx === 0 ? P1 : P2] : [P1, P2];
-    let up = false, dn = false, l = false, r = false, pw = false;
+    let up = false, dn = false, l = false, r = false, pw = false, sh = false;
     for (const m of maps) {
       up = up || any(m.up); dn = dn || any(m.down); l = l || any(m.left); r = r || any(m.right);
-      pw = pw || anyPressed(m.power);
+      pw = pw || anyPressed(m.power); sh = sh || anyPressed(m.shock);
     }
     let throttle = up ? 1 : 0, brake = dn ? 1 : 0, steer = (r ? 1 : 0) - (l ? 1 : 0), analog = false;
     const p = twoPlayers ? idx : 0;
@@ -60,8 +60,9 @@ export const Input = (() => {
       throttle = Math.max(throttle, padBtn(p, 0) ? 1 : 0, padVal(p, 7), padBtn(p, 12) ? 1 : 0);
       brake = Math.max(brake, padBtn(p, 1) ? 1 : 0, padVal(p, 6), padBtn(p, 13) ? 1 : 0);
       pw = pw || padHit(p, 2) || padHit(p, 5);
+      sh = sh || padHit(p, 3) || padHit(p, 4);
     }
-    return { throttle, brake, steer, analog, power: pw };
+    return { throttle, brake, steer, analog, power: pw, shock: sh };
   }
 
   // Edge-triggered menu navigation from any keyboard set or pad.

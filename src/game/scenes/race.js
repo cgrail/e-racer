@@ -35,7 +35,7 @@ export const RaceScene = {
     let first = true;
     while (this.acc >= K.STEP) {
       game.race.update(K.STEP, inputs);
-      if (first) { inputs.forEach(i => { i.power = false; }); first = false; }
+      if (first) { inputs.forEach(i => { i.power = false; i.shock = false; }); first = false; }
       this.acc -= K.STEP;
     }
     game.race.humans.forEach((h, i) => Sound.engine(i, true, h.speed / (h.spec.top * K.MAX_SPEED), h.pwr, h.skid, h.rough, two ? (i ? 0.6 : -0.6) : 0));

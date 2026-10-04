@@ -152,6 +152,11 @@ export function orb(g) { // power-up orb: a glowing sphere with a lightning bolt
   C(g, 12, 12, 8, '#7a1890'); C(g, 12, 12, 7, '#d040e8'); C(g, 10, 9, 3, '#ffb0ff');
   P(g, '#fff060', [13, 4, 7, 13, 11, 13, 9, 20, 17, 10, 13, 10]);
 }
+export function shock(g) { // electro shock pickup: a charged coil sphere with an arc around it
+  glow(g, 12, 12, 12, '#40d8ff', 0.6);
+  C(g, 12, 12, 8, '#0a3a70'); C(g, 12, 12, 7, '#1e90e0'); C(g, 10, 9, 3, '#b0f0ff');
+  P(g, '#ffffff', [2, 12, 7, 9, 9, 14, 13, 8, 15, 15, 18, 10, 22, 13, 18, 12, 15, 17, 13, 11, 9, 16, 7, 11]);
+}
 export function cone(g) {
   R(g, 0, 14, 12, 2, '#222');
   P(g, '#ff6a00', [6, 0, 10.5, 14, 1.5, 14]);

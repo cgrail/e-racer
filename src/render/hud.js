@@ -75,14 +75,20 @@ function energyGauge(g, x, y, race, car, split) {
   g.fillRect(x + 1, by + 1, Math.round(bw * e), bh);
 }
 
-// Held super-power charges as bolts; while super power is active, a draining bar.
+// Held super-power charges as bolts (a draining bar while super power is active), then a held shock.
 function powerGauge(g, x, y, race, car, split) {
-  const on = car.superT > 0;
-  if (!on && !car.power) return;
+  const on = car.superT > 0, bw = split ? 44 : 60;
+  if (!on && !car.power && !car.shock) return;
   text(g, 'POWER', x, y, 8, on && Math.floor(race.wtime * 8) % 2 ? '#ffffff' : '#ff70ff');
   const by = y + 10;
+  if (car.shock) {
+    const sx = x + (on ? bw + 6 : car.power * 12);
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(sx, by, 10, 10);
+    g.strokeStyle = Math.floor(race.wtime * 6) % 2 ? '#ffffff' : '#40d8ff'; g.lineWidth = 1; g.beginPath();
+    for (const [px, py] of [[1, 5], [3, 2], [5, 7], [7, 3], [9, 5]]) g.lineTo(sx + px, by + py + 0.5);
+    g.stroke();
+  }
   if (on) {
-    const bw = split ? 44 : 60;
     g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, bw + 2, 7);
     g.fillStyle = '#ff60ff'; g.fillRect(x + 1, by + 1, Math.round(bw * car.superT / SUPER_T), 5);
     return;

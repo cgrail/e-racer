@@ -48,8 +48,8 @@ export const MainMenu = {
     const cur = rows[this.sel];
     carPanel(296, 40, 174, 214, cur && cur.car != null ? cur.car : 0, this.t);
     const help = settings.players === 2
-      ? 'P1: WASD SPACE POWER   P2: ARROWS ENTER POWER'
-      : 'ARROWS/WASD DRIVE   SPACE/ENTER POWER-UP';
+      ? 'P1: WASD SPACE E   P2: ARROWS ENTER .'
+      : 'ARROWS/WASD DRIVE  SPACE POWER  E SHOCK';
     text(help, W / 2, 262, 8, '#c0c8ff', 'center');
     text('ESC PAUSE   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },

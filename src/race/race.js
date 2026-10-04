@@ -6,10 +6,11 @@ import * as ai from './ai.js';
 import * as contact from './contact.js';
 import * as energy from './energy.js';
 import * as power from './power.js';
+import * as shock from './shock.js';
 
 // One race (or time challenge stage) on a track: simulation of every car, hazards, laps and timing.
 export class Race {
-  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power }
+  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power (orbs and shocks) }
   constructor(o) {
     this.track = o.track; this.mode = o.mode; this.attract = !!o.attract;
     this.laps = o.mode === 'time' ? 1 : o.laps || 3;
@@ -22,7 +23,7 @@ export class Race {
     this.energy = !!o.energy && this.mode === 'race';
     if (this.energy) this.placeCells();
     this.power = !!o.power && this.mode === 'race';
-    if (this.power) this.placeOrbs();
+    if (this.power) { this.placeOrbs(); this.placeShocks(); }
     for (const s of this.track.segments) for (const ob of s.obs) {
       ob.hit = false; ob.fly = null; ob.gone = false; ob.x = ob.bx;
       if (ob.moving) this.dyn.push(ob);
@@ -48,7 +49,7 @@ export class Race {
     for (const h of this.humans) {
       if (this.energy || this.power) h.taken = new Set();
       if (this.energy) h.energy = 1;
-      if (this.power) h.power = 0;
+      if (this.power) { h.power = 0; h.shock = 0; }
     }
     this.rank();
   }
@@ -63,7 +64,7 @@ export class Race {
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
-      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0,
+      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, shock: null, shockT: 0,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);
@@ -103,6 +104,7 @@ export class Race {
       if (c.msg && (c.msg.t -= dt) <= 0) c.msg = null;
       if (c.human && !c.autopilot) this.driveHuman(c, inputs[c.pidx] || NO_INPUT, dt, racing);
       else this.driveAI(c, dt, racing);
+      if (c.shockT > 0) this.shocked(c, dt);
       this.vertical(c, dt);
     }
     if (racing) this.collide();
@@ -188,4 +190,4 @@ export class Race {
   rank() { this.results().forEach((c, i) => { c.place = i + 1; }); }
 }
 
-Object.assign(Race.prototype, driving, ai, contact, energy, power);
+Object.assign(Race.prototype, driving, ai, contact, energy, power, shock);

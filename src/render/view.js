@@ -2,7 +2,7 @@ import { K, U } from '../core/util.js';
 import { Art } from '../art/index.js';
 import { project, blit, segment } from './road.js';
 import { sky, background } from './sky.js';
-import { particles, weather } from './effects.js';
+import { particles, weather, zap } from './effects.js';
 import { hud } from './hud.js';
 
 // Segment-based pseudo-3D renderer. Draws one player's view into a viewport (full screen or split).
@@ -88,6 +88,7 @@ export function view(g, vp, race, car, vs, opts) {
       const dw = K.CAR_W * cs * sx, dh = (dw * img.height) / img.width * sprMul;
       if (dw > w * 1.2) continue;
       blit(g, img, cx - dw / 2, cy - dh, dw, dh);
+      if (c.shockT > 0) zap(g, cx - dw / 2, cy - dh, dw, dh);
     }
     g.globalAlpha = 1;
   }
@@ -113,6 +114,7 @@ export function view(g, vp, race, car, vs, opts) {
   }
   particles(g, w, h, car, vs, opts.dt || 0, pw, by, th);
   blit(g, img, Math.round(w / 2 - pw / 2 + wig), Math.round(by - ph), pw, ph);
+  if (car.shockT > 0) zap(g, w / 2 - pw / 2 + wig, by - ph, pw, ph);
 
   weather(g, w, h, horizon, th, car, vs, opts.dt || 0, race);
   if (race.flash > 0) { g.fillStyle = `rgba(230,235,255,${race.flash * 0.55})`; g.fillRect(0, 0, w, h); }

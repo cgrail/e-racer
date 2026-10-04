@@ -161,6 +161,40 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`power: ${orbs.length} orbs, charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
 }
 
+{ // electro shock: pickups get collected, a shock needs a car ahead in range and holds it to SHOCK_CAP of top speed
+  const { SHOCK_CAP, SHOCK_T } = await import('../src/race/specs.js');
+  const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
+  const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'ion', color: CAR_COLORS[k + 2], aiTop: 0.95 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, power: true });
+  const h = race.humans[0], [a, b] = race.cars.filter(c => !c.human);
+  const pads = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'shock').map(o => ({ o, z: sg.index * K.SEG_LEN })));
+  if (pads.length < 2) throw new Error('shock: too few pickups placed');
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, power: false, shock: false };
+  for (let s = 0; s < 120 * 40 && !h.shock; s++) {
+    const next = pads.find(c => U.wrap(c.z - h.z, race.L) < 6000);
+    inp.steer = next ? U.clamp((next.o.x - h.x) * 4, -1, 1) : 0;
+    race.update(K.STEP, [inp]);
+  }
+  if (h.shock !== 1) throw new Error('shock: no pickup collected');
+  Render.view(g, { x: 0, y: 0, w: K.W, h: 148 }, race, h, {}, { dt: 0.5 }); // HUD with a held shock
+  const drive = extra => race.update(K.STEP, [Object.assign({}, inp, { steer: U.clamp(-h.x * 3, -1, 1) }, extra)]);
+  race.setTravel(a, h.travel - 5000); race.setTravel(b, h.travel - 9000);
+  drive({ shock: true });
+  if (h.shock !== 1 || a.shockT || b.shockT) throw new Error('shock: fired with no car ahead');
+  race.setTravel(a, h.travel + 3000); race.setTravel(b, h.travel + 20000);
+  drive({ shock: true });
+  if (h.shock !== 0 || !(a.shockT > 0) || b.shockT) throw new Error('shock: did not hit the nearest car ahead');
+  const cap = a.spec.top * K.MAX_SPEED * SHOCK_CAP;
+  let held = 0;
+  for (let s = 0; s < 120 * (SHOCK_T + 0.5); s++) {
+    drive();
+    if (a.shockT > 0 && s > 120) held = Math.max(held, a.speed / cap);
+    if (s % 120 === 0) Render.view(g, { x: 0, y: 0, w: K.W, h: K.H }, race, h, {}, { dt: 0.5 }); // arcs on the shocked car
+  }
+  if (!(held > 0.5 && held <= 1.001) || a.shockT !== 0) throw new Error(`shock: speed not held to the cap (${held}, shockT ${a.shockT})`);
+  console.log(`shock: ${pads.length} pickups, collected, kept with no target, nearest car ahead held to ${Math.round(SHOCK_CAP * 100)}% OK`);
+}
+
 { // rubber band: rivals far ahead of the humans slow down, far behind speed up, close ones race unaided
   const track = Track.build(Track.random(() => 0.4));
   const ai = [0, 1, 2].map(k => ({ id: 'A' + k, name: 'AI', model: 'volt', color: CAR_COLORS[k + 2], aiTop: 0.8 }));

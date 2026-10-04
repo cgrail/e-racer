@@ -1,6 +1,6 @@
 import { U } from '../core/util.js';
 import { make, flip } from './draw.js';
-import { pine, oak, poplar, palm, cactus, deadtree, reeds, bush, rock, cliff, lamp, chevron, billboard, neonsign, worksign, cone, barrier, ebarrier, puddle, ice, log, ramp, boost, pylon, tower, house, building, windmill, tumble, snowman, gantry, cell, orb } from './scenery.js';
+import { pine, oak, poplar, palm, cactus, deadtree, reeds, bush, rock, cliff, lamp, chevron, billboard, neonsign, worksign, cone, barrier, ebarrier, puddle, ice, log, ramp, boost, pylon, tower, house, building, windmill, tumble, snowman, gantry, cell, orb, shock } from './scenery.js';
 
 // Sprite table: every scenery and hazard sprite, pre-rendered once (with variants and mirrors).
 // name -> definition. ww = width in world units, hit = collision width fraction,
@@ -52,6 +52,7 @@ export const DEF = {
   tumble: { w: 24, h: 24, ww: 600, hit: 0.8, v: 2, fx: 'soft', draw: tumble },
   cell: { w: 24, h: 28, ww: 560, hit: 1.6, v: 1, fx: 'energy', draw: cell },
   orb: { w: 24, h: 24, ww: 600, hit: 1.6, v: 1, fx: 'power', draw: orb },
+  shock: { w: 24, h: 24, ww: 600, hit: 1.6, v: 1, fx: 'shock', draw: shock },
 };
 for (const [name, d] of Object.entries(DEF)) {
   d.frames = [];

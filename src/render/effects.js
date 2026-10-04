@@ -29,6 +29,18 @@ export function particles(g, w, h, car, vs, dt, pw, by, th) {
   if (sp > 2) ps.length = 0;
 }
 
+// Lightning arcs crackling over a shocked car's sprite box.
+export function zap(g, x, y, w, h) {
+  g.strokeStyle = Math.random() < 0.5 ? '#ffffff' : '#60e0ff'; g.lineWidth = Math.max(1, w / 40);
+  g.beginPath();
+  for (let a = 0; a < 3; a++) {
+    let px = x + Math.random() * w, py = y + Math.random() * h * 0.3;
+    g.moveTo(px, py);
+    for (let k = 0; k < 4; k++) { px += (Math.random() - 0.5) * w * 0.4; py += h * 0.2; g.lineTo(px, py); }
+  }
+  g.stroke();
+}
+
 export function weather(g, w, h, horizon, th, car, vs, dt, race) {
   const sp = car.speed / K.MAX_SPEED;
   if (th.weather === 'rain') {
