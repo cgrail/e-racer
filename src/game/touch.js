@@ -1,5 +1,7 @@
 import { K } from '../core/util.js';
 import { Input } from '../core/input.js';
+import { Art } from '../art/index.js';
+import { MODELS, CAR_COLORS } from '../race/specs.js';
 import { game, scenes } from './state.js';
 import { rowsDrawn } from './ui.js';
 
@@ -29,6 +31,25 @@ function el(tag, cls, parent, label) {
 }
 // A pointer in stage coordinates. Upright, the stage is turned a quarter clockwise: its x runs down the screen.
 const upright = () => matchMedia('(orientation: portrait)').matches;
+
+// The stage is the viewport less the status bar's safe-area inset at the top, where an iPhone fades whatever sits
+// under it. (Home screen apps get an opaque status bar, index.html, so their viewport already starts below it: a
+// see-through one gave a viewport short by the bar and clipped below that.) The camera in landscape and the home bar
+// may overlap the stage, so the buttons keep clear of them (--l, --r, --t, --b on its edges).
+let safe = null;
+function fit() {
+  if (!root) return;
+  const s = getComputedStyle(safe), i = {};
+  for (const k of ['Top', 'Right', 'Bottom', 'Left']) i[k] = parseFloat(s['padding' + k]) || 0;
+  const up = upright(), w = innerWidth, y0 = i.Top, h = innerHeight - y0;
+  const v = up ? [w, y0, h, w, 'rotate(90deg)'] : [0, y0, w, h, 'none'];
+  const d = document.documentElement.style;
+  ['--sl', '--st', '--sw', '--sh'].forEach((k, n) => d.setProperty(k, v[n] + 'px'));
+  d.setProperty('--rot', v[4]);
+  // the stage's left, right, top and bottom edges: turned, they are the screen's top, bottom, right and left
+  const edges = up ? [0, i.Bottom, i.Right, i.Left] : [i.Left, i.Right, 0, i.Bottom];
+  ['--l', '--r', '--t', '--b'].forEach((k, n) => root.style.setProperty(k, edges[n] + 'px'));
+}
 function local(e) {
   const b = root.getBoundingClientRect();
   return upright() ? { x: e.clientY - b.top, y: b.right - e.clientX } : { x: e.clientX - b.left, y: e.clientY - b.top };
@@ -128,24 +149,40 @@ function releaseAll() {
 
 function show(v) {
   on = v;
+  if (v) fit();
   document.body.classList.toggle('touching', v);
   Input.setAuto(v);
   if (!v) releaseAll();
 }
 
-// Fullscreen needs a user gesture, so every touch asks while it isn't on (iPhone Safari has no fullscreen:
-// there, adding the game to the home screen runs it without the browser bars).
+// Fullscreen needs a user gesture, so the first touch (and every one after, while it isn't on) asks for it.
+// iPhone Safari has no fullscreen: there the game started from the home screen runs without the browser bars
+// (index.html, manifest.webmanifest), and the title screen says so (Touch.homeHint).
+const fsEnabled = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+const standalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 function fullscreen(e) {
-  const d = document.documentElement;
-  if (e.pointerType !== 'touch' || document.fullscreenElement || !d.requestFullscreen || e.target === field) return;
-  d.requestFullscreen({ navigationUI: 'hide' })
+  const d = document.documentElement, req = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (e.pointerType !== 'touch' || !req || fsOn() || e.target === field) return;
+  Promise.resolve(req.call(d, { navigationUI: 'hide' }))
     .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
     .catch(() => {});
 }
+// The home screen icon: a car on the road at dusk, drawn like everything else.
+function homeIcon() {
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = c.height = 180;
+  const sky = g.createLinearGradient(0, 0, 0, 180);
+  [[0, '#101a70'], [0.5, '#ff2890'], [0.5, '#30303a'], [1, '#18181e']].forEach(([t, col]) => sky.addColorStop(t, col));
+  g.fillStyle = sky; g.fillRect(0, 0, 180, 180);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(Art.car(MODELS[0], CAR_COLORS[0], 0, false), 18, 72, 144, 80);
+  document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'apple-touch-icon', href: c.toDataURL() }));
+}
 
-// iOS Safari ignores user-scalable=no: stop double-tap and pinch zoom by hand (not on the text field,
-// which needs its tap to focus).
-function noZoom() {
+// The page stays put: no scrolling (which would also slide the browser bars in and out), and no double-tap
+// or pinch zoom, which iOS Safari allows despite user-scalable=no. The text field keeps its own touches.
+function noScroll() {
   let lastEnd = 0;
   const stop = e => { if (e.target !== field) e.preventDefault(); };
   document.addEventListener('touchend', e => {
@@ -153,7 +190,7 @@ function noZoom() {
     if (now - lastEnd < 350) stop(e);
     lastEnd = now;
   }, { passive: false });
-  document.addEventListener('touchmove', e => { if (e.touches.length > 1) stop(e); }, { passive: false });
+  document.addEventListener('touchmove', stop, { passive: false });
   document.addEventListener('dblclick', stop, { passive: false });
   for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, stop, { passive: false });
 }
@@ -165,8 +202,16 @@ export const Touch = {
     window.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !on) show(true); }, true);
     window.addEventListener('pointerup', fullscreen, true);
     window.addEventListener('keydown', () => { if (on) show(false); });
-    noZoom();
+    noScroll();
+    homeIcon();
+    safe = el('div', 'safe', document.body);
+    const refit = () => { fit(); setTimeout(fit, 300); }; // iOS settles its insets a moment after turning
+    window.addEventListener('resize', refit);
+    window.addEventListener('orientationchange', refit);
+    if (window.visualViewport) visualViewport.addEventListener('resize', fit);
   },
+  // Whether to tell the player that the home screen gives full screen: on touch, with no fullscreen to ask for.
+  homeHint() { return on && !fsEnabled() && !standalone(); },
   // Called every frame: pick the layer for the current scene.
   update() {
     if (!root || !on) return;
