@@ -135,6 +135,15 @@ export const Sound = (() => {
       bass: [0, 0, 12, 0, 0, 12, 0, 0, 0, 0, 12, 0, 7, 0, 12, 0],
       kick: 'x--x--x-x--x--x-', snare: '----x-------x--x', hat: 'xxxxxxxxxxxxxxxx',
     },
+    { // late-Amiga title-screen style: galloping octave bass, brassy saw lead, a chorus that lifts
+      name: 'HIGH VOLTAGE', bpm: 140, wave: 'sawtooth', chords: 'Am Am F G Am Am F E F G Em Am F G E E',
+      lead: 'a4:4 c5:2 e5:2 a5:6 g5:2  e5:2 a5:2 c6:4 b5:2 a5:2 g5:4  a5:6 f5:2 c5:4 f5:4  g5:6 d5:2 b4:4 d5:2 g5:2 ' +
+        'a5:2 g5:2 e5:2 c5:2 e5:4 a5:4  c6:4 b5:2 a5:2 e6:8  d6:2 c6:2 a5:4 f5:4 a5:4  g#5:6 e5:2 b5:8 ' +
+        'c6:6 a5:2 f5:4 c6:4  d6:6 b5:2 g5:4 d6:4  e6:4 d6:2 b5:2 g5:4 b5:4  c6:2 b5:2 a5:4 e5:4 a5:4 ' +
+        'a5:2 c6:2 f6:4 e6:2 c6:2 a5:4  b5:2 d6:2 g6:4 f6:2 d6:2 b5:4  g#5:4 b5:4 e6:4 d6:2 b5:2  g#5:8 e5:4 r:4',
+      bass: [0, 0, 12, 0, 0, 12, 0, 12, 0, 0, 12, 0, 0, 12, 7, 12],
+      kick: 'x-----x-x-x-----', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-xx',
+    },
   ];
   function compile(s) {
     const ch = s.chords.split(' ').map(c => {
@@ -197,7 +206,7 @@ export const Sound = (() => {
     const tones = [0, c.minor ? 3 : 4, 7, 12, 7, c.minor ? 3 : 4];
     voice('square', hz(60 + c.root + tones[n % tones.length]), t, sp * 0.7, 0.035, 2400);
     const L = S.leadEv[i % S.steps];
-    if (L) voice('square', hz(L.m), t, sp * L.d * 0.92, 0.075, 3200, L.d >= 4);
+    if (L) voice(S.wave || 'square', hz(L.m), t, sp * L.d * 0.92, S.wave ? 0.06 : 0.075, S.wave ? 2600 : 3200, L.d >= 4);
     if (S.kick[n] === 'x') drum('k', t);
     if (S.snare[n] === 'x') drum('s', t);
     if (S.hat[n] === 'x') drum('h', t);

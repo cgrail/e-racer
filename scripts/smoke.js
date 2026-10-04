@@ -139,6 +139,28 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`rubber band: ahead x${fa.toFixed(2)}, close x${fb}, behind x${fc.toFixed(2)} OK`);
 }
 
+{ // audio: a stub Web Audio graph; every song sequences a full loop, and the game flow below runs with sound on
+  const made = {};
+  const node = () => new Proxy({}, { get: (o, k) => (k in o ? o[k] : /^(frequency|gain|Q|pan|threshold|ratio)$/.test(k) ? (o[k] = node()) : () => {}) });
+  const ctx = new Proxy({ currentTime: 0, sampleRate: 8000, state: 'running', destination: node(),
+    createBuffer: (c, len) => ({ getChannelData: () => new Float32Array(len) }) }, {
+    get: (o, k) => (k in o ? o[k] : () => { made[k] = (made[k] || 0) + 1; return node(); }),
+  });
+  window.AudioContext = function () { return ctx; };
+  let tick = null; // the sequencer's interval, driven by hand so nothing keeps Node alive
+  define('setInterval', fn => { tick = fn; return 1; }); define('clearInterval', () => { tick = null; });
+  const { Sound } = await import('../src/audio/sound.js');
+  Sound.init();
+  for (let i = 0; i < Sound.songs.length; i++) {
+    const before = made.createOscillator || 0;
+    Sound.playMusic(i);
+    for (let s = 0; s < 40 * 40; s++) { ctx.currentTime += 0.025; tick(); }
+    if (!((made.createOscillator || 0) - before > 500)) throw new Error(`music: ${Sound.songs[i]} played no notes`);
+  }
+  Sound.stopMusic(); window.AudioContext = undefined;
+  console.log(`music: ${Sound.songs.length} songs sequenced (${Sound.songs.join(', ')}) OK`);
+}
+
 // ---------------------------------------------------------------- game flow through the real key handlers
 await import('../src/main.js');
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };

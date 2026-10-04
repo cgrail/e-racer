@@ -31,7 +31,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
   - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
 - **Limited energy (option):** in races your battery drains as you drive, and braking recovers a little. Drive through the glowing energy cells on the road to recharge them; they come back every lap, and in two-player mode each player has their own. If your battery runs empty, you are put behind the last car with a partial recharge. Set **ENERGY** to *Limited* in the main menu.
 - **Power-ups (option):** glowing power orbs on the road charge your super power, and you can hold up to two charges. Fire one for three seconds of extra acceleration past top speed: barriers fly aside, puddles and ice can't touch you, and rivals get shoved out of the way. Set **POWER-UPS** to *On* in the main menu.
-- **Original chiptune soundtrack** with three tracks. You pick the "radio station" in the menu or press **M** while racing.
+- **Original chiptune soundtrack** with four tracks, including the Amiga title-screen style HIGH VOLTAGE. You pick the "radio station" in the menu or press **M** while racing.
 - **Lap and stage records** are saved in the browser.
 
 ## Controls

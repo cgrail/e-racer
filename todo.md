@@ -1,7 +1,7 @@
 # Todo
 
 [x] when the car moves left or right it looks like if the front wheel is in the air
-[ ] add another soundtrack which sounds similar to the Louts 3 Ultimate challenge title soundtrack
+[x] add another soundtrack which sounds similar to the Louts 3 Ultimate challenge title soundtrack
 [ ] it's an electric car. it does not make sense that you have gears and rpm. it's more about energy spent like used kw. 
 [ ] the motor sounds like a gas vehicle. it should sound like an electric car
 [ ] the obstacles should not directly be behind a hill. otherwise the player has no time to react
