@@ -116,7 +116,7 @@ class Race {
     let thr = inp.throttle, brk = inp.brake;
     const rate = inp.analog ? 14 : 7;
     c.steer += U.clamp(inp.steer - c.steer, -rate * dt, rate * dt);
-    c.frame = c.steer > 0.3 ? 1 : c.steer < -0.3 ? -1 : 0;
+    c.frame = Math.sign(c.steer) * (Math.abs(c.steer) > 0.75 ? 2 : Math.abs(c.steer) > 0.3 ? 1 : 0);
     if (!racing) { // revving on the grid
       c.rpm += ((thr ? 0.95 : 0.12) - c.rpm) * Math.min(1, dt * (thr ? 3 : 2));
       c.thr = thr; c.brake = brk > 0;
@@ -217,7 +217,8 @@ class Race {
     desired = U.clamp(desired, -0.85, 0.85);
     const mv = U.clamp(desired - c.x, -1.1 * dt, 1.1 * dt);
     c.x = U.clamp(c.x + mv, -1, 1);
-    c.frame = mv > 0.004 ? 1 : mv < -0.004 ? -1 : seg.curve > 2 ? 1 : seg.curve < -2 ? -1 : 0;
+    const lean = Math.abs(mv) > 0.004 ? mv * 150 : seg.curve / 2.5;
+    c.frame = Math.sign(lean) * (Math.abs(lean) > 1.6 ? 2 : Math.abs(lean) > 0.8 ? 1 : 0);
     c.brake = c.speed > target + 50;
     c.offroad = false; c.skid = 0; c.rough = 0;
     if (c.human) { c.thr = 0.5; c.rpm = 0.7; c.gear = 4; }

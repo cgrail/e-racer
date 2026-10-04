@@ -1,6 +1,6 @@
 # Todo
 
-[ ] when the cars moves left or right it doesn't look good. you should see the side of the car instead of the current animation
+[x] when the cars moves left or right it doesn't look good. you should see the side of the car instead of the current animation
 [ ] get rid of all lotus remarks. name the game electro car racer. mention something like a tribute to race games from the 80/90s. 
 [ ] create a claude.md file and write down everything important
 [ ] keep the files below 300 lines of code. split if needed and create a good code structure

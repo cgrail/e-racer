@@ -102,7 +102,7 @@
   function carPanel(x, y, w, h, p, t) {
     const model = settings.cars[p], spec = CARSPEC[model];
     panel(x, y, w, h, `PLAYER ${p + 1} CAR`);
-    const frame = [0, 1, 0, -1][Math.floor(t / 1.2) % 4];
+    const frame = [0, 2, 0, -2][Math.floor(t / 1.2) % 4];
     const img = Art.car(model, CAR_COLORS[p], frame, Math.floor(t / 1.2) % 4 === 2);
     g.imageSmoothingEnabled = false;
     g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + 10, y + 24, w - 20, 82);
