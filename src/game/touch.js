@@ -1,18 +1,22 @@
+import { K } from '../core/util.js';
 import { Input } from '../core/input.js';
+import { cv } from './screen.js';
 import { game, scenes } from './state.js';
 
-// On-screen controls for phones and tablets. They appear with the first touch and hide again on a key press.
-// Racing: steering pad, BRAKE, POWER, SHOCK and pause; the car accelerates by itself (Input.setAuto).
-// Elsewhere: a d-pad, OK and BACK, plus a text field that brings up the keyboard while a name or code is typed.
-// The buttons hold the same key codes as the keyboard (Input.virtual), so every scene works unchanged.
-let root = null, field = null, on = false, mode = '';
+// Touch controls for phones and tablets. They appear with the first touch and hide again on a key press, and
+// each touch asks for fullscreen (in landscape) until the browser gives it.
+// Racing: drag a finger left or right anywhere on the screen to steer (Input.setSteer); the car accelerates by
+// itself (Input.setAuto); faint BRAKE, POWER and SHOCK buttons sit under the right thumb, pause top right.
+// Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap: rowsNav picks the row, anything else
+// takes it as OK), a faint BACK sits top left, and a text field brings up the keyboard while a name is typed.
+// The buttons hold the keyboard's key codes (Input.virtual), so the scenes need nothing touch-specific.
+let root = null, field = null, stick = null, on = false, mode = '';
 const held = new Set();
 
 function press(code, down) {
   if (down) held.add(code); else held.delete(code);
   Input.virtual(code, down);
 }
-function releaseAll() { [...held].forEach(c => press(c, false)); }
 
 function el(tag, cls, parent, label) {
   const e = document.createElement(tag);
@@ -32,57 +36,61 @@ function button(parent, cls, label, code) {
   b.addEventListener('pointercancel', up);
   return b;
 }
-// One pad for both steering directions, so a thumb can slide from left to right without lifting.
-function steerPad(parent) {
-  const pad = el('div', 'steer', parent);
-  const l = el('div', 'tb', pad, '◀'), r = el('div', 'tb', pad, '▶');
-  const fingers = new Map();
-  const apply = () => {
-    const sides = [...fingers.values()];
-    const left = sides.includes(-1), right = sides.includes(1);
-    l.classList.toggle('on', left); r.classList.toggle('on', right);
-    if (left !== held.has('KeyA')) press('KeyA', left);
-    if (right !== held.has('KeyD')) press('KeyD', right);
+
+// Steering: the first finger down outside the buttons sets a centre, and its sideways distance from it steers.
+// The centre trails the finger past full lock, so turning back starts at once.
+function steering(layer) {
+  const base = el('div', 'stick', layer), knob = el('div', 'knob', base);
+  let id = null, ox = 0;
+  const reach = () => Math.max(36, innerWidth * 0.07);
+  const set = x => {
+    const r = reach();
+    ox = Math.min(Math.max(ox, x - r), x + r);
+    const v = (x - ox) / r;
+    Input.setSteer(Math.abs(v) < 0.08 ? 0 : v);
+    knob.style.transform = `translateX(${(v * 34).toFixed(0)}px)`;
   };
-  const side = e => { const b = pad.getBoundingClientRect(); return e.clientX < b.left + b.width / 2 ? -1 : 1; };
-  pad.addEventListener('pointerdown', e => {
-    pad.setPointerCapture(e.pointerId); fingers.set(e.pointerId, side(e)); apply(); e.preventDefault();
+  const stop = () => { id = null; Input.setSteer(null); base.style.display = 'none'; };
+  layer.addEventListener('pointerdown', e => {
+    if (id != null || e.target.closest('.tb')) return;
+    id = e.pointerId; ox = e.clientX;
+    layer.setPointerCapture(id);
+    Object.assign(base.style, { left: ox + 'px', top: e.clientY + 'px', display: 'block' });
+    set(e.clientX);
   });
-  pad.addEventListener('pointermove', e => { if (fingers.has(e.pointerId)) { fingers.set(e.pointerId, side(e)); apply(); } });
-  const up = e => { fingers.delete(e.pointerId); apply(); };
-  pad.addEventListener('pointerup', up);
-  pad.addEventListener('pointercancel', up);
-  pad.reset = () => { fingers.clear(); apply(); };
-  return pad;
+  layer.addEventListener('pointermove', e => { if (e.pointerId === id) set(e.clientX); });
+  const up = e => { if (e.pointerId === id) stop(); };
+  layer.addEventListener('pointerup', up);
+  layer.addEventListener('pointercancel', up);
+  return { stop };
+}
+
+// Menus: a short, still touch is a tap, handed over in canvas pixels.
+function taps(layer) {
+  const downs = new Map();
+  layer.addEventListener('pointerdown', e => {
+    if (!e.target.closest('.tb')) downs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: e.timeStamp });
+  });
+  layer.addEventListener('pointerup', e => {
+    const d = downs.get(e.pointerId);
+    downs.delete(e.pointerId);
+    if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 16 || e.timeStamp - d.t > 600) return;
+    const b = cv.getBoundingClientRect();
+    Input.tap((e.clientX - b.left) * K.W / b.width, (e.clientY - b.top) * K.H / b.height);
+  });
+  layer.addEventListener('pointercancel', e => downs.delete(e.pointerId));
 }
 
 function build() {
   root = el('div', 'touch', document.body);
   const drive = el('div', 'layer drive', root), menu = el('div', 'layer menu', root);
-  const pad = steerPad(el('div', 'left', drive));
-  const right = el('div', 'right', drive);
-  button(right, 'small', 'SHOCK', 'KeyE');
-  button(right, 'small', 'POWER', 'Space');
-  button(right, 'big', 'BRAKE', 'KeyS');
-  button(drive, 'corner', '❚❚', 'Escape');
-
-  const dpad = el('div', 'left dpad', menu);
-  [['▲', 'ArrowUp', 'u'], ['◀', 'ArrowLeft', 'l'], ['▶', 'ArrowRight', 'r'], ['▼', 'ArrowDown', 'd']]
-    .forEach(([t, code, cls]) => button(dpad, cls, t, code));
-  const ok = el('div', 'right', menu);
-  button(ok, 'small', 'BACK', 'Escape');
-  button(ok, 'big', 'OK', 'Enter');
-
-  const root2 = document.documentElement;
-  if (root2.requestFullscreen) {
-    const fs = el('div', 'tb corner fs', root, '⛶');
-    fs.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (document.fullscreenElement) { document.exitFullscreen(); return; }
-      root2.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
-        .catch(() => {});
-    });
-  }
+  stick = steering(drive);
+  button(drive, 'brake', 'BRAKE', 'KeyS');
+  button(drive, 'power', 'POWER', 'Space');
+  button(drive, 'shock', 'SHOCK', 'KeyE');
+  button(drive, 'corner pause', '❚❚', 'Escape');
+  taps(menu);
+  button(menu, 'corner back', 'BACK', 'Escape');
 
   // Typing a name or course code: the field forwards characters, Enter and Esc to Input.
   field = el('input', 'type', root);
@@ -99,14 +107,29 @@ function build() {
     else if (e.data) Input.type(e.data);
     field.value = ' '; // something left to delete, so Backspace always fires
   });
-  root.pad = pad;
+}
+
+function releaseAll() {
+  [...held].forEach(c => press(c, false));
+  root.querySelectorAll('.tb.on').forEach(b => b.classList.remove('on'));
+  stick.stop();
 }
 
 function show(v) {
   on = v;
   document.body.classList.toggle('touching', v);
   Input.setAuto(v);
-  if (!v) { releaseAll(); root.pad.reset(); }
+  if (!v) releaseAll();
+}
+
+// Fullscreen needs a user gesture, so every touch asks while it isn't on (iPhone Safari has no fullscreen:
+// there, adding the game to the home screen runs it without the browser bars).
+function fullscreen(e) {
+  const d = document.documentElement;
+  if (e.pointerType !== 'touch' || document.fullscreenElement || !d.requestFullscreen || e.target === field) return;
+  d.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
+    .catch(() => {});
 }
 
 // iOS Safari ignores user-scalable=no: stop double-tap and pinch zoom by hand (not on the text field,
@@ -129,6 +152,7 @@ export const Touch = {
     if (typeof document === 'undefined' || !document.body) return; // headless smoke test
     build();
     window.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !on) show(true); }, true);
+    window.addEventListener('pointerup', fullscreen, true);
     window.addEventListener('keydown', () => { if (on) show(false); });
     noZoom();
   },
@@ -138,7 +162,7 @@ export const Touch = {
     const racing = game.scene === scenes.RaceScene && !scenes.RaceScene.paused;
     const m = racing ? 'drive' : game.scene.editing ? 'menu typing' : 'menu';
     if (m === mode) return;
-    if (racing !== mode.startsWith('drive')) { releaseAll(); root.pad.reset(); }
+    if (racing !== mode.startsWith('drive')) releaseAll();
     if (!game.scene.editing) field.blur();
     mode = m;
     root.className = 'touch ' + m;

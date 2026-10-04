@@ -37,7 +37,9 @@ export function logo(cx, y, size = 40, flat = false) {
     g.fillStyle = gr; g.fillText(str, x0, yy);
   }
 }
+let rowsBox = null; // where the last rowsDraw put its rows, for taps
 export function rowsDraw(rows, sel, x, y, w, lh = 14) {
+  rowsBox = { x, y, w, lh, n: rows.length };
   rows.forEach((r, i) => {
     const yy = y + i * lh, on = i === sel;
     if (on) {
@@ -60,8 +62,20 @@ export function rowsDraw(rows, sel, x, y, w, lh = 14) {
     }
   });
 }
+// A tap on a row selects it, and a tap on the selected row confirms it; on a slider or option row, its left
+// or right half steps it down or up. A tap beside the rows does nothing here.
+function tapRow(m, st, rows) {
+  const t = m.tap, b = rowsBox;
+  m.ok = false;
+  if (!b || b.n !== rows.length || t.x < b.x || t.x > b.x + b.w) return;
+  const i = Math.floor((t.y - b.y + 3) / b.lh);
+  if (i < 0 || i >= b.n) return;
+  if (i !== st.sel) { st.sel = i; Sound.fx.tick(); return; }
+  if (rows[i].slider != null || rows[i].opts) { m.left = t.x < b.x + b.w / 2; m.right = !m.left; } else m.ok = true;
+}
 export function rowsNav(rows, st) {
   const m = Input.menu();
+  if (m.tap) tapRow(m, st, rows);
   if (m.up) { st.sel = U.wrap(st.sel - 1, rows.length); Sound.fx.tick(); }
   if (m.down) { st.sel = U.wrap(st.sel + 1, rows.length); Sound.fx.tick(); }
   const r = rows[st.sel];
