@@ -1,4 +1,4 @@
-// Web Audio: synthesized engines, sound effects and an original chiptune soundtrack.
+// Web Audio: synthesized electric motors, sound effects and an original chiptune soundtrack.
 export const Sound = (() => {
   let ctx = null, sfx, mus, noise;
   const engines = [];
@@ -21,37 +21,42 @@ export const Sound = (() => {
     if (wanted >= 0) playMusic(wanted);
   }
 
-  // ---------------------------------------------------------------- engines
+  // ---------------------------------------------------------------- electric motors
+  // Per player: a smooth motor tone and an inverter whine that both rise with road speed, louder under
+  // load, plus wind, tyre squeal and off-road rumble.
   function makeEngine() {
     const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
-    o1.type = 'sawtooth'; o2.type = 'square';
-    const g2 = ctx.createGain(); g2.gain.value = 0.45;
-    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 500; f.Q.value = 2;
+    o1.type = 'triangle'; o2.type = 'sine';
+    const g1 = ctx.createGain(), g2 = ctx.createGain(); g1.gain.value = 0; g2.gain.value = 0;
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200; f.Q.value = 0.7;
     const g = ctx.createGain(); g.gain.value = 0;
     const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     const dest = p || sfx;
     if (p) p.connect(sfx);
-    o1.connect(f); o2.connect(g2); g2.connect(f); f.connect(g); g.connect(dest);
+    o1.connect(g1); o2.connect(g2); g1.connect(f); g2.connect(f); f.connect(g); g.connect(dest);
     const ns = ctx.createBufferSource(); ns.buffer = noise; ns.loop = true;
-    const sf = ctx.createBiquadFilter(); sf.type = 'bandpass'; sf.frequency.value = 2400; sf.Q.value = 1.4;
-    const sg = ctx.createGain(); sg.gain.value = 0;
-    const rf = ctx.createBiquadFilter(); rf.type = 'lowpass'; rf.frequency.value = 240;
-    const rg = ctx.createGain(); rg.gain.value = 0;
-    ns.connect(sf); sf.connect(sg); sg.connect(dest);
-    ns.connect(rf); rf.connect(rg); rg.connect(dest);
+    const nf = (type, freq, q) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = freq; n.Q.value = q; return n; };
+    const wf = nf('bandpass', 600, 0.6), sf = nf('bandpass', 2400, 1.4), rf = nf('lowpass', 240, 1);
+    const wg = ctx.createGain(), sg = ctx.createGain(), rg = ctx.createGain();
+    for (const [fl, gn] of [[wf, wg], [sf, sg], [rf, rg]]) { gn.gain.value = 0; ns.connect(fl); fl.connect(gn); gn.connect(dest); }
     o1.start(); o2.start(); ns.start();
-    return { o1, o2, f, g, sg, rg, p };
+    return { o1, o2, g1, g2, f, g, wf, wg, sg, rg, p };
   }
 
-  function engine(i, on, rpm, thr, skid, rough, pan) {
+  // speed: share of the car's top speed (above 1 under super power); load: power drawn, -1..1 (negative is regen)
+  function engine(i, on, speed, load, skid, rough, pan) {
     if (!ctx) return;
     while (engines.length <= i) engines.push(makeEngine());
-    const e = engines[i], t = ctx.currentTime;
-    const fr = 32 + rpm * 150;
-    e.o1.frequency.setTargetAtTime(fr, t, 0.025);
-    e.o2.frequency.setTargetAtTime(fr * 0.5 + 0.7, t, 0.025);
-    e.f.frequency.setTargetAtTime(250 + rpm * 700 + thr * 900, t, 0.04);
-    e.g.gain.setTargetAtTime(on ? 0.06 + thr * 0.06 : 0, t, 0.05);
+    const e = engines[i], t = ctx.currentTime, sp = Math.max(0, speed), drive = Math.max(0, load);
+    const fr = 70 + sp * 620;
+    e.o1.frequency.setTargetAtTime(fr, t, 0.03);
+    e.o2.frequency.setTargetAtTime(fr * 2.95, t, 0.03); // inverter whine sits above the motor tone
+    e.g1.gain.setTargetAtTime(0.5 + Math.abs(load) * 0.5, t, 0.05);
+    e.g2.gain.setTargetAtTime(0.08 + drive * 0.3 + Math.max(0, -load) * 0.15, t, 0.05);
+    e.f.frequency.setTargetAtTime(900 + sp * 2200 + drive * 1200, t, 0.05);
+    e.g.gain.setTargetAtTime(on ? 0.025 + sp * 0.03 + Math.abs(load) * 0.05 : 0, t, 0.06);
+    e.wf.frequency.setTargetAtTime(400 + sp * 900, t, 0.1);
+    e.wg.gain.setTargetAtTime(on ? sp * sp * 0.05 : 0, t, 0.1);
     e.sg.gain.setTargetAtTime(on ? skid * 0.09 : 0, t, 0.04);
     e.rg.gain.setTargetAtTime(on ? rough * 0.35 : 0, t, 0.05);
     if (e.p) e.p.pan.setTargetAtTime(pan, t, 0.1);

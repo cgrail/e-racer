@@ -52,7 +52,7 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 | Folder         | Purpose |
 |----------------|---------|
 | `src/core/`    | Constants, helpers (math, seeded RNG, colours, storage), keyboard and gamepad input |
-| `src/audio/`   | Web Audio engine synth, sound effects, music sequencer and songs |
+| `src/audio/`   | Web Audio electric motor synth, sound effects, music sequencer and songs |
 | `src/art/`     | Procedural pixel art: scenery and hazard sprites, cars, parallax backgrounds |
 | `src/world/`   | The 12 scenery definitions, course generator and course codes |
 | `src/race/`    | Race simulation: car specs, electric drive physics, AI, collisions, laps, checkpoints |
