@@ -74,6 +74,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k + 2], aiTop: 0.4 }));
   const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai, energy: true });
   const h = race.humans[0];
+  race.cars.forEach((c, k) => { if (!c.human) { race.setTravel(c, -20000 - k * 2000); c.prevZ = c.z; } }); // the slow rivals start behind, so none takes the cell first
   const cells = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'energy').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (cells.length < 3) throw new Error('energy: too few cells placed');
   const inp = { throttle: 1, brake: 0, steer: 0, analog: false };
