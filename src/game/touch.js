@@ -1,14 +1,16 @@
 import { K } from '../core/util.js';
 import { Input } from '../core/input.js';
-import { cv } from './screen.js';
 import { game, scenes } from './state.js';
+import { rowsDrawn } from './ui.js';
 
 // Touch controls for phones and tablets. They appear with the first touch and hide again on a key press, and
-// each touch asks for fullscreen (in landscape) until the browser gives it.
+// each touch asks for fullscreen (in landscape) until the browser gives it. The game then fills the screen: a
+// phone held upright gets it turned a quarter (style.css), so the game and this layer share a 'stage' frame.
 // Racing: drag a finger left or right anywhere on the screen to steer (Input.setSteer); the car accelerates by
 // itself (Input.setAuto); faint BRAKE, POWER and SHOCK buttons sit under the right thumb, pause top right.
 // Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap: rowsNav picks the row, anything else
-// takes it as OK), a faint BACK sits top left, and a text field brings up the keyboard while a name is typed.
+// takes it as OK); < and > in the bottom corners while the scene shows rows, BACK top left, all in the menus'
+// panel style; and a text field brings up the keyboard while a name is typed.
 // The buttons hold the keyboard's key codes (Input.virtual), so the scenes need nothing touch-specific.
 let root = null, field = null, stick = null, on = false, mode = '';
 const held = new Set();
@@ -25,9 +27,16 @@ function el(tag, cls, parent, label) {
   parent.appendChild(e);
   return e;
 }
+// A pointer in stage coordinates. Upright, the stage is turned a quarter clockwise: its x runs down the screen.
+const upright = () => matchMedia('(orientation: portrait)').matches;
+function local(e) {
+  const b = root.getBoundingClientRect();
+  return upright() ? { x: e.clientY - b.top, y: b.right - e.clientX } : { x: e.clientX - b.left, y: e.clientY - b.top };
+}
+
 // A button that holds code while a finger is on it.
 function button(parent, cls, label, code) {
-  const b = el('div', 'tb ' + cls, parent, label);
+  const b = el('div', 'btn ' + cls, parent, label);
   const up = e => { b.classList.remove('on'); press(code, false); e.preventDefault(); };
   b.addEventListener('pointerdown', e => {
     b.setPointerCapture(e.pointerId); b.classList.add('on'); press(code, true); e.preventDefault();
@@ -42,7 +51,7 @@ function button(parent, cls, label, code) {
 function steering(layer) {
   const base = el('div', 'stick', layer), knob = el('div', 'knob', base);
   let id = null, ox = 0;
-  const reach = () => Math.max(36, innerWidth * 0.07);
+  const reach = () => Math.max(36, root.offsetWidth * 0.07);
   const set = x => {
     const r = reach();
     ox = Math.min(Math.max(ox, x - r), x + r);
@@ -52,13 +61,14 @@ function steering(layer) {
   };
   const stop = () => { id = null; Input.setSteer(null); base.style.display = 'none'; };
   layer.addEventListener('pointerdown', e => {
-    if (id != null || e.target.closest('.tb')) return;
-    id = e.pointerId; ox = e.clientX;
+    if (id != null || e.target.closest('.btn')) return;
+    const p = local(e);
+    id = e.pointerId; ox = p.x;
     layer.setPointerCapture(id);
-    Object.assign(base.style, { left: ox + 'px', top: e.clientY + 'px', display: 'block' });
-    set(e.clientX);
+    Object.assign(base.style, { left: p.x + 'px', top: p.y + 'px', display: 'block' });
+    set(p.x);
   });
-  layer.addEventListener('pointermove', e => { if (e.pointerId === id) set(e.clientX); });
+  layer.addEventListener('pointermove', e => { if (e.pointerId === id) set(local(e).x); });
   const up = e => { if (e.pointerId === id) stop(); };
   layer.addEventListener('pointerup', up);
   layer.addEventListener('pointercancel', up);
@@ -69,14 +79,13 @@ function steering(layer) {
 function taps(layer) {
   const downs = new Map();
   layer.addEventListener('pointerdown', e => {
-    if (!e.target.closest('.tb')) downs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: e.timeStamp });
+    if (!e.target.closest('.btn')) downs.set(e.pointerId, { ...local(e), t: e.timeStamp });
   });
   layer.addEventListener('pointerup', e => {
-    const d = downs.get(e.pointerId);
+    const d = downs.get(e.pointerId), p = local(e);
     downs.delete(e.pointerId);
-    if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 16 || e.timeStamp - d.t > 600) return;
-    const b = cv.getBoundingClientRect();
-    Input.tap((e.clientX - b.left) * K.W / b.width, (e.clientY - b.top) * K.H / b.height);
+    if (!d || Math.hypot(p.x - d.x, p.y - d.y) > 16 || e.timeStamp - d.t > 600) return;
+    Input.tap(p.x * K.W / root.offsetWidth, p.y * K.H / root.offsetHeight); // the canvas fills the stage
   });
   layer.addEventListener('pointercancel', e => downs.delete(e.pointerId));
 }
@@ -85,12 +94,14 @@ function build() {
   root = el('div', 'touch', document.body);
   const drive = el('div', 'layer drive', root), menu = el('div', 'layer menu', root);
   stick = steering(drive);
-  button(drive, 'brake', 'BRAKE', 'KeyS');
-  button(drive, 'power', 'POWER', 'Space');
-  button(drive, 'shock', 'SHOCK', 'KeyE');
-  button(drive, 'corner pause', '❚❚', 'Escape');
+  button(drive, 'tb brake', 'BRAKE', 'KeyS');
+  button(drive, 'tb power', 'POWER', 'Space');
+  button(drive, 'tb shock', 'SHOCK', 'KeyE');
+  button(drive, 'tb pause', '❚❚', 'Escape');
   taps(menu);
-  button(menu, 'corner back', 'BACK', 'Escape');
+  button(menu, 'mb back', 'BACK', 'Escape');
+  button(menu, 'mb prev', '<', 'ArrowLeft');
+  button(menu, 'mb next', '>', 'ArrowRight');
 
   // Typing a name or course code: the field forwards characters, Enter and Esc to Input.
   field = el('input', 'type', root);
@@ -111,7 +122,7 @@ function build() {
 
 function releaseAll() {
   [...held].forEach(c => press(c, false));
-  root.querySelectorAll('.tb.on').forEach(b => b.classList.remove('on'));
+  root.querySelectorAll('.btn.on').forEach(b => b.classList.remove('on'));
   stick.stop();
 }
 
@@ -160,7 +171,8 @@ export const Touch = {
   update() {
     if (!root || !on) return;
     const racing = game.scene === scenes.RaceScene && !scenes.RaceScene.paused;
-    const m = racing ? 'drive' : game.scene.editing ? 'menu typing' : 'menu';
+    const rows = rowsDrawn();
+    const m = racing ? 'drive' : 'menu' + (game.scene.editing ? ' typing' : rows ? ' rows' : '');
     if (m === mode) return;
     if (racing !== mode.startsWith('drive')) releaseAll();
     if (!game.scene.editing) field.blur();

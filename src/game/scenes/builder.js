@@ -5,7 +5,7 @@ import { THEMES } from '../../world/themes.js';
 import { Track } from '../../world/track.js';
 import { g, W, text } from '../screen.js';
 import { custom, saveAll, go } from '../state.js';
-import { panel, rowsDraw, rowsNav, drawMap, drawProfile, blinkOn } from '../ui.js';
+import { panel, rowsDraw, rowsNav, drawMap, drawProfile, blinkOn, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { startSession } from '../session.js';
 
@@ -58,7 +58,7 @@ export const Builder = {
     text('DESIGN YOUR OWN TRACK', W / 2, 27, 8, '#9fb0ff', 'center');
     const rows = this.rows();
     panel(10, 40, 252, 236, 'COURSE DESIGN');
-    rowsDraw(rows, this.sel, 16, 62, 240, 14);
+    rowsDraw(rows, this.sel, 16, 62, 240, 14, 196);
     panel(270, 40, 200, 236, 'COURSE PREVIEW');
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(280, 62, 180, 118);
     drawMap(this.pv, 280, 62, 180, 118, '#ffe040');
@@ -68,6 +68,8 @@ export const Builder = {
     text(this.track.code, 370, 244, 16, '#7fffb0', 'center');
     const km = U.km(this.track.length).toFixed(1);
     text(`${THEMES[custom.params.scenery].name}  ${km} KM`, 370, 262, 8, '#ffffff', 'center');
-    text(this.editing ? 'TYPE ANY WORD - IT BECOMES A COURSE!  ENTER TO BUILD' : 'LEFT/RIGHT ADJUST   ENTER SELECT', W / 2, 284, 8, '#c0c8ff', 'center');
+    const touch = Input.touch();
+    const help = this.editing ? (touch ? TOUCH_TYPE : 'TYPE ANY WORD - IT BECOMES A COURSE!  ENTER TO BUILD') : touch ? TOUCH_HELP : 'LEFT/RIGHT ADJUST   ENTER SELECT';
+    text(help, W / 2, 284, 8, '#c0c8ff', 'center');
   },
 };

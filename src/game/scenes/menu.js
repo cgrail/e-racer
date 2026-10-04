@@ -1,8 +1,9 @@
+import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
 import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES, startSession } from '../session.js';
 
@@ -43,11 +44,12 @@ export const MainMenu = {
     text('A TRIBUTE TO THE RACERS OF THE 80S & 90S', W / 2, 27, 8, '#9fb0ff', 'center');
     const rows = this.rows();
     panel(10, 40, 278, 214, 'OPTIONS');
-    rowsDraw(rows, this.sel, 16, 64, 266);
+    rowsDraw(rows, this.sel, 16, 64, 266, 14, 186);
     const cur = rows[this.sel], p = cur && cur.car != null ? cur.car : 0;
     carPanel(296, 40, 174, 214, p, this.t, this.editing && this.who === p ? this.buf : settings.names[p]);
     let help = settings.players === 2 ? 'P1: WASD SPACE E   P2: ARROWS ENTER .' : 'ARROWS/WASD DRIVE  SPACE POWER  E SHOCK';
     if (this.editing) help = 'TYPE A NAME (UP TO 6)  ENTER OK  ESC CANCEL';
+    if (Input.touch()) { text(this.editing ? TOUCH_TYPE : TOUCH_HELP, W / 2, 268, 8, '#c0c8ff', 'center'); return; }
     text(help, W / 2, 262, 8, '#c0c8ff', 'center');
     text('ESC PAUSE   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },
