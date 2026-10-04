@@ -1,64 +1,80 @@
 import { Sound } from '../../audio/sound.js';
-import { CARSPEC } from '../../race/specs.js';
+import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, rowsDraw, rowsNav, blinkOn } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES } from '../session.js';
 import { Online } from '../online.js';
 
-// Online lobby: connects to the race server and shows the session that is running, if any. With none, the player
-// starts one with their level and options; otherwise they join the race and take over a rival's car.
+// The online menu, where the title screen leads when the race server answers. The first row starts a session (with
+// the level and options below it) or joins the race that is running, in place of a rival; then name, car and
+// sound. If the server stops answering, the player can try again or play offline (the local MainMenu).
 const INFO = '#9fb0ff';
-const options = s => `${DIFF_NAMES[s.diff]}  ENERGY ${s.energy ? 'LIMITED' : 'UNLIMITED'}  POWER-UPS ${s.power ? 'ON' : 'OFF'}`;
 
 export const Lobby = {
-  sel: 0, t: 0,
-  enter() { this.t = 0; this.sel = 0; if (Online.state === 'off') Online.connect(); },
-  back() { Online.close(); go('MainMenu'); },
+  sel: 0, key: 'go', t: 0, editing: false, who: 0, buf: '',
+  enter() { this.t = 0; this.key = 'go'; this.editing = false; Sound.enginesOff(); if (Online.state === 'off') Online.connect(); },
+  offline() { Online.close(); go('MainMenu'); },
   rows() {
-    const r = [], s = Online.status;
-    if (Online.state === 'lobby' && !s) r.push({ label: 'START SESSION >', action: () => Online.start() });
-    if (Online.state === 'lobby' && s && !s.full) r.push({ label: 'JOIN RACE >', action: () => Online.join() });
-    if (Online.state === 'error') r.push({ label: 'TRY AGAIN', action: () => Online.connect() });
-    r.push({ label: '< BACK', action: () => this.back() });
+    const s = settings, st = Online.state, live = Online.status, r = [];
+    if (st === 'error') r.push({ key: 'retry', label: 'TRY AGAIN', action: () => Online.connect() });
+    if (st === 'error' || st === 'connecting') {
+      r.push({ key: 'offline', label: 'PLAY OFFLINE >', action: () => this.offline() });
+      return r;
+    }
+    const opt = (key, label, opts, get, set, extra) => r.push(Object.assign({ key, label, opts, val: get(), set }, extra));
+    if (st === 'lobby' && !(live && live.full)) r.push({ key: 'go', label: live ? 'JOIN RACE >' : 'START RACE >', action: () => (live ? Online.join() : Online.start()) });
+    r.push(nameRow(this, 0, 'NAME'));
+    opt('car', 'CAR', MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[0]), v => { s.cars[0] = MODELS[v]; });
+    if (!live) { // a new session takes these
+      opt('level', 'LEVEL', DIFF_NAMES, () => s.diff, v => { s.diff = v; });
+      opt('energy', 'ENERGY', ['UNLIMITED', 'LIMITED'], () => s.energy, v => { s.energy = v; });
+      opt('power', 'POWER-UPS', ['OFF', 'ON'], () => s.power, v => { s.power = v; });
+    }
+    opt('music', 'MUSIC', Sound.songs.concat(['OFF']), () => (s.music < 0 ? Sound.songs.length : s.music), v => {
+      s.music = v >= Sound.songs.length ? -1 : v;
+      Sound.playMusic(s.music);
+    });
+    opt('units', 'UNITS', ['MPH', 'KM/H'], () => s.units, v => { s.units = v; });
     return r;
   },
-  // What the panel says: [text, colour] lines.
+  // What the panel says under the rows: [text, colour] lines, 33 characters at most.
   lines() {
     const s = Online.status, st = Online.state;
-    if (st === 'connecting') return [['CONNECTING TO THE RACE SERVER...', '#ffffff']];
-    if (st === 'error') return [[Online.error, '#ff5050'], ['', ''], ['ONLINE RACES NEED THE GAME SERVER.', INFO], ['START IT WITH "NPM START" AND PLAY FROM', INFO], ['THE ADDRESS IT PRINTS.', INFO]];
-    if (st === 'waiting') return [['YOU ARE IN!', '#7fffb0'], [Online.waitNext ? `THE NEXT RACE STARTS IN ${Online.waitNext} SEC.` : 'YOU START IN THE NEXT RACE.', '#ffffff']];
-    const out = Online.error ? [[Online.error, '#ff5050'], ['', '']] : [];
-    if (!s) {
-      return out.concat([['NO RACE RUNNING.', '#ffffff'], ['', ''], ['START A SESSION WITH YOUR LEVEL AND OPTIONS:', INFO],
-        [options({ diff: settings.diff, energy: settings.energy, power: settings.power }), '#ffe040'], ['', ''],
-        ['OTHERS CAN JOIN AT ANY TIME. THEY TAKE OVER', INFO], ['A RIVAL\'S CAR, AND A RIVAL TAKES OVER THE', INFO], ['CAR OF A PLAYER WHO LEAVES.', INFO]]);
-    }
+    if (st === 'connecting') return [['CONNECTING...', '#ffffff']];
+    if (st === 'error') return [[Online.error, '#ff5050'], ['THE RACE SERVER DOES NOT ANSWER.', INFO], ['TRY AGAIN, OR PLAY OFFLINE.', INFO]];
+    if (st === 'waiting') return [['YOU ARE IN!', '#7fffb0'], [Online.waitNext ? `THE NEXT RACE STARTS IN ${Online.waitNext}S.` : 'YOU START IN THE NEXT RACE.', '#ffffff']];
+    const out = Online.error ? [[Online.error, '#ff5050']] : [];
+    if (!s) return out.concat([['NO RACE RUNNING: START ONE.', '#ffffff'], ['OTHERS CAN JOIN ANY TIME AND', INFO], ['TAKE OVER A RIVAL\'S CAR.', INFO]]);
     const phase = s.phase === 'results' ? 'RESULTS' : s.phase === 'countdown' ? 'ON THE GRID' : `LAP ${s.lap}/${s.laps}`;
-    out.push([`RACE ON: ${s.scenery}  ${phase}`, '#ffffff'], [options(s), '#ffe040'], ['', ''], [`PLAYERS (${s.players.length}):`, INFO]);
-    for (let i = 0; i < s.players.length; i += 6) out.push([s.players.slice(i, i + 6).join(' '), '#7fffb0']);
-    out.push(['', ''], [s.full ? 'THE RACE IS FULL.' : 'JOIN TO TAKE OVER THE LAST RIVAL ON THE ROAD.', INFO]);
+    out.push([`RACE ON: ${s.scenery}  ${phase}`, '#ffffff'],
+      [DIFF_NAMES[s.diff] + (s.energy ? ', LIMITED ENERGY' : '') + (s.power ? ', POWER-UPS' : ''), '#ffe040'],
+      [`PLAYERS (${s.players.length}):`, INFO]);
+    for (let i = 0; i < Math.min(s.players.length, 8); i += 4) out.push([s.players.slice(i, i + 4).join(' ') + (i === 4 && s.players.length > 8 ? ' ...' : ''), '#7fffb0']);
+    if (s.full) out.push(['THE RACE IS FULL.', '#ff5050']);
     return out;
   },
   update(dt) {
     this.t += dt;
-    const rows = this.rows();
-    this.sel = Math.min(this.sel, rows.length - 1);
-    if (rowsNav(rows, this).back) { Sound.fx.back(); this.back(); }
+    if (this.editing) { typeName(this); return; }
+    const rows = this.rows(), k = rows.findIndex(r => r.key === this.key); // the cursor stays on its row as rows come and go
+    this.sel = k >= 0 ? k : Math.min(this.sel, rows.length - 1);
+    const m = rowsNav(rows, this);
+    this.key = rows[this.sel].key;
+    if (m.back) { Sound.fx.back(); go('Title'); }
   },
   draw(dt) {
-    drawAttract(dt, 0.6);
-    text('ONLINE RACE', W / 2, 8, 16, '#ffe040', 'center');
-    text('RACE OTHER PLAYERS ACROSS THE NET', W / 2, 27, 8, INFO, 'center');
-    panel(30, 40, 420, 222, 'RACE SERVER');
-    this.lines().slice(0, 11).forEach(([s, col], i) => { if (s) text(s, 46, 64 + i * 13, 8, col); });
+    drawAttract(dt, 0.55);
+    logo(W / 2, 8, 16, true);
+    text('ONLINE: RACE OTHER PLAYERS AND RIVALS', W / 2, 27, 8, INFO, 'center');
     const rows = this.rows();
-    rowsDraw(rows, this.sel, 40, 262 - 8 - rows.length * 14, 400);
-    if (Online.state === 'waiting' && blinkOn(this.t)) text('WAITING...', W / 2, 200, 8, '#ffffff', 'center');
-    const name = settings.names[0] || 'RACER';
-    text(`YOU: ${name} IN THE ${CARSPEC[settings.cars[0]].name}`, W / 2, 268, 8, '#c0c8ff', 'center');
-    text('NAME AND CAR ARE SET IN THE MAIN MENU', W / 2, 282, 8, '#7080b0', 'center');
+    panel(10, 40, 278, 214, 'ONLINE RACE');
+    rowsDraw(rows, this.sel, 16, 64, 266);
+    const y0 = 70 + rows.length * 14;
+    this.lines().slice(0, Math.floor((250 - y0) / 12)).forEach(([s, col], i) => text(s, 22, y0 + i * 12, 8, col));
+    carPanel(296, 40, 174, 214, 0, this.t, this.editing ? this.buf : settings.names[0]);
+    text(this.editing ? 'TYPE A NAME (UP TO 6)  ENTER OK  ESC CANCEL' : 'ARROWS/WASD DRIVE  SPACE POWER  E SHOCK', W / 2, 262, 8, '#c0c8ff', 'center');
+    text('ESC BACK   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },
 };

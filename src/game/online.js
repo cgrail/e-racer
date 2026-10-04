@@ -8,11 +8,13 @@ import { settings, game, go } from './state.js';
 // of the shared race. Only the player's own car is driven here; it is reported 20 times a second, and every other
 // car follows the server's snapshots (race/online.js). main.js calls poll() once a frame, so messages are handled
 // between frames. state: off, connecting, lobby, waiting (joined, for the next race), race, results or error.
+// The title screen connects first thing: if the server answers, the game is online, otherwise it is the local game.
 const SEND_T = 0.05;
+const CONNECT_T = 3; // seconds to wait for the server before playing offline
 
 export const Online = {
   ws: null, state: 'off', status: null, error: '', inbox: [], snap: null,
-  id: 0, me: null, sendT: 0, next: 0, waitNext: 0, table: null,
+  id: 0, me: null, sendT: 0, next: 0, waitNext: 0, table: null, connT: 0,
 
   url() { // next to the page, so the game also works from a sub-path behind a proxy
     const u = new URL('ws', location.href);
@@ -21,11 +23,11 @@ export const Online = {
   },
   connect() {
     this.close();
-    this.state = 'connecting';
+    this.state = 'connecting'; this.connT = 0;
     let ws;
     try { ws = new WebSocket(this.url()); } catch (e) { this.fail('NO RACE SERVER FOUND'); return; }
     this.ws = ws;
-    ws.onopen = () => this.send({ type: 'hello', name: settings.names[0], model: settings.cars[0] });
+    ws.onopen = () => this.hello();
     ws.onmessage = ev => {
       if (this.ws !== ws) return; // a socket we have let go of
       let m;
@@ -48,12 +50,15 @@ export const Online = {
     if (racing) { Sound.enginesOff(); go('Lobby'); }
   },
   racing() { return this.state === 'race' || this.state === 'results'; },
+  available() { return this.state === 'lobby' || this.state === 'waiting' || this.racing(); },
   send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); },
-  start() { this.error = ''; this.state = 'waiting'; this.send({ type: 'start', diff: settings.diff, energy: settings.energy === 1, power: settings.power === 1 }); },
-  join() { this.error = ''; this.state = 'waiting'; this.send({ type: 'join' }); },
+  hello() { this.send({ type: 'hello', name: settings.names[0], model: settings.cars[0] }); }, // name and car as set now
+  start() { this.hello(); this.error = ''; this.state = 'waiting'; this.send({ type: 'start', diff: settings.diff, energy: settings.energy === 1, power: settings.power === 1 }); },
+  join() { this.hello(); this.error = ''; this.state = 'waiting'; this.send({ type: 'join' }); },
   leave() { this.send({ type: 'leave' }); this.state = 'lobby'; this.me = null; },
 
   poll(dt) {
+    if (this.state === 'connecting' && (this.connT += dt) > CONNECT_T) this.fail('NO RACE SERVER FOUND');
     while (this.inbox.length) this.handle(this.inbox.shift());
     const r = game.race;
     if (this.state === 'results') this.next = Math.max(0, this.next - dt);

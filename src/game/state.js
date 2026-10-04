@@ -7,6 +7,7 @@ export const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['flux', 'wave'], 
 export const settings = Object.assign({}, DEFAULTS, U.load('ecr.settings', {}));
 delete settings.manual; // gearbox option from before the cars went single-speed
 settings.cars = DEFAULTS.cars.map((m, i) => (CARSPEC[settings.cars[i]] ? settings.cars[i] : m)); // models since retired
+settings.mode = U.clamp(settings.mode | 0, 0, 2); // online play was a game mode for a while; it has its own screen now
 settings.names = DEFAULTS.names.map((n, i) => U.plateName((settings.names || [])[i])); // player names, shown on the number plate
 export const custom = Object.assign({ params: null, type: 0, laps: 3 }, U.load('ecr.custom', {}));
 if (!custom.params) custom.params = Track.decode('ELECTRORACER');

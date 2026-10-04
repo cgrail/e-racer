@@ -74,6 +74,22 @@ export function rowsNav(rows, st) {
   } else if (m.ok && r.action) { Sound.fx.select(); r.action(); }
   return m;
 }
+// A player's name row (it goes on the number plate) for a menu scene st with editing, who, buf and t.
+export function nameRow(st, p, label) {
+  const typing = st.editing && st.who === p;
+  return { key: 'name' + p, label, car: p, value: typing ? st.buf + (blinkOn(st.t, 3) ? '_' : ' ') : settings.names[p] || '-',
+    action: () => { st.editing = true; st.who = p; st.buf = settings.names[p]; } };
+}
+// While st.editing: letters and digits, up to 6; Enter keeps the name, Esc cancels.
+export function typeName(st) {
+  for (const ch of Input.typed()) {
+    if (ch === '\b') st.buf = st.buf.slice(0, -1);
+    else if (/^[a-z0-9]$/i.test(ch) && st.buf.length < 6) { st.buf += ch.toUpperCase(); Sound.fx.tick(); }
+  }
+  if (Input.pressed('Enter') || Input.pressed('NumpadEnter')) {
+    st.editing = false; settings.names[st.who] = st.buf; saveAll(); Sound.fx.select();
+  } else if (Input.pressed('Escape')) { st.editing = false; Sound.fx.back(); }
+}
 export function carPanel(x, y, w, h, p, t, plate = settings.names[p]) {
   const model = settings.cars[p], spec = CARSPEC[model];
   panel(x, y, w, h, `PLAYER ${p + 1} CAR`);

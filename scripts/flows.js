@@ -35,12 +35,13 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   const { Lobby } = await import('../server/lobby.js');
   const { Online } = await import('../src/game/online.js');
   const net = []; // deliveries in both directions, handed over between frames as JSON like real traffic
-  let refuse = true; // the first connection finds no server
+  const outages = ['hang', 'refuse']; // the first connection never answers, the second is refused
   define('location', { href: 'http://localhost:5173/' });
   define('WebSocket', class {
     constructor(url) {
       if (url !== 'ws://localhost:5173/ws') throw new Error('online: socket url ' + url);
-      if (refuse) { refuse = false; net.push(() => this.onclose()); return; }
+      const out = outages.shift();
+      if (out) { if (out === 'refuse') net.push(() => this.onclose()); return; }
       this.readyState = 1;
       net.push(() => {
         this.cl = Lobby.connect(o => { const data = JSON.stringify(o); net.push(() => this.onmessage && this.onmessage({ data })); });
@@ -54,19 +55,26 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   const fail = msg => { throw new Error('online: ' + msg); };
 
   release('KeyW'); release('ArrowUp');
-  tap('Escape'); tap('ArrowUp'); tap('Enter'); expect('MainMenu'); // quit the course-builder race (cursor on BUILD COURSE)
-  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); // GAME -> online race
-  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); tap('ArrowDown'); tap('Enter'); // ENERGY limited, POWER-UPS on
-  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); // P1 NAME: edit
+  tap('Escape'); tap('ArrowUp'); tap('Enter'); expect('MainMenu'); // quit the course-builder race
+  tap('Escape'); expect('Title'); // the title looks for the race server, which never answers
+  tap('Enter'); frames(60); expect('Title'); // still waiting
+  frames(60 * 2.5); expect('MainMenu'); // after 3 seconds it is the local game
+  tap('Escape'); expect('Title'); frames(3); // it looks again: refused
+  tap('Enter'); frames(2); expect('MainMenu'); // the local game straight away
+  if (Online.state !== 'error' || Online.error !== 'NO RACE SERVER FOUND') fail('no server should show as such, got ' + Online.state);
+  tap('Escape'); expect('Title'); frames(3); // back on the title it looks again, and now the server is up
+  tap('Enter'); frames(2); expect('Lobby');
+  if (Online.state !== 'lobby' || Online.status !== null) fail('online menu should show no session, got ' + Online.state);
+  // rows: START RACE (the cursor starts here), NAME, CAR, LEVEL, ENERGY, POWER-UPS, MUSIC, UNITS
+  for (let i = 0; i < 4; i++) tap('ArrowDown');
+  tap('Enter'); tap('ArrowDown'); tap('Enter'); // ENERGY limited, POWER-UPS on
+  for (let i = 0; i < 4; i++) tap('ArrowUp');
+  tap('Enter'); // NAME: edit
   for (let i = 0; i < 6; i++) tap('Backspace');
   for (const [code, k] of [['KeyA', 'a'], ['KeyC', 'c'], ['KeyE', 'e'], ['Digit1', '!'], ['Digit7', '7'], ['KeyF', 'f'], ['KeyX', 'x'], ['KeyY', 'y']]) tap(code, k);
   tap('Enter');
   if (window.__ecr.settings.names[0] !== 'ACE7FX') fail('name not typed in: ' + window.__ecr.settings.names[0]);
-  tap('ArrowDown'); tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); frames(3); expect('Lobby'); // GO ONLINE
-  if (Online.state !== 'error' || Online.error !== 'NO RACE SERVER FOUND') fail('no server should show as such, got ' + Online.state);
-  tap('Enter'); frames(3); // TRY AGAIN
-  if (Online.state !== 'lobby' || Online.status !== null) fail('lobby should show no session, got ' + Online.state);
-  tap('Enter'); frames(3); expect('RaceScene'); // START SESSION
+  tap('ArrowUp'); tap('Enter'); frames(3); expect('RaceScene'); // START RACE
   const race = () => window.__ecr.race, sv = () => Lobby.session.race;
   const me = race().humans[0], mi = race().cars.indexOf(me);
   if (race().net !== 'client' || race().cars.length !== 20 || race().humans.length !== 1 || mi !== 19) fail('own car not set up at the back of a 20-car grid');
@@ -104,7 +112,11 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   frames(60 * 3);
   tap('Escape'); tap('ArrowDown'); tap('Enter'); frames(3); expect('Lobby'); // pause -> LEAVE RACE
   if (Lobby.session !== null || Online.status !== null) fail('session should end with its last player');
-  tap('Escape'); expect('MainMenu');
-  if (Online.state !== 'off' || Lobby.clients.size !== 0) fail('back to the menu should disconnect');
-  console.log('online: no server, start, mid-race join and drop, state sync, shocks both ways, race end, next race, leave OK');
+  tap('Escape'); expect('Title'); tap('Enter'); frames(2); expect('Lobby'); // still connected: straight back online
+  tap('Enter'); frames(3); expect('RaceScene'); // START RACE again
+  const ws = Online.ws; Lobby.close(ws.cl); ws.cl = null; ws.onclose(); frames(2); expect('Lobby'); // the server goes away mid-race
+  if (Online.state !== 'error' || Online.error !== 'CONNECTION LOST') fail('lost connection not shown, got ' + Online.state);
+  tap('ArrowDown'); tap('Enter'); expect('MainMenu'); // PLAY OFFLINE
+  if (Online.state !== 'off' || Lobby.clients.size !== 0 || Lobby.session !== null) fail('playing offline should disconnect');
+  console.log('online: no server (silent or refused) -> local game, server -> online menu, start, mid-race join and drop, state sync, shocks both ways, race end, points, next race, leave, connection lost -> offline OK');
 }
