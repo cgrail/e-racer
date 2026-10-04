@@ -66,10 +66,11 @@ export function hitObstacle(c, ob, halfW) {
   }
 }
 
-// Whether pickup ob is on car c's road: cells by its place (cellNeed in energy.js), boosts and flashes
-// while it holds neither (power.js). One a rival took is gone for up to BACK seconds: that long for the leader,
-// less the further back a car is, and not at all for the last. Anything else on the road is there for every car.
+// Whether pickup ob is on car c's road: cells by its place (cellNeed in energy.js), always the leader's one cell,
+// boosts and flashes while it holds neither (power.js). One a rival took is gone for up to BACK seconds: that long
+// for the leader, less the further back a car is, and not at all for the last. Anything else is there for every car.
 export function sees(c, ob) {
+  if (ob === c.cellAim) return true;
   if (ob.takenAt != null && this.time - ob.takenAt < BACK * (1 - this.share(c))) return false;
   if (ob.fx === 'energy') return ob.tier < c.cellD;
   return (ob.fx !== 'power' && ob.fx !== 'shock') || !this.holds(c);

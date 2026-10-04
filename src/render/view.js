@@ -2,7 +2,7 @@ import { K, U } from '../core/util.js';
 import { Art } from '../art/index.js';
 import { project, blit, segment } from './road.js';
 import { sky, background } from './sky.js';
-import { particles, weather, zap } from './effects.js';
+import { particles, weather, zap, flames } from './effects.js';
 import { hud } from './hud.js';
 
 // Segment-based pseudo-3D renderer. Draws one player's view into a viewport (full screen or split).
@@ -87,6 +87,7 @@ export function view(g, vp, race, car, vs, opts) {
       const img = Art.car(c.model, c.color, c.frame, c.brake, c.plate);
       const dw = K.CAR_W * cs * sx, dh = (dw * img.height) / img.width * sprMul;
       if (dw > w * 1.2) continue;
+      if (c.superT > 0) flames(g, cx - dw / 2, cy - dh, dw, dh);
       blit(g, img, cx - dw / 2, cy - dh, dw, dh);
       if (c.shockT > 0) zap(g, cx - dw / 2, cy - dh, dw, dh);
     }

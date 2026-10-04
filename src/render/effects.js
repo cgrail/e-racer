@@ -41,6 +41,15 @@ export function zap(g, x, y, w, h) {
   g.stroke();
 }
 
+// Boost flames under the tail of another car's sprite while its super power runs.
+export function flames(g, x, y, w, h) {
+  const s = Math.max(1, Math.round(w / 14));
+  for (let i = 0; i < 5; i++) {
+    g.fillStyle = Math.random() < 0.5 ? '#ffd040' : '#ff6020';
+    g.fillRect(x + w * (0.25 + Math.random() * 0.5) - s / 2, y + h * (0.8 + Math.random() * 0.2), s, s * (1 + Math.random() * 1.5));
+  }
+}
+
 export function weather(g, w, h, horizon, th, car, vs, dt, race) {
   const sp = car.speed / K.MAX_SPEED;
   if (th.weather === 'rain') {

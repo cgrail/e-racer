@@ -3,7 +3,7 @@ import { Art } from '../art/index.js';
 import { MOTOR_BASE, REGEN_MAX, AI_ATTACK } from './specs.js';
 
 // Race methods for computer drivers: target speed, rubber band, hunting players at the front, racing line, drafting,
-// overtaking, defending, pickups and hazard avoidance. Mixed into Race.
+// overtaking, defending, pickups, boosts and hazard avoidance. Mixed into Race.
 const BAND = [0.16, 0.12, 0.09]; // rubber-band strength by difficulty (easy, medium, hard)
 const BAND_DEAD = 6000;          // world units around the humans where rivals race unaided
 const BAND_RANGE = 50000;        // distance beyond the dead zone at which the full effect applies
@@ -46,13 +46,14 @@ export function hunt(c, dt) {
   return null;
 }
 
-// Rivals steer for an energy cell when their battery runs low, or for a flash when they can hold one.
+// Rivals steer for an energy cell when their battery runs low, or for a boost or flash when they can hold one.
 export function aiPickup(c, seg) {
-  const T = this.track, wantE = c.energy != null && c.energy < 0.55, wantS = c.shock === 0;
-  if (!wantE && !wantS) return null;
+  const T = this.track, wantE = c.energy != null && c.energy < 0.55, wantS = c.shock === 0, wantP = c.power === 0;
+  if (!wantE && !wantS && !wantP) return null;
   for (let n = 4; n < 36; n++) {
     for (const ob of T.segments[(seg.index + n) % T.N].obs) {
-      if (((wantE && ob.fx === 'energy') || (wantS && ob.fx === 'shock')) && !c.taken.has(ob) && this.sees(c, ob)) return ob.x;
+      const want = ob.fx === 'energy' ? wantE : ob.fx === 'shock' ? wantS : ob.fx === 'power' && wantP;
+      if (want && !c.taken.has(ob) && this.sees(c, ob)) return ob.x;
     }
   }
   return null;
@@ -75,6 +76,8 @@ export function driveAI(c, dt, racing) {
   if (!c.finished && !c.human) target *= this.rubberBand(c);
   if (c.finished && !c.human) target *= 0.85;
   if (rival) target *= 1 + 0.03 * Math.sin(this.time * 0.35 + c.aiPhase); // pace ebbs and flows, so rivals swap places
+  if (c.power != null) this.usePower(c, rival && this.aiPower(c, dt, maxC), dt);
+  if (c.superT > 0) target = Math.max(target, c.spec.top * MAX * 1.3); // super power, as for a player
   if (c.energy != null && !c.human && !this.useEnergy(c, 1, c.brake ? 1 : 0, c.speed / MAX, dt)) target = 0;
 
   // lane choice: rivals wander between lines and cut to the inside of bends

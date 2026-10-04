@@ -20,8 +20,8 @@ export function setDriver(c, d, net) {
   Object.assign(c, { name: d.name, plate: d.plate || '', model: d.model, spec: CARSPEC[d.model], color: d.color, human: !!d.human, net });
   c.pidx = c.human ? (d.pidx == null ? 99 : d.pidx) : -1;
   c.autopilot = false; c.msg = null; c.aiLane = U.clamp(c.x, -0.85, 0.85); c.aiRun = 0; c.aiPrey = null;
-  c.power = !net && c.human && this.power ? 0 : null;
   c.shock = net || !this.shocks ? null : c.human || Math.random() < AI_SHOCKS[this.diff] ? 0 : null;
+  c.power = !net && this.power && (c.human || c.shock == null) ? 0 : null; // a rival uses flashes or boosts
   c.nets = net ? { travel: c.travel, x: c.x, jumpY: c.jumpY } : null; c.netT = 0;
   this.humans = this.cars.filter(o => o.human && (!o.net || this.net === 'server'));
 }
