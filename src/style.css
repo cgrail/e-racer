@@ -52,16 +52,31 @@ body.touching canvas, body.touching .touch {
   pointer-events: auto; touch-action: none; box-sizing: border-box;
 }
 
-/* Racing: faint round buttons. BRAKE in the right corner, the fire button beside it: pink for a boost, blue for a flash */
+/* Racing: see-through coloured round buttons halfway up the right edge, under the right thumb and clear of the HUD's
+   corners (the kW meter bottom right). A red BRAKE at the edge, the fire button beside it: pink for a boost, blue
+   for a flash, faint while the car holds neither */
 .tb {
-  border-radius: 50%; font-size: 7px; color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%; font-size: 7px; color: rgba(255, 255, 255, 0.5); text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
   background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(255, 255, 255, 0.22);
 }
 .tb.on { color: #fff; background: rgba(255, 255, 255, 0.24); border-color: rgba(255, 255, 255, 0.65); }
-.tb.brake { width: 92px; height: 92px; right: calc(18px + var(--r)); bottom: calc(18px + var(--b)); }
-.tb.fire { width: 66px; height: 66px; right: calc(122px + var(--r)); bottom: calc(31px + var(--b)); font-size: 8px; }
-.tb.fire.boost { color: #ff90ff; border-color: rgba(255, 112, 255, 0.75); }
-.tb.fire.flash { color: #80e8ff; border-color: rgba(64, 216, 255, 0.75); }
+.tb.brake, .tb.fire { --mid: calc((100% + var(--t) - var(--b)) / 2); border-width: 2px; }
+.tb.brake {
+  width: 92px; height: 92px; right: calc(18px + var(--r)); top: calc(var(--mid) - 46px); font-size: 9px;
+  color: #ffd0d0; background: radial-gradient(circle at 50% 35%, rgba(255, 96, 96, 0.42), rgba(200, 16, 16, 0.26));
+  border-color: rgba(255, 80, 80, 0.8);
+}
+.tb.brake.on { color: #fff; background: radial-gradient(circle at 50% 35%, rgba(255, 112, 112, 0.8), rgba(220, 24, 24, 0.6)); border-color: #ff8080; }
+.tb.fire { width: 66px; height: 66px; right: calc(122px + var(--r)); top: calc(var(--mid) - 33px); font-size: 8px; }
+.tb.fire.boost {
+  color: #ffd0ff; background: radial-gradient(circle at 50% 35%, rgba(255, 128, 255, 0.45), rgba(200, 32, 200, 0.28));
+  border-color: rgba(255, 112, 255, 0.85);
+}
+.tb.fire.flash {
+  color: #d0f6ff; background: radial-gradient(circle at 50% 35%, rgba(112, 228, 255, 0.45), rgba(16, 150, 220, 0.28));
+  border-color: rgba(64, 216, 255, 0.85);
+}
+.tb.fire.boost.on, .tb.fire.flash.on { color: #fff; filter: brightness(1.6); }
 .tb.pause { width: 36px; height: 36px; border-radius: 8px; top: calc(8px + var(--t)); right: calc(8px + var(--r)); font-size: 9px; }
 /* Where the steering finger came down, and how far it has moved */
 .stick {
