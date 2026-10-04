@@ -1,7 +1,7 @@
-'use strict';
+import { U } from './util.js';
 
 // Keyboard + gamepad input. Uses KeyboardEvent.code so bindings are layout independent.
-const Input = (() => {
+export const Input = (() => {
   const down = new Set();
   const pressed = new Set();
   const typed = [];

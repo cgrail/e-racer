@@ -1,18 +1,19 @@
 # Electro Car Racer
 
-A tribute to the pseudo-3D racing games of the 80s and 90s, with split-screen duels, chiptune radio stations and roads that roll over the horizon. It is written in plain JavaScript and HTML5 canvas, with no dependencies and no build step.
+A tribute to the pseudo-3D racing games of the 80s and 90s, with split-screen duels, chiptune radio stations and roads that roll over the horizon. It is written in plain JavaScript (ES modules) and HTML5 canvas, built with Vite, and has no runtime dependencies.
 
 Every graphic, sound and piece of music is generated in code.
 
 ## Play
 
-Open `index.html` in a browser. Double-clicking the file is enough, because the game uses classic scripts rather than ES modules, so it also runs from `file://`.
-
-If you prefer to serve it, any static server works:
-
 ```sh
-python3 -m http.server 8000   # then open http://localhost:8000
+npm install
+npm run dev       # dev server with hot reload, open the printed URL
+npm run build     # production build into dist/
+npm run preview   # serve the production build
 ```
+
+`dist/` is a static site with relative paths, so you can host it from any folder.
 
 The pixel font loads from Google Fonts. Without a connection the game falls back to a monospace font.
 
@@ -48,12 +49,14 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 
 | File            | Purpose |
 |-----------------|---------|
-| `js/util.js`    | Constants (`K`) and helpers (`U`): math, seeded RNG, colours, storage |
-| `js/input.js`   | Keyboard and gamepad input |
-| `js/audio.js`   | Web Audio engine synth, sound effects, music sequencer and songs |
-| `js/art.js`     | Procedural pixel art: scenery, hazards, cars and parallax layers |
-| `js/themes.js`  | The 12 scenery definitions |
-| `js/track.js`   | Course generator and course-code encoding |
-| `js/race.js`    | Race simulation: driving physics, gearbox, AI, collisions, laps, checkpoints |
-| `js/render.js`  | Segment-based pseudo-3D renderer, weather effects and HUD |
-| `js/main.js`    | Menus, game flow, championship and time-challenge sessions, main loop |
+| `src/util.js`    | Constants (`K`) and helpers (`U`): math, seeded RNG, colours, storage |
+| `src/input.js`   | Keyboard and gamepad input |
+| `src/audio.js`   | Web Audio engine synth, sound effects, music sequencer and songs |
+| `src/art.js`     | Procedural pixel art: scenery, hazards, cars and parallax layers |
+| `src/themes.js`  | The 12 scenery definitions |
+| `src/track.js`   | Course generator and course-code encoding |
+| `src/race.js`    | Race simulation: driving physics, gearbox, AI, collisions, laps, checkpoints |
+| `src/render.js`  | Segment-based pseudo-3D renderer, weather effects and HUD |
+| `src/main.js`    | Menus, game flow, championship and time-challenge sessions, main loop |
+
+`npm run check` syntax-checks every module. `npm run smoke` runs the game headlessly in Node against stubbed browser APIs: it builds, races and renders every scenery, and drives the menus through a championship, a two-player time challenge and a course-builder race.

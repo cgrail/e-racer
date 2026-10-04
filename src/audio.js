@@ -1,7 +1,5 @@
-'use strict';
-
 // Web Audio: synthesized engines, sound effects and an original chiptune soundtrack.
-const Sound = (() => {
+export const Sound = (() => {
   let ctx = null, sfx, mus, noise;
   const engines = [];
   let song = null, songIdx = -1, timer = null, step = 0, nextT = 0, wanted = -1;

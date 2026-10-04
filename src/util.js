@@ -1,7 +1,5 @@
-'use strict';
-
 // Global constants shared by every module.
-const K = (() => {
+export const K = (() => {
   const SEG_LEN = 200, CAM_H = 1500, FOV = 100;
   const CAM_DEPTH = 1 / Math.tan((FOV / 2) * Math.PI / 180);
   return {
@@ -21,7 +19,7 @@ const K = (() => {
   };
 })();
 
-const U = {
+export const U = {
   clamp: (v, a, b) => (v < a ? a : v > b ? b : v),
   lerp: (a, b, t) => a + (b - a) * t,
   easeIn: (a, b, p) => a + (b - a) * p * p,

@@ -1,7 +1,8 @@
-'use strict';
+import { K, U } from './util.js';
+import { Art } from './art.js';
 
 // Segment-based pseudo-3D renderer. Draws one player's view into a viewport (full screen or split).
-const Render = (() => {
+export const Render = (() => {
   const layerCache = {};
   const STARS = Array.from({ length: 70 }, (_, i) => { const r = U.rng(i * 31 + 7); return [r(), r(), r()]; });
 

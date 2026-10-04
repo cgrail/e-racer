@@ -1,9 +1,11 @@
-'use strict';
+import { K, U } from './util.js';
+import { THEMES } from './themes.js';
+import { Art } from './art.js';
 
 // Course builder: generates a course from slider parameters or a course code.
 // A course is fully described by 8 parameters (0-15) plus a seed, encoded as a 10-letter code.
 // Any other word typed in as a code is hashed into a course too.
-const Track = (() => {
+export const Track = (() => {
   const LETTERS = 'ABCDEFGHIJKLMNOP';
   const KEYS = ['curves', 'sharp', 'hills', 'steep', 'scatter', 'obst', 'length', 'scenery'];
 

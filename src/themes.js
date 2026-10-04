@@ -1,8 +1,8 @@
-'use strict';
+import { U } from './util.js';
 
 // Scenery types. Each one sets the palette, backgrounds, roadside objects, road hazards and weather.
 // scenery/obstacles are [name, weight] lists. fog = exponential fog density.
-const THEMES = [
+export const THEMES = [
   {
     id: 'forest', name: 'FOREST',
     sky: ['#2a62c8', '#a6d6ff'], fogCol: '#b9dcf6', fog: 3,
@@ -108,4 +108,4 @@ const THEMES = [
   },
 ];
 THEMES.forEach(t => { t.farGround = U.mix(t.ground[1], t.fogCol, 0.6); });
-const THEME_INDEX = id => THEMES.findIndex(t => t.id === id);
+export const THEME_INDEX = id => THEMES.findIndex(t => t.id === id);

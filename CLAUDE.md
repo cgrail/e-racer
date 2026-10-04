@@ -1,30 +1,34 @@
 # Electro Car Racer
 
-A browser racing game in the style of the 80s/90s pseudo-3D racers: split-screen two-player, championship, time challenge and a course builder. It's plain JavaScript on an HTML5 canvas with no dependencies. Every graphic, sound and song is generated in code, so there are no asset files.
+A browser racing game in the style of the 80s/90s pseudo-3D racers: split-screen two-player, championship, time challenge and a course builder. It's plain JavaScript (ES modules) on an HTML5 canvas, built with Vite, with no runtime dependencies. Every graphic, sound and song is generated in code, so there are no asset files.
 
 The repo folder is still called `lotus-remake`, because the project began as a Lotus III tribute. The game no longer references Lotus anywhere, and nothing new should either: no Lotus names, cars, "R.E.C.S." or "Ultimate Challenge".
 
 ## Running and checking
 
-- Play: open `index.html` directly (`file://` works) or serve the folder statically.
-- Syntax check after editing a module: `node --check js/<file>.js`. The files are classic scripts, not ES modules.
-- There are no automated tests. The user does all in-browser testing, so never launch a browser or headless Chrome. After each change, list the manual checks to run instead.
+- `npm run dev` starts the dev server, `npm run build` builds into `dist/` (relative `base`, so it can be hosted anywhere), and `npm run preview` serves the build. ES modules don't load from `file://`, so opening `index.html` directly no longer works.
+- After every change, run these from the repo root:
+  - `npm run check` syntax-checks every module under `src/`.
+  - `npm run smoke` is a headless run in Node with stubbed DOM, canvas and storage (`scripts/smoke.js`). It builds, races and renders every scenery and every car frame, then drives the real key handlers through title → menu → championship → 2P time challenge → course-builder race, asserting the active scene via `window.__ecr`. It catches import, runtime and flow errors, not visual ones. Extend it when you add a scene or flow.
+  - `npm run build` confirms that Vite bundles cleanly.
+- The user does all in-browser testing, so never launch a browser or headless Chrome. After each change, list the manual checks to run instead.
+- `window.__ecr` (in `main.js`) exposes the current scene name, the current race, the scene table and the settings. Keep it, because the smoke test depends on it.
 
 ## Architecture
 
-The scripts are classic `<script>` tags that share globals. **Load order matters** and is fixed in `index.html`:
+ES modules under `src/`, with `src/main.js` as the entry point (it also imports `style.css`). There are no circular imports: keep dependencies flowing from the top of this table to the bottom.
 
-| Order | File | Global(s) | Role |
+| # | File | Exports | Role |
 |---|---|---|---|
-| 1 | `js/util.js` | `K`, `U` | Constants (resolution, segment length, camera, speeds, physics step) and helpers: math, seeded RNG (`U.rng`), FNV hash, colour shading, time formatting, `localStorage` wrappers |
-| 2 | `js/input.js` | `Input` | Keyboard (`KeyboardEvent.code`, layout independent) and gamepads. `Input.player(idx, two)` returns driving input; `Input.menu()` returns edge-triggered navigation. `Input.endFrame()` clears per-frame presses |
-| 3 | `js/audio.js` | `Sound` | Web Audio: per-player engine synth, `Sound.fx.*` effects, chiptune sequencer (`Sound.songs`). The audio context starts on the first user gesture |
-| 4 | `js/art.js` | `Art` | Procedural pixel art into cached offscreen canvases: scenery/hazard sprite table `Art.DEF`, cars `Art.car(model, colour, frame, brake)`, parallax layers `Art.bgLayer` |
-| 5 | `js/themes.js` | `THEMES`, `THEME_INDEX` | 12 scenery definitions: palette, background layers, weighted roadside scenery and hazards, weather, grip |
-| 6 | `js/track.js` | `Track` | Course generator. `Track.build(params, opts)` builds segments, sprites, hazards and checkpoints; `encode`/`decode` turn params into a 10-letter course code |
-| 7 | `js/race.js` | `Race`, `CARSPEC`, `MODELS`, `CAR_COLORS` | Simulation of one race or stage: human driving physics and gearbox, AI, jumps, hazards, car collisions, laps, checkpoints, ranking |
-| 8 | `js/render.js` | `Render` | Segment-based pseudo-3D renderer for one viewport (full or split screen), particles, weather, HUD. `Render.text` is the shared pixel-font text helper |
-| 9 | `js/main.js` | (IIFE, no global) | Scenes (Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd), sessions, attract-mode demo race, settings and records, main loop |
+| 1 | `src/util.js` | `K`, `U` | Constants (resolution, segment length, camera, speeds, physics step) and helpers: math, seeded RNG (`U.rng`), FNV hash, colour shading, time formatting, `localStorage` wrappers |
+| 2 | `src/input.js` | `Input` | Keyboard (`KeyboardEvent.code`, layout independent) and gamepads. `Input.player(idx, two)` returns driving input; `Input.menu()` returns edge-triggered navigation. `Input.endFrame()` clears per-frame presses |
+| 3 | `src/audio.js` | `Sound` | Web Audio: per-player engine synth, `Sound.fx.*` effects, chiptune sequencer (`Sound.songs`). The audio context starts on the first user gesture |
+| 4 | `src/art.js` | `Art` | Procedural pixel art into cached offscreen canvases: scenery/hazard sprite table `Art.DEF`, cars `Art.car(model, colour, frame, brake)`, parallax layers `Art.bgLayer` |
+| 5 | `src/themes.js` | `THEMES`, `THEME_INDEX` | 12 scenery definitions: palette, background layers, weighted roadside scenery and hazards, weather, grip |
+| 6 | `src/track.js` | `Track` | Course generator. `Track.build(params, opts)` builds segments, sprites, hazards and checkpoints; `encode`/`decode` turn params into a 10-letter course code |
+| 7 | `src/race.js` | `Race`, `CARSPEC`, `MODELS`, `CAR_COLORS` | Simulation of one race or stage: human driving physics and gearbox, AI, jumps, hazards, car collisions, laps, checkpoints, ranking |
+| 8 | `src/render.js` | `Render` | Segment-based pseudo-3D renderer for one viewport (full or split screen), particles, weather, HUD. `Render.text` is the shared pixel-font text helper |
+| 9 | `src/main.js` | (entry) | Scenes (Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd), sessions, attract-mode demo race, settings and records, main loop |
 
 ### Core model
 

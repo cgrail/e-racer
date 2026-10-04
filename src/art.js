@@ -1,7 +1,7 @@
-'use strict';
+import { U } from './util.js';
 
 // Procedurally drawn pixel-art sprites, cars and parallax backgrounds (all original artwork).
-const Art = (() => {
+export const Art = (() => {
   const S = U.shade;
   function make(w, h, fn) {
     const c = document.createElement('canvas');
