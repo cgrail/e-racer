@@ -19,6 +19,7 @@ export function hud(g, w, h, race, car, split, opts) {
     text(g, String(car.place), pad, pad + 11, big, '#ffffff');
     text(g, '/' + race.cars.length, pad + big * String(car.place).length + 2, pad + 11 + big - 8, sm, '#c0c8ff');
     text(g, `LAP ${U.clamp(car.lap, 1, race.laps)}/${race.laps}`, w / 2, pad, split ? 8 : 16, '#ffffff', 'center');
+    if (car.energy != null) energyGauge(g, pad, pad + 15 + big, race, car, split);
   }
   text(g, 'TIME ' + U.fmtTime(race.time), w - pad, pad, sm, '#ffffff', 'right');
   text(g, 'LAP  ' + U.fmtTime(car.lap >= 1 && !car.finished ? race.time - car.lapStart : car.lastLap), w - pad, pad + 10, sm, '#c0c8ff', 'right');
@@ -64,4 +65,14 @@ export function hud(g, w, h, race, car, split, opts) {
     const fs = split ? 12 : 16, blink = car.msg.t > 90 || Math.floor(car.msg.t * 6) % 2 === 0 || car.msg.t < 1;
     if (blink) text(g, car.msg.text, w / 2, Math.round(h * (split ? 0.32 : 0.3)), fs, car.msg.col, 'center');
   }
+}
+
+// Battery gauge under the position: green, yellow below half, blinking red when low.
+function energyGauge(g, x, y, race, car, split) {
+  const bw = split ? 44 : 60, bh = split ? 5 : 7, e = car.energy, low = e < 0.2;
+  text(g, 'ENERGY', x, y, 8, '#ffe040');
+  const by = y + 10;
+  g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x, by, bw + 2, bh + 2); g.fillRect(x + bw + 2, by + 2, 2, bh - 2);
+  g.fillStyle = e > 0.5 ? '#40e080' : !low ? '#ffd040' : Math.floor(race.wtime * 4) % 2 ? '#ff3030' : '#801818';
+  g.fillRect(x + 1, by + 1, Math.round(bw * e), bh);
 }

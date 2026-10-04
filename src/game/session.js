@@ -74,6 +74,6 @@ export function makeRace() {
     ai = game.session.drivers.filter(d => !d.human).map(d => Object.assign({}, d, { aiTop: U.lerp(lo, hi, d.skill) + game.session.idx * 0.004 }));
   }
   const laps = game.session.kind === 'custom' ? custom.laps : track.N < 1300 ? 4 : track.N < 2000 ? 3 : 2;
-  return new Race({ track, mode: game.session.time ? 'time' : 'race', laps, humans, ai, diff: game.session.diff });
+  return new Race({ track, mode: game.session.time ? 'time' : 'race', laps, humans, ai, diff: game.session.diff, energy: settings.energy === 1 });
 }
 export const recordKey = r => r.track.code + (r.mode === 'time' ? 'T' : 'R');

@@ -4,10 +4,11 @@ import { CARSPEC, NO_INPUT } from './specs.js';
 import * as driving from './driving.js';
 import * as ai from './ai.js';
 import * as contact from './contact.js';
+import * as energy from './energy.js';
 
 // One race (or time challenge stage) on a track: simulation of every car, hazards, laps and timing.
 export class Race {
-  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract }
+  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy }
   constructor(o) {
     this.track = o.track; this.mode = o.mode; this.attract = !!o.attract;
     this.laps = o.mode === 'time' ? 1 : o.laps || 3;
@@ -17,6 +18,8 @@ export class Race {
     this.phase = this.attract ? 'race' : 'countdown'; this.count = 3.99; this.lastBeep = 9;
     this.over = false; this.doneT = 0; this.finishOrder = [];
     this.dyn = [];
+    this.energy = !!o.energy && this.mode === 'race';
+    if (this.energy) this.placeCells();
     for (const s of this.track.segments) for (const ob of s.obs) {
       ob.hit = false; ob.fly = null; ob.gone = false; ob.x = ob.bx;
       if (ob.moving) this.dyn.push(ob);
@@ -39,6 +42,7 @@ export class Race {
       for (let i = 1; i < marks.length; i++) this.legTime.push((marks[i] - marks[i - 1]) / pace + (i === 1 ? 4 : 1));
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
+    if (this.energy) for (const h of this.humans) { h.energy = 1; h.taken = new Set(); }
     this.rank();
   }
 
@@ -52,6 +56,7 @@ export class Race {
       finished: false, finishTime: 0, lap: 0, lapStart: 0, lastLap: 0, bestLap: 0, place: 0, bgOff: 0,
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
+      energy: null, taken: null, flatT: 0, lowWarned: false,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);
@@ -119,6 +124,7 @@ export class Race {
             if (!c.bestLap || lt < c.bestLap) c.bestLap = lt;
           }
           c.lapStart = this.time; c.lap = lap;
+          if (c.taken) c.taken.clear();
           if (lap > this.laps && !this.attract) { this.finish(c); continue; }
           if (c.human && lap > 1) {
             if (lap === this.laps) this.msg(c, 'FINAL LAP', 2, '#ffe040');
@@ -175,4 +181,4 @@ export class Race {
   rank() { this.results().forEach((c, i) => { c.place = i + 1; }); }
 }
 
-Object.assign(Race.prototype, driving, ai, contact);
+Object.assign(Race.prototype, driving, ai, contact, energy);

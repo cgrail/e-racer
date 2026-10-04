@@ -2,7 +2,7 @@ import { U } from '../core/util.js';
 import { Track } from '../world/track.js';
 
 // Saved settings, course-builder state and records, plus the live game state.
-export const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['volt', 'spark'], manual: [false, false], music: 0, units: 0 };
+export const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['volt', 'spark'], manual: [false, false], music: 0, units: 0, energy: 0 };
 export const settings = Object.assign({}, DEFAULTS, U.load('ecr.settings', {}));
 export const custom = Object.assign({ params: null, type: 0, laps: 3 }, U.load('ecr.custom', {}));
 if (!custom.params) custom.params = Track.decode('ELECTRORACER');

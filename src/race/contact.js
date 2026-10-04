@@ -34,6 +34,10 @@ export function hitObstacle(c, ob, halfW) {
     }
     return;
   }
+  if (fx === 'energy') {
+    if (c.taken && !c.taken.has(ob)) this.collectEnergy(c, ob);
+    return;
+  }
   if (c.air) return;
   if (fx === 'soft') {
     ob.fly = { t: 0, y: 0, vx: (ob.x >= c.x ? 1 : -1) * (0.8 + Math.random()), vy: 1500 + c.speed * 0.15 };

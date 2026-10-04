@@ -43,6 +43,7 @@ export const PreRace = {
     } else {
       info.push(['CHECKPOINTS', String(game.race.track.cps.length)], ['START TIME', Math.round(game.race.legTime[0]) + ' SEC']);
     }
+    if (game.race.energy) info.push(['ENERGY', 'COLLECT CELLS']);
     info.push(['DISTANCE', U.km(game.race.track.length * game.race.laps).toFixed(1) + ' KM']);
     if (th.weather || th.wind || th.night || th.fog > 8) {
       info.push(['CONDITIONS', th.night ? 'DARK' : th.weather === 'snow' ? 'SNOW' : th.weather === 'rain' ? 'STORM' : th.wind ? 'GUSTS' : 'FOGGY']);

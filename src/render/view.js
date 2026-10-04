@@ -67,7 +67,7 @@ export function view(g, vp, race, car, vs, opts) {
       blit(g, img, lx, p1.y - dh, dw, dh);
     }
     for (const ob of s.obs) {
-      if (ob.gone) continue;
+      if (ob.gone || (car.taken && car.taken.has(ob))) continue;
       const img = Art.get(ob.name, ob.v);
       const dw = ob.ww * scale * sx;
       if (dw < 0.5) continue;

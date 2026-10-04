@@ -28,6 +28,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
   - **Championship:** six races on Easy, Medium or Hard against 19 rivals, starting from the back of the grid. You must finish in the qualifying places (top 10, 6 or 3) to go on, and points go to the top 10.
   - **Time Challenge:** five point-to-point stages per level against the clock. Each checkpoint extends your time.
   - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
+- **Limited energy (option):** in races your battery drains as you drive, and braking recovers a little. Drive through the glowing energy cells on the road to recharge them; they come back every lap, and in two-player mode each player has their own. If your battery runs empty, you are put behind the last car with a partial recharge. Set **ENERGY** to *Limited* in the main menu.
 - **Original chiptune soundtrack** with three tracks. You pick the "radio station" in the menu or press **M** while racing.
 - **Lap and stage records** are saved in the browser.
 

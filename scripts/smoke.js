@@ -45,7 +45,7 @@ const hold = code => key('keydown', code);
 const release = code => key('keyup', code);
 
 // ---------------------------------------------------------------- module-level checks
-const { K } = await import('../src/core/util.js');
+const { K, U } = await import('../src/core/util.js');
 const { THEMES } = await import('../src/world/themes.js');
 const { Track } = await import('../src/world/track.js');
 const { Race } = await import('../src/race/race.js');
@@ -76,6 +76,33 @@ THEMES.forEach((th, i) => {
   if (!(race.humans[0].travel > 0)) throw new Error(`${th.id}: player car did not move`);
 });
 console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
+
+{ // limited energy: cells get collected, the battery drains, running flat drops the car behind the last car
+  const track = Track.build(Object.assign(Track.random(() => 0.3), { obst: 0 }));
+  const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k + 2], aiTop: 0.4 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, energy: true });
+  const h = race.humans[0];
+  const cells = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'energy').map(o => ({ o, z: sg.index * K.SEG_LEN })));
+  if (cells.length < 3) throw new Error('energy: too few cells placed');
+  const inp = { throttle: 1, brake: 0, steer: 0, analog: false, gearUp: false, gearDown: false };
+  let took = 0, low = 1;
+  for (let s = 0; s < 120 * 30; s++) {
+    const next = cells.find(c => U.wrap(c.z - h.z, race.L) < 6000); // steer for the next cell
+    inp.steer = next ? U.clamp((next.o.x - h.x) * 4, -1, 1) : 0;
+    race.update(K.STEP, [inp]);
+    took = Math.max(took, h.taken.size); low = Math.min(low, h.energy);
+  }
+  if (!took) throw new Error('energy: no cell collected');
+  if (!(low < 1)) throw new Error('energy: battery did not drain');
+  const before = h.travel;
+  if (h.place === race.cars.length) throw new Error('energy: player should be ahead of someone before running flat');
+  h.energy = 0.0001;
+  for (let s = 0; s < 10; s++) race.update(K.STEP, [inp]);
+  if (!(h.travel < before) || h.place !== race.cars.length || !(h.energy > 0.5)) {
+    throw new Error(`energy: running flat did not drop the car to last (travel ${before} -> ${h.travel}, place ${h.place}, energy ${h.energy})`);
+  }
+  console.log(`energy: ${cells.length} cells, collected up to ${took} per lap, flat battery drops to last OK`);
+}
 
 // ---------------------------------------------------------------- game flow through the real key handlers
 await import('../src/main.js');
