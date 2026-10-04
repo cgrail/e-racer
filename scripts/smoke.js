@@ -59,9 +59,9 @@ THEMES.forEach((th, i) => {
   const params = Object.assign(Track.random(() => 0.5), { scenery: i, obst: 15 });
   const track = Track.build(params, i % 2 ? { checkpoints: 4, scale: 1.8 } : {});
   if (Track.encode(Track.decode(track.code)) !== track.code) throw new Error('course code does not round-trip: ' + track.code);
-  const humans = [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: MODELS[i % 3], color: CAR_COLORS[0] },
-    { id: 'P2', name: 'P2', human: true, pidx: 1, model: MODELS[(i + 1) % 3], color: CAR_COLORS[1] }];
-  const ai = Array.from({ length: 8 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k + 2], aiTop: 0.8 }));
+  const humans = [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: MODELS[i % MODELS.length], color: CAR_COLORS[0] },
+    { id: 'P2', name: 'P2', human: true, pidx: 1, model: MODELS[(i + 5) % MODELS.length], color: CAR_COLORS[1] }];
+  const ai = Array.from({ length: 8 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k + 2], aiTop: 0.8 }));
   const race = new Race({ track, mode: i % 2 ? 'time' : 'race', laps: 2, humans, ai, diff: 1 });
   const inp = { throttle: 1, brake: 0, steer: 0, analog: false };
   const vs = [{}, {}];
@@ -96,7 +96,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // electric drive: single speed up to top speed, the kW meter reads power drawn and goes negative under regen
   const track = Track.build(Object.assign(Track.random(() => 0.5), { obst: 0, curves: 0, hills: 0 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai: [] });
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai: [] });
   const h = race.humans[0], top = h.spec.top * K.MAX_SPEED, inp = { throttle: 1, brake: 0, steer: 0, analog: false };
   let t80 = 0, peak = 0;
   for (let s = 0; s < 120 * 12; s++) {
@@ -112,8 +112,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // limited energy: cells get collected, the battery drains, running flat drops the car behind the last car
   const track = Track.build(Object.assign(Track.random(() => 0.3), { obst: 0 }));
-  const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k + 2], aiTop: 0.4 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, energy: true });
+  const ai = Array.from({ length: 6 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k + 2], aiTop: 0.4 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai, energy: true });
   const h = race.humans[0];
   const cells = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'energy').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (cells.length < 3) throw new Error('energy: too few cells placed');
@@ -139,7 +139,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // power-ups: orbs get collected, a charge fires super power past top speed and smashes barriers
   const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'spark', color: CAR_COLORS[0] }], ai: [], power: true });
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'pixel', color: CAR_COLORS[0] }], ai: [], power: true });
   const h = race.humans[0];
   const orbs = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'power').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (orbs.length < 2) throw new Error('power: too few orbs placed');
@@ -164,8 +164,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 { // electro shock (every race, no option needed): pickups get collected, a shock needs a car ahead in range and holds it to SHOCK_CAP of top speed
   const { SHOCK_CAP, SHOCK_T } = await import('../src/race/specs.js');
   const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
-  const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'ion', color: CAR_COLORS[k + 2], aiTop: 0.95 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai });
+  const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'flux', color: CAR_COLORS[k + 2], aiTop: 0.95 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai });
   const h = race.humans[0], [a, b] = race.cars.filter(c => !c.human);
   a.shock = b.shock = null; // these rivals don't use shocks, so only the player's shock is in play
   const pads = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'shock').map(o => ({ o, z: sg.index * K.SEG_LEN })));
@@ -198,8 +198,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // active rivals: they recharge from cells, collect and fire shocks, and keep changing lanes
   const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 4 }));
-  const ai = Array.from({ length: 10 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % 3], color: CAR_COLORS[k % 10], aiTop: 0.7 + k * 0.01 }));
-  const race = new Race({ track, mode: 'race', laps: 9, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, energy: true, diff: 2 });
+  const ai = Array.from({ length: 10 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k % 10], aiTop: 0.7 + k * 0.01 }));
+  const race = new Race({ track, mode: 'race', laps: 9, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai, energy: true, diff: 2 });
   const h = race.humans[0], rivals = race.cars.filter(c => !c.human), inp = { throttle: 1, brake: 0, steer: 0, analog: false };
   rivals.forEach(c => { c.shock = 0; }); // every rival uses shocks here
   let charged = 0, fired = 0, zapped = 0, wasShocked = false;
@@ -222,8 +222,8 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 
 { // rubber band: rivals far ahead of the humans slow down, far behind speed up, close ones race unaided
   const track = Track.build(Track.random(() => 0.4));
-  const ai = [0, 1, 2].map(k => ({ id: 'A' + k, name: 'AI', model: 'volt', color: CAR_COLORS[k + 2], aiTop: 0.8 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, diff: 0 });
+  const ai = [0, 1, 2].map(k => ({ id: 'A' + k, name: 'AI', model: 'aero', color: CAR_COLORS[k + 2], aiTop: 0.8 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai, diff: 0 });
   const [a, b, c] = race.cars.filter(x => !x.human), h = race.humans[0];
   race.setTravel(h, 100000); race.setTravel(a, 200000); race.setTravel(b, 101000); race.setTravel(c, 10000);
   const fa = race.rubberBand(a), fb = race.rubberBand(b), fc = race.rubberBand(c);
@@ -256,7 +256,9 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 }
 
 // ---------------------------------------------------------------- game flow through the real key handlers
+store.set('ecr.settings', JSON.stringify({ cars: ['volt', 'ion'] })); // car models from an older version
 await import('../src/main.js');
+if (window.__ecr.settings.cars.join() !== 'flux,wave') throw new Error('retired car models not replaced: ' + window.__ecr.settings.cars);
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };
 const moved = () => { if (!(window.__ecr.race.humans.every(h => h.travel > 2000))) throw new Error('player cars did not drive'); };
 frames(5);

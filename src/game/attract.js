@@ -9,7 +9,7 @@ let attract = null, attractCam = null, attractT = 0, attractVS = {};
 function newAttract() {
   const p = Track.random();
   p.obst = Math.min(p.obst, 5); p.length = 5;
-  const ai = Array.from({ length: 12 }, (_, k) => ({ id: 'A' + k, name: '', model: MODELS[k % 3], color: CAR_COLORS[k % CAR_COLORS.length], aiTop: 0.72 + (11 - k) * 0.012 }));
+  const ai = Array.from({ length: 12 }, (_, k) => ({ id: 'A' + k, name: '', model: MODELS[k % MODELS.length], color: CAR_COLORS[k % CAR_COLORS.length], aiTop: 0.72 + (11 - k) * 0.012 }));
   attract = new Race({ track: Track.build(p), mode: 'race', laps: 99, humans: [], ai, attract: true });
   attractCam = attract.cars[7]; attractT = 0; attractVS = {};
   for (let i = 0; i < 240; i++) attract.update(1 / 30, []); // start the demo already under way

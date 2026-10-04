@@ -32,7 +32,7 @@ export function makeDrivers(nAI) {
   const names = U.shuffle(Math.random, AI_NAMES);
   const ai = [];
   for (let k = 0; k < nAI; k++) {
-    ai.push({ id: 'AI' + k, name: names[k], human: false, model: MODELS[Math.floor(Math.random() * 3)], color: CAR_COLORS[2 + (k % 8)], skill: 1 - (k / nAI) * 0.95, points: 0 });
+    ai.push({ id: 'AI' + k, name: names[k], human: false, model: MODELS[Math.floor(Math.random() * MODELS.length)], color: CAR_COLORS[2 + (k % 8)], skill: 1 - (k / nAI) * 0.95, points: 0 });
   }
   return hum.concat(ai);
 }
@@ -69,7 +69,7 @@ export function makeRace() {
   const [lo, hi] = AI_RANGE[game.session.diff];
   let ai;
   if (game.session.time) {
-    ai = Array.from({ length: 10 }, (_, k) => ({ id: 'T' + k, name: 'TRAFFIC', model: MODELS[k % 3], color: CAR_COLORS[2 + (k % 8)], aiTop: lo - 0.1 + (k % 4) * 0.02 }));
+    ai = Array.from({ length: 10 }, (_, k) => ({ id: 'T' + k, name: 'TRAFFIC', model: MODELS[k % MODELS.length], color: CAR_COLORS[2 + (k % 8)], aiTop: lo - 0.1 + (k % 4) * 0.02 }));
   } else {
     ai = game.session.drivers.filter(d => !d.human).map(d => Object.assign({}, d, { aiTop: U.lerp(lo, hi, d.skill) + game.session.idx * 0.004 }));
   }

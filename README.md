@@ -20,7 +20,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
 ## Features
 
 - **Split-screen two-player mode**, plus full-screen single player.
-- **Three cars:** Volt GT (balanced), Spark Roadster (quick and grippy) and Ion Concept (fastest but loose). They are electric: a single-speed motor with instant torque, and the HUD meter shows the kilowatts you draw, turning cyan and negative when braking recovers energy.
+- **Eight electric cars** in today's EV body styles: Pixel Hatch, Ridge Compact SUV, Granite SUV, Beach Van, Aero Sportback, Wave Sedan, Flux GT and Blitz Roadster. The small and tall ones pull away and corner best; the low, fast ones have the top speed but slide more. They are electric: a single-speed motor with instant torque, and the HUD meter shows the kilowatts you draw, turning cyan and negative when braking recovers energy.
 - **Twelve sceneries:** Forest, Night, Fog, Snow, Desert, Motorway, Marsh, Storm, Mountains, Roadworks, Windy and Future.
   - **Weather and lighting:** rain with lightning, snowfall, wind gusts that push the car, blowing leaves, dense fog, and night driving with headlights and lit lamps.
   - **Road hazards:** cones you can knock flying, barriers, lane closures, logs, rocks, puddles that splash and slide you, ice, rolling tumbleweeds, jump ramps and boost pads. Steep crests launch the car into the air.
