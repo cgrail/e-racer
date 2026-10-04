@@ -2,7 +2,7 @@ import { K } from '../core/util.js';
 import { Input } from '../core/input.js';
 import { Art } from '../art/index.js';
 import { MODELS, CAR_COLORS } from '../race/specs.js';
-import { game, scenes } from './state.js';
+import { settings, game, scenes } from './state.js';
 import { rowsDrawn } from './ui.js';
 
 // Touch controls for phones and tablets. They are on from the start on a device whose main pointer is a finger
@@ -10,9 +10,10 @@ import { rowsDrawn } from './ui.js';
 // (in landscape) until the browser gives it. The game then fills the screen: a phone held upright gets it turned a
 // quarter (style.css), so it starts in landscape, and the game and this layer share a 'stage' frame.
 // Racing: drag a finger left or right anywhere on the screen to steer (Input.setSteer); the car accelerates by
-// itself (Input.setAuto); a red BRAKE and the fire button sit under the right thumb, halfway up the right edge and
-// clear of the kW meter, pause top right. The fire button says BOOST (pink) or FLASH (blue) for what the car holds
-// (one at a time), and is blank and faint while it holds neither.
+// itself (Input.setAuto); a red BRAKE and the fire button sit under the left thumb, halfway up the left edge and
+// clear of the HUD's corners, or on the right edge (settings.buttons: BUTTONS in the menus on touch), pause top
+// right. The fire button says BOOST (pink) or FLASH (blue) for what the car holds (one at a time), and is blank and
+// faint while it holds neither.
 // Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap: rowsNav picks the row, anything else
 // takes it as OK); < and > in the bottom corners while the scene shows rows, BACK top left, all in the menus'
 // panel style; and a text field brings up the keyboard while a name is typed.
@@ -241,7 +242,7 @@ export const Touch = {
     const racing = game.scene === scenes.RaceScene && !scenes.RaceScene.paused;
     if (racing) showItem();
     const rows = rowsDrawn();
-    const m = racing ? 'drive' : 'menu' + (game.scene.editing ? ' typing' : rows ? ' rows' : '');
+    const m = racing ? 'drive' + (settings.buttons ? '' : ' left') : 'menu' + (game.scene.editing ? ' typing' : rows ? ' rows' : '');
     if (m === mode) return;
     if (racing !== mode.startsWith('drive')) releaseAll();
     if (!game.scene.editing) field.blur();

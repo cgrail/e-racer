@@ -5,27 +5,25 @@ import { Render } from '../../render/index.js';
 import { NO_INPUT } from '../../race/specs.js';
 import { g, W, H } from '../screen.js';
 import { settings, saveAll, game, go } from '../state.js';
-import { panel, rowsDraw, rowsNav } from '../ui.js';
+import { panel, rowsDraw, rowsNav, buttonsRow } from '../ui.js';
 import { makeRace } from '../session.js';
 import { Online } from '../online.js';
 
-// The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu.
+// The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu (where a touch
+// screen can also move the racing buttons to the other side).
 // Online the race goes on while paused (the car coasts), and the server ends it (game/online.js).
 export const RaceScene = {
   acc: 0, vs: [{}, {}], paused: false, psel: 0,
   enter() { this.acc = 0; this.vs = [{}, {}]; this.paused = false; },
   pauseRows() {
-    if (game.race.net) {
-      return [
-        { label: 'CONTINUE', action: () => { this.paused = false; } },
-        { label: 'LEAVE RACE', action: () => { Sound.enginesOff(); Online.leave(); go('Lobby'); } },
-      ];
+    const rows = [{ label: 'CONTINUE', action: () => { this.paused = false; } }];
+    if (game.race.net) rows.push({ label: 'LEAVE RACE', action: () => { Sound.enginesOff(); Online.leave(); go('Lobby'); } });
+    else {
+      rows.push({ label: 'RESTART RACE', action: () => { game.race = makeRace(); this.enter(); } },
+        { label: 'QUIT TO MENU', action: () => { Sound.enginesOff(); go('MainMenu'); } });
     }
-    return [
-      { label: 'CONTINUE', action: () => { this.paused = false; } },
-      { label: 'RESTART RACE', action: () => { game.race = makeRace(); this.enter(); } },
-      { label: 'QUIT TO MENU', action: () => { Sound.enginesOff(); go('MainMenu'); } },
-    ];
+    if (Input.touch()) rows.push(buttonsRow());
+    return rows;
   },
   update(dt) {
     const online = !!game.race.net;
@@ -63,8 +61,9 @@ export const RaceScene = {
     }
     if (this.paused) {
       g.fillStyle = 'rgba(0,0,20,0.6)'; g.fillRect(0, 0, W, H);
-      panel(140, 90, 200, 100, 'PAUSED');
-      rowsDraw(this.pauseRows(), this.psel, 150, 120, 180, 14, 62);
+      const rows = this.pauseRows(), d = Math.max(0, rows.length - 3) * 10; // a fourth row (on touch) makes it taller
+      panel(140, 90 - d, 200, 100 + 2 * d, 'PAUSED');
+      rowsDraw(rows, this.psel, 150, 120 - d, 180, 14, 62 + 2 * d);
     }
   },
 };

@@ -3,12 +3,12 @@ import { Sound } from '../../audio/sound.js';
 import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, buttonsRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES, startSession } from '../session.js';
 
 // Main menu of the local game (online play has the Lobby, when the race server answers): players, game mode,
-// level, cars and names, music and units.
+// level, cars and names, music and units, and on touch the side for the racing buttons.
 export const MainMenu = {
   sel: 0, t: 0, editing: false, who: 0, buf: '',
   enter() { this.t = 0; this.editing = false; Sound.enginesOff(); },
@@ -27,6 +27,7 @@ export const MainMenu = {
       Sound.playMusic(s.music);
     });
     opt('UNITS', ['MPH', 'KM/H'], () => s.units, v => { s.units = v; });
+    if (Input.touch()) r.push(buttonsRow());
     r.push({ label: s.mode === 2 ? 'BUILD COURSE >' : 'START GAME >', action: () => (s.mode === 2 ? go('Builder') : startSession(s.mode === 0 ? 'champ' : 'time')) });
     return r;
   },
