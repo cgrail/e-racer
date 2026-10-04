@@ -67,17 +67,19 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 
 **Gamepads** use the standard mapping: the left stick or d-pad steers, A or RT accelerates, B or LT brakes, X or RB fires super power, Y or LB fires a shock, and Start pauses. In two-player mode, pad 1 drives player 1 and pad 2 drives player 2.
 
+**Phones and tablets** get on-screen controls as soon as you touch the screen (a key press hides them again). While racing, the car **accelerates by itself**: the steering pad bottom left steers (slide your thumb between ◀ and ▶), and on the right are **BRAKE**, **POWER** (super power) and **SHOCK**, with pause top right. In menus a d-pad, **OK** and **BACK** take over, and while a name or course code is being typed, tap the field at the top to bring up the keyboard. The ⛶ button top left goes fullscreen where the browser allows it. One player per device; split screen needs a keyboard or two pads.
+
 ## Code layout
 
 | Folder         | Purpose |
 |----------------|---------|
-| `src/core/`    | Constants, helpers (math, seeded RNG, colours, storage), keyboard and gamepad input |
+| `src/core/`    | Constants, helpers (math, seeded RNG, colours, storage), keyboard, gamepad and virtual (touch) input |
 | `src/audio/`   | Web Audio electric motor synth, sound effects, music sequencer and songs |
 | `src/art/`     | Procedural pixel art: scenery and hazard sprites, cars, parallax backgrounds |
 | `src/world/`   | The 12 scenery definitions, course generator and course codes |
 | `src/race/`    | Race simulation: car specs, electric drive physics, AI, collisions, laps, checkpoints |
 | `src/render/`  | Segment-based pseudo-3D renderer, sky, road, effects, weather and HUD |
-| `src/game/`    | Game state, menus and widgets, sessions, the attract-mode demo, one file per scene |
+| `src/game/`    | Game state, menus and widgets, sessions, touch controls, the attract-mode demo, one file per scene |
 | `src/main.js`  | Entry point and main loop |
 | `server/`      | Online race server: static files, WebSocket lobby, and the session that runs the races and drives the rivals |
 
