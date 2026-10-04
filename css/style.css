@@ -1,0 +1,23 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+canvas {
+  display: block;
+  width: min(100vw, 160vh);
+  height: min(62.5vw, 100vh);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+}
+canvas:fullscreen {
+  width: min(100vw, 160vh);
+  height: min(62.5vw, 100vh);
+}
