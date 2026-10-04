@@ -3,9 +3,9 @@ import { REAR, PROFILE } from './carmodels.js';
 
 // Player and rival cars: rear view, and a 3/4 view showing the flank when steering.
 const carCache = {};
-function drawRear(g, model, col, s, brake) {
+function drawRear(g, model, col, s, brake, plate) {
   REAR[model](g, { col, bD: S(col, 0.62), bL: S(col, 1.35), bDD: S(col, 0.4), glass: '#1d2a3c',
-    tl: brake ? '#ff4a3a' : '#a81010', tlL: brake ? '#ffe0c0' : '#ff5040' }, s);
+    tl: brake ? '#ff4a3a' : '#a81010', tlL: brake ? '#ffe0c0' : '#ff5040', plate }, s);
 }
 
 const TURN = [[1, 0], [0.9, 8], [0.8, 15]]; // per steer level: rear-face squash, flank width
@@ -36,18 +36,19 @@ function drawFlank(g, p, col, ex, fw, cb, ct) {
 }
 
 // steer: -2..2 (0 straight, 1 slight, 2 full lock). Left turns mirror the layout, not the rear art.
-function drawCar(g, model, col, steer, brake) {
+// plate: the player's name on the number plate ('' for a plain one).
+function drawCar(g, model, col, steer, brake, plate) {
   E(g, 36, 37, 34, 3.5, 'rgba(0,0,0,0.45)');
   const k = Math.min(2, Math.abs(steer)), dir = Math.sign(steer);
-  if (!k) { drawRear(g, model, col, 0, brake); return; }
+  if (!k) { drawRear(g, model, col, 0, brake, plate); return; }
   const p = PROFILE[model], [f, fw] = TURN[k], ox = 36 - (72 * f + fw) / 2;
-  const rear = make(72, 40, h => drawRear(h, model, col, k * dir, brake));
+  const rear = make(72, 40, h => drawRear(h, model, col, k * dir, brake, plate));
   g.drawImage(rear, dir > 0 ? ox : 72 - ox - 72 * f, 0, 72 * f, 40);
   const side = make(72, 40, h => drawFlank(h, p, col, ox + (p.edge + k) * f - 0.5, fw,
     ox + (p.cab[0] + p.slide[0] * k) * f, ox + (p.cab[2] + p.slide[1] * k) * f));
   g.drawImage(dir > 0 ? side : flip(side), 0, 0);
 }
-export function car(model, col, steer, brake) {
-  const key = model + col + steer + (brake ? 1 : 0);
-  return carCache[key] || (carCache[key] = make(72, 40, g => drawCar(g, model, col, steer, brake)));
+export function car(model, col, steer, brake, plate = '') {
+  const key = model + col + steer + (brake ? 1 : 0) + plate;
+  return carCache[key] || (carCache[key] = make(72, 40, g => drawCar(g, model, col, steer, brake, plate)));
 }

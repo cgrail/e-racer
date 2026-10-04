@@ -46,9 +46,15 @@ export function useShock(c, inp) {
   c.shock = 0;
   if (c.human || t.human) Sound.fx.zap();
   if (t.superT > 0) { this.msg(c, 'SHOCK BLOCKED', 1.2, '#60e0ff'); return; }
-  t.shockT = SHOCK_T;
+  this.shockHit(t);
   this.msg(c, 'SHOCK HIT!', 1.2, '#60e0ff');
-  if (t.human) this.msg(t, 'SHOCKED!', 1.5, '#60e0ff');
+}
+
+// A shock lands on car t. A puppet's real car is driven elsewhere, so the hit goes out over the network too.
+export function shockHit(t) {
+  t.shockT = SHOCK_T;
+  if (t.net) this.outbox.push(['shock', this.cars.indexOf(t)]);
+  else if (t.human) this.msg(t, 'SHOCKED!', 1.5, '#60e0ff');
 }
 
 // Rivals hold a shock for a moment, then fire it once a car is close ahead.

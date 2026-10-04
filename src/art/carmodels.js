@@ -9,7 +9,22 @@ const tyres = (g, y, w = 11, x0 = 5) => {
     for (let ty = y + 6; ty < 37; ty += 4) R(g, x + 1, ty, w - 2, 1, '#262626');
   }
 };
-const plate = (g, x, y) => { R(g, x, y, 14, 5, '#f4d000'); R(g, x + 2, y + 2, 10, 1, '#5a4a00'); };
+// Number plate, 14 px wide at x. A player's name widens it around the same centre, in a 3x5 pixel font:
+// each glyph is five rows, top to bottom, of three pixels (a digit 0-7, 4 = left pixel).
+const GLYPHS = {
+  A: '25755', B: '65656', C: '34443', D: '65556', E: '74647', F: '74644', G: '34553', H: '55755', I: '72227',
+  J: '11152', K: '55655', L: '44447', M: '57755', N: '65555', O: '75557', P: '65644', Q: '25563', R: '65655',
+  S: '34216', T: '72222', U: '55557', V: '55552', W: '55775', X: '55255', Y: '55222', Z: '71247',
+  0: '25552', 1: '26227', 2: '61247', 3: '61216', 4: '55711', 5: '74616', 6: '34652', 7: '71222', 8: '25252', 9: '25316',
+};
+const plate = (g, x, y, name) => {
+  if (!name) { R(g, x, y, 14, 5, '#f4d000'); R(g, x + 2, y + 2, 10, 1, '#5a4a00'); return; }
+  const w = name.length * 4 + 3, x0 = x + 7 - Math.ceil(w / 2);
+  R(g, x0, y - 1, w, 7, '#f4d000');
+  [...name].forEach((ch, i) => [...(GLYPHS[ch] || '00000')].forEach((row, r) => {
+    for (let b = 0; b < 3; b++) if (+row & (4 >> b)) R(g, x0 + 2 + i * 4 + b, y + r, 1, 1, '#2a2000');
+  }));
+};
 const pair = (g, s, x, y, w, h, c) => { R(g, x + s, y, w, h, c); R(g, 72 - x - w + s, y, w, h, c); }; // mirrored
 const fins = (g, x, y, w, h) => { for (let i = x + 6; i < x + w - 4; i += 6) R(g, i, y, 1, h, '#333'); };
 const round = (g, c, x, y, w, h, r) => {
@@ -19,7 +34,7 @@ const round = (g, c, x, y, w, h, r) => {
 };
 const UPPER = '#eeeadc'; // the microbus's pale upper half
 
-// k: palette { col, bD (dark), bL (light), bDD, glass, tl (tail lamp), tlL (lamp highlight) }
+// k: palette { col, bD (dark), bL (light), bDD, glass, tl (tail lamp), tlL (lamp highlight) } and the plate text
 export const REAR = {
   pixel(g, k, s) { // compact hatchback: upright tailgate, a black band joining the lamps
     tyres(g, 25);
@@ -30,7 +45,7 @@ export const REAR = {
     R(g, 7 + s, 16, 58, 3, '#121417');
     R(g, 6 + s, 16, 15, 4, k.tl); R(g, 51 + s, 16, 15, 4, k.tl);
     R(g, 7 + s, 17, 5, 1, k.tlL); R(g, 60 + s, 17, 5, 1, k.tlL);
-    R(g, 5 + s, 28, 62, 5, '#1a1a1a'); plate(g, 29 + s, 22);
+    R(g, 5 + s, 28, 62, 5, '#1a1a1a'); plate(g, 29 + s, 22, k.plate);
     R(g, 6 + s, 15, 60, 1, k.bL);
   },
   ridge(g, k, s) { // compact SUV: high, dark cladding, C-shaped lamps, roof rails
@@ -43,7 +58,7 @@ export const REAR = {
     pair(g, s, 6, 16, 13, 2, k.tl); pair(g, s, 6, 16, 2, 6, k.tl); pair(g, s, 6, 20, 8, 2, k.tl); // C lamps
     pair(g, s, 7, 16, 4, 1, k.tlL);
     R(g, 4 + s, 27, 64, 6, '#222'); R(g, 26 + s, 31, 20, 1, '#b0b4b8');
-    plate(g, 29 + s, 20);
+    plate(g, 29 + s, 20, k.plate);
     R(g, 5 + s, 15, 62, 1, k.bL);
   },
   granite(g, k, s) { // mid-size SUV: tall and broad, slim lamps reaching into the tailgate, chrome trim
@@ -58,7 +73,7 @@ export const REAR = {
     R(g, 6 + s, 16, 6, 1, k.tlL); R(g, 60 + s, 16, 6, 1, k.tlL);
     R(g, 25 + s, 16, 22, 1, '#c0c4c8');
     R(g, 3 + s, 26, 66, 5, '#202020'); R(g, 12 + s, 29, 48, 1, '#c0c4c8');
-    plate(g, 29 + s, 20);
+    plate(g, 29 + s, 20, k.plate);
     R(g, 4 + s, 14, 64, 1, k.bL);
   },
   beach(g, k, s) { // retro-styled electric microbus: tall, boxy, two-tone
@@ -70,7 +85,7 @@ export const REAR = {
     R(g, 5 + s, 17, 62, 4, '#151515');
     R(g, 6 + s, 17, 13, 4, k.tl); R(g, 53 + s, 17, 13, 4, k.tl);
     R(g, 7 + s, 18, 4, 1, k.tlL); R(g, 61 + s, 18, 4, 1, k.tlL);
-    R(g, 4 + s, 27, 64, 6, '#1a1a1a'); plate(g, 29 + s, 22);
+    R(g, 4 + s, 27, 64, 6, '#1a1a1a'); plate(g, 29 + s, 22, k.plate);
   },
   aero(g, k, s) { // sportback: raked rear glass, ducktail, full-width segmented light bar
     tyres(g, 25);
@@ -82,7 +97,7 @@ export const REAR = {
     R(g, 5 + s, 19, 62, 2, k.tl);
     for (let i = 0; i < 4; i++) { R(g, 6 + s + i * 3, 19, 2, 2, k.tlL); R(g, 64 + s - i * 3, 19, 2, 2, k.tlL); }
     R(g, 4 + s, 28, 64, 5, '#161616'); fins(g, 4 + s, 29, 64, 4);
-    plate(g, 29 + s, 22);
+    plate(g, 29 + s, 22, k.plate);
   },
   wave(g, k, s) { // sleek sedan: rounded body, lit haunches, a light bar that thickens at the corners
     tyres(g, 25);
@@ -94,7 +109,7 @@ export const REAR = {
     R(g, 5 + s, 20, 62, 1, k.tl); R(g, 5 + s, 19, 13, 3, k.tl); R(g, 54 + s, 19, 13, 3, k.tl);
     R(g, 6 + s, 20, 4, 1, k.tlL); R(g, 62 + s, 20, 4, 1, k.tlL);
     R(g, 5 + s, 28, 62, 5, '#161616'); fins(g, 5 + s, 29, 62, 4);
-    plate(g, 29 + s, 22);
+    plate(g, 29 + s, 22, k.plate);
   },
   flux(g, k, s) { // low sports sedan: wide hips, raised active spoiler, ring lamps joined by a thin bar
     tyres(g, 25, 12, 4);
@@ -108,7 +123,7 @@ export const REAR = {
     for (const x of [4, 56]) { R(g, x + s, 19, 12, 5, k.tl); R(g, x + 3 + s, 20, 6, 3, '#2a0808'); }
     R(g, 5 + s, 20, 2, 1, k.tlL); R(g, 65 + s, 20, 2, 1, k.tlL);
     R(g, 3 + s, 28, 66, 5, '#141414'); fins(g, 3 + s, 29, 66, 4);
-    plate(g, 29 + s, 23);
+    plate(g, 29 + s, 23, k.plate);
   },
   blitz(g, k, s) { // low roadster: wide hips, small cabin under a black targa roof, slim lamps
     tyres(g, 26, 12, 4);
@@ -122,7 +137,7 @@ export const REAR = {
     P(g, k.tl, [67 + s, 22, 50 + s, 22, 52 + s, 24, 67 + s, 24]);
     R(g, 5 + s, 22, 4, 1, k.tlL); R(g, 63 + s, 22, 4, 1, k.tlL);
     R(g, 4 + s, 29, 64, 4, '#141414'); fins(g, 4 + s, 29, 64, 4);
-    plate(g, 29 + s, 24);
+    plate(g, 29 + s, 24, k.plate);
   },
 };
 

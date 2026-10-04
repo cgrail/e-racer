@@ -2,16 +2,25 @@ import { K } from '../../core/util.js';
 import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
 import { Render } from '../../render/index.js';
+import { NO_INPUT } from '../../race/specs.js';
 import { g, W, H } from '../screen.js';
 import { settings, saveAll, game, go } from '../state.js';
 import { panel, rowsDraw, rowsNav } from '../ui.js';
 import { makeRace } from '../session.js';
+import { Online } from '../online.js';
 
 // The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu.
+// Online the race goes on while paused (the car coasts), and the server ends it (game/online.js).
 export const RaceScene = {
   acc: 0, vs: [{}, {}], paused: false, psel: 0,
   enter() { this.acc = 0; this.vs = [{}, {}]; this.paused = false; },
   pauseRows() {
+    if (game.race.net) {
+      return [
+        { label: 'CONTINUE', action: () => { this.paused = false; } },
+        { label: 'LEAVE RACE', action: () => { Sound.enginesOff(); Online.leave(); go('Lobby'); } },
+      ];
+    }
     return [
       { label: 'CONTINUE', action: () => { this.paused = false; } },
       { label: 'RESTART RACE', action: () => { game.race = makeRace(); this.enter(); } },
@@ -19,18 +28,18 @@ export const RaceScene = {
     ];
   },
   update(dt) {
+    const online = !!game.race.net;
     if (this.paused) {
       const m = rowsNav(this.pauseRows(), { get sel() { return RaceScene.psel; }, set sel(v) { RaceScene.psel = v; } });
       if (m.pause && this.paused) this.paused = false;
-      return;
-    }
-    if (Input.menu().pause) { this.paused = true; this.psel = 0; Sound.enginesOff(); return; }
+      if (!online || game.scene !== this) return;
+    } else if (Input.menu().pause) { this.paused = true; this.psel = 0; Sound.enginesOff(); if (!online) return; }
     if (Input.pressed('KeyM')) {
       settings.music = settings.music + 1 >= Sound.songs.length ? -1 : settings.music + 1;
       Sound.playMusic(settings.music); saveAll();
     }
     const two = game.race.humans.length > 1;
-    const inputs = game.race.humans.map((h, i) => Input.player(i, two));
+    const inputs = game.race.humans.map((h, i) => (this.paused ? Object.assign({}, NO_INPUT) : Input.player(i, two)));
     this.acc += Math.min(dt, 0.1);
     let first = true;
     while (this.acc >= K.STEP) {
@@ -38,7 +47,7 @@ export const RaceScene = {
       if (first) { inputs.forEach(i => { i.power = false; i.shock = false; }); first = false; }
       this.acc -= K.STEP;
     }
-    game.race.humans.forEach((h, i) => Sound.engine(i, true, h.speed / (h.spec.top * K.MAX_SPEED), h.pwr, h.skid, h.rough, two ? (i ? 0.6 : -0.6) : 0));
+    if (!this.paused) game.race.humans.forEach((h, i) => Sound.engine(i, true, h.speed / (h.spec.top * K.MAX_SPEED), h.pwr, h.skid, h.rough, two ? (i ? 0.6 : -0.6) : 0));
     if (game.race.over) { Sound.enginesOff(); go('Results'); }
   },
   draw(dt) {

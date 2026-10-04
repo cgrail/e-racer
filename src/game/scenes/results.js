@@ -7,8 +7,9 @@ import { records, game, scenes, go } from '../state.js';
 import { panel, blinkOn } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { POINTS, QUALIFY, DIFF_NAMES, recordKey } from '../session.js';
+import { Online } from '../online.js';
 
-// Race or stage results, points and records.
+// Race or stage results, points and records. Online, the server starts the next race after a few seconds.
 export const Results = {
   t: 0, list: [], lines: [], qualified: true, newRecord: false,
   enter() {
@@ -34,6 +35,7 @@ export const Results = {
     } else this.qualified = true;
   },
   next() {
+    if (game.session.kind === 'online') return;
     if (game.session.kind === 'custom') { go('Builder'); return; }
     if (game.session.kind === 'champ') { go('Standings'); return; }
     if (!this.qualified) { scenes.GameEnd.set('GAME OVER', ['OUT OF TIME ON ' + game.race.track.theme.name, `REACHED STAGE ${game.session.idx + 1} OF ${game.session.courses.length}`]); go('GameEnd'); return; }
@@ -45,7 +47,9 @@ export const Results = {
   },
   update(dt) {
     this.t += dt;
-    if (Input.menu().ok && this.t > 0.5) { Sound.fx.select(); this.next(); }
+    const m = Input.menu();
+    if (game.session.kind === 'online' && m.back) { Sound.fx.back(); Online.leave(); go('Lobby'); return; }
+    if (m.ok && this.t > 0.5) { Sound.fx.select(); this.next(); }
   },
   draw(dt) {
     drawAttract(dt, 0.7);
@@ -82,8 +86,9 @@ export const Results = {
     let msg = '';
     if (game.session.kind === 'champ') msg = this.qualified ? 'QUALIFIED!' : 'NOT QUALIFIED';
     else if (game.session.kind === 'time') msg = this.qualified ? 'STAGE CLEARED!' : 'GAME OVER';
+    else if (game.session.kind === 'online') msg = `NEXT RACE IN ${Math.ceil(Online.next)}`;
     if (this.newRecord) msg += (msg ? '  ' : '') + 'NEW RECORD!';
     if (msg && blinkOn(this.t, 1.5)) text(msg, W / 2, game.race.mode === 'race' ? 270 : 214, 8, this.qualified ? '#7fffb0' : '#ff5050', 'center');
-    if (this.t > 0.5) text('ENTER', W / 2, game.race.mode === 'race' ? 281 : 236, 8, '#ffffff', 'center');
+    if (this.t > 0.5) text(game.session.kind === 'online' ? 'ESC LEAVES THE SESSION' : 'ENTER', W / 2, game.race.mode === 'race' ? 281 : 236, 8, '#ffffff', 'center');
   },
 };

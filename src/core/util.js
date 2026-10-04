@@ -79,6 +79,8 @@ export const U = {
   },
   // world units -> kilometres (MAX_SPEED world units per second == K.MPH)
   km: units => (units * (K.MPH * 0.44704)) / K.MAX_SPEED / 1000,
+  // a player name as it fits on a number plate: up to 6 letters and digits
+  plateName: s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6),
   ordinal(n) {
     const s = n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH';
     return n + s;

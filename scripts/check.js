@@ -1,4 +1,4 @@
-// Syntax-checks every module under src/ (no browser needed).
+// Syntax-checks every module under src/ and server/ (no browser needed).
 import { readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -12,6 +12,7 @@ const walk = dir => {
   }
 };
 walk('src');
+walk('server');
 let failed = 0;
 for (const f of files) {
   try { execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' }); }

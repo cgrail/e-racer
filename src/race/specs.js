@@ -17,4 +17,9 @@ export const CAR_COLORS = ['#d81e1e', '#1e5ad8', '#f0d020', '#f2f2f2', '#22a040'
 export const SUPER_T = 3; // seconds of super power per power-up charge
 export const SHOCK_T = 3, SHOCK_CAP = 0.75; // electro shock: seconds held to this share of top speed
 export const AI_SHOCKS = [0.35, 0.5, 0.65]; // share of rivals that use electro shocks, by difficulty
-export const NO_INPUT = { throttle: 0, brake: 0, steer: 0, analog: false, power: false, shock: false };
+export const AI_NAMES = ['K.MORGAN', 'R.BLAKE', 'T.VANCE', 'S.IKEDA', 'L.MORETTI', 'P.DUBOIS', 'J.KOVACS', 'A.LINDQVIST',
+  'M.OKAFOR', 'H.SCHULZ', 'D.PETROV', 'C.ALVAREZ', 'B.BRENNAN', 'W.CHEN', 'F.FONTAINE', 'G.GALLAGHER',
+  'N.HOLM', 'E.JANSEN', 'V.KAPOOR', 'O.LARSEN', 'I.MENDES', 'Z.NOVAK'];
+export const AI_RANGE = [[0.64, 0.8], [0.7, 0.87], [0.76, 0.93]]; // rivals' top speed range by difficulty
+export const lapsFor = n => (n < 1300 ? 4 : n < 2000 ? 3 : 2); // laps for a course of n segments
+export const NO_INPUT ={ throttle: 0, brake: 0, steer: 0, analog: false, power: false, shock: false };

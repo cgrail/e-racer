@@ -7,18 +7,20 @@ import * as contact from './contact.js';
 import * as energy from './energy.js';
 import * as power from './power.js';
 import * as shock from './shock.js';
+import * as online from './online.js';
 
 // One race (or time challenge stage) on a track: simulation of every car, hazards, laps and timing.
 export class Race {
-  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power }
+  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power, net }
+  // net: 'server' or 'client' in an online race (see online.js)
   constructor(o) {
-    this.track = o.track; this.mode = o.mode; this.attract = !!o.attract;
+    this.track = o.track; this.mode = o.mode; this.attract = !!o.attract; this.net = o.net || null; this.outbox = [];
     this.laps = o.mode === 'time' ? 1 : o.laps || 3;
     this.L = this.track.length; this.diff = o.diff == null ? 1 : o.diff;
     this.cars = []; this.humans = [];
     this.time = 0; this.wtime = 0; this.wind = 0; this.flash = 0; this.nextBolt = 3; this.thunderT = 0;
     this.phase = this.attract ? 'race' : 'countdown'; this.count = 3.99; this.lastBeep = 9;
-    this.over = false; this.doneT = 0; this.finishOrder = [];
+    this.over = false; this.doneT = 0;
     this.dyn = [];
     this.energy = !!o.energy && this.mode === 'race';
     if (this.energy) this.placeCells();
@@ -59,7 +61,7 @@ export class Race {
 
   addCar(d, travel, x) {
     const c = {
-      id: d.id, name: d.name, human: !!d.human, pidx: d.human ? d.pidx : -1,
+      id: d.id, name: d.name, plate: d.plate || '', human: !!d.human, pidx: d.human ? d.pidx : -1, net: !!d.net, nets: null, netT: 0,
       model: d.model, color: d.color, spec: CARSPEC[d.model],
       travel, x, z: 0, prevZ: 0, speed: 0, pwr: 0, thr: 0, steer: 0, frame: 0, brake: false,
       crashT: 0, immuneT: 0, bumpT: 0, alt: 0, vy: 0, air: false, jumpY: 0, slideT: 0, boostT: 0, splashT: 0,
@@ -106,10 +108,11 @@ export class Race {
     const racing = this.phase === 'race';
     for (const c of this.cars) {
       if (c.msg && (c.msg.t -= dt) <= 0) c.msg = null;
-      if (c.human && !c.autopilot) this.driveHuman(c, inputs[c.pidx] || NO_INPUT, dt, racing);
+      if (c.net) this.drivePuppet(c, dt);
+      else if (c.human && !c.autopilot) this.driveHuman(c, inputs[c.pidx] || NO_INPUT, dt, racing);
       else this.driveAI(c, dt, racing);
       if (c.shockT > 0) this.shocked(c, dt);
-      this.vertical(c, dt);
+      if (!c.net) this.vertical(c, dt);
     }
     if (racing) this.collide();
     for (const ob of this.dyn) {
@@ -127,7 +130,7 @@ export class Race {
     this.rank();
     if (this.phase !== 'race') return;
     for (const c of this.cars) {
-      if (c.finished) continue;
+      if (c.finished || c.net) continue; // a puppet's laps come with its state
       if (this.mode === 'race') {
         const lap = c.travel < 0 ? 0 : Math.floor(c.travel / this.L) + 1;
         if (lap > c.lap) {
@@ -165,7 +168,7 @@ export class Race {
         }
       }
     }
-    if (!this.attract && !this.over && this.humans.every(h => h.finished || (h.outOfTime && h.speed < 60))) {
+    if (!this.attract && !this.net && !this.over && this.humans.every(h => h.finished || (h.outOfTime && h.speed < 60))) {
       this.doneT += dt;
       if (this.doneT > 3.5) this.over = true;
     }
@@ -177,10 +180,9 @@ export class Race {
       const lt = this.time - c.lapStart;
       c.lastLap = lt; c.bestLap = lt;
     }
-    this.finishOrder.push(c);
     if (c.human) {
       c.autopilot = true;
-      if (this.mode === 'race') this.msg(c, 'FINISHED ' + U.ordinal(this.finishOrder.length), 99, '#ffe040');
+      if (this.mode === 'race') this.msg(c, 'FINISHED ' + U.ordinal(this.cars.filter(o => o.finished).length), 99, '#ffe040');
       else this.msg(c, 'STAGE COMPLETE', 99, '#60ff60');
       Sound.fx.finish();
     }
@@ -194,4 +196,4 @@ export class Race {
   rank() { this.results().forEach((c, i) => { c.place = i + 1; }); }
 }
 
-Object.assign(Race.prototype, driving, ai, contact, energy, power, shock);
+Object.assign(Race.prototype, driving, ai, contact, energy, power, shock, online);

@@ -1,6 +1,6 @@
 # Electro Car Racer
 
-A tribute to the pseudo-3D racing games of the 80s and 90s, with split-screen duels, chiptune radio stations and roads that roll over the horizon. It is written in plain JavaScript (ES modules) and HTML5 canvas, built with Vite, and has no runtime dependencies.
+A tribute to the pseudo-3D racing games of the 80s and 90s, with split-screen duels, online races, chiptune radio stations and roads that roll over the horizon. It is written in plain JavaScript (ES modules) and HTML5 canvas and built with Vite. The game in the browser has no runtime dependencies; the optional online race server runs on Node with Express and `ws`.
 
 Every graphic, sound and piece of music is generated in code.
 
@@ -11,9 +11,12 @@ npm install
 npm run dev       # dev server with hot reload, open the printed URL
 npm run build     # production build into dist/
 npm run preview   # serve the production build
+npm start         # build, then run the race server: game and online races on http://localhost:8090
 ```
 
-`dist/` is a static site with relative paths, so you can host it from any folder.
+`dist/` is a static site with relative paths, so you can host it from any folder. Everything but online races works that way.
+
+Online races need the race server (`server/server.js`), which serves the built game and runs the races on a WebSocket at `/ws`. Players open the server's address. To work on online play with hot reload, run `npm run server` next to `npm run dev`: Vite passes `/ws` through to the server on port 8090. The server's settings are environment variables (`PORT`, `HOST`, `TRUST_PROXY`, `ALLOWED_ORIGINS`, `MAX_CLIENTS`, `MAX_CONNS_PER_IP`), described at the top of `server/server.js`.
 
 The pixel font loads from Google Fonts. Without a connection the game falls back to a monospace font.
 
@@ -30,6 +33,8 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
   - **Active rivals:** rivals change lanes, take the inside of bends, draft and overtake each other, and some defend against you. They collect energy cells and fire electro shocks too, more of them on Hard.
   - **Time Challenge:** five point-to-point stages per level against the clock. Each checkpoint extends your time.
   - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
+  - **Online Race:** race other players over the internet on one shared 20-car grid, one player per browser. If nobody is racing, you start a session with your level, energy and power-up settings; races then run back to back, each on a new course, with the results in between. Anyone can join while a race is running: they take over the last rival on the road and race on from there. A player who leaves hands the car back to a rival. Pick **ONLINE RACE** under **GAME** in the main menu.
+- **Your name on the number plate:** set **P1 NAME** (and **P2 NAME**) in the main menu, up to six letters and digits. It is shown on your car's plate, in the results, and to the other players online.
 - **Limited energy (option):** in races your battery drains with the power you draw, and braking recovers a little. Drive through the glowing energy cells on the road to recharge them; they come back every lap, and in two-player mode each player has their own. Rivals have batteries too and go for cells when they run low; a cell a rival drives over is used up for everyone until it comes back a few seconds later. If your battery runs empty, you are put behind the last car with a partial recharge. Set **ENERGY** to *Limited* in the main menu.
 - **Power-ups (option):** glowing power orbs on the road charge your super power, and you can hold up to three charges. They are a catch-up help: in the top three, orbs show faded and do nothing, and the further back you are, the more charges an orb gives (up to three) and the longer a charge runs (three to six seconds). A charge gives extra acceleration past top speed: barriers fly aside, puddles and ice can't touch you, and rivals get shoved out of the way. Set **POWER-UPS** to *On* in the main menu.
 - **Electro shocks:** blue shock pickups lie on the road in every race. You can hold one: fire it to zap the nearest car ahead of you, rival or other player, which is held to 75% of its top speed for three seconds unless its super power is running.
@@ -46,7 +51,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
 | Super power | Space or Enter            | Space         | Enter or Numpad 0  |
 | Shock       | E, Right Shift or .       | E             | . or Right Shift   |
 
-Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles fullscreen, and **Enter** confirms in menus.
+Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles fullscreen, and **Enter** confirms in menus. To set a name, select its row, type it and press **Enter** (**Esc** cancels). An online race doesn't stop when you pause, and the pause menu lets you leave it.
 
 **Gamepads** use the standard mapping: the left stick or d-pad steers, A or RT accelerates, B or LT brakes, X or RB fires super power, Y or LB fires a shock, and Start pauses. In two-player mode, pad 1 drives player 1 and pad 2 drives player 2.
 
@@ -62,5 +67,6 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 | `src/render/`  | Segment-based pseudo-3D renderer, sky, road, effects, weather and HUD |
 | `src/game/`    | Game state, menus and widgets, sessions, the attract-mode demo, one file per scene |
 | `src/main.js`  | Entry point and main loop |
+| `server/`      | Online race server: static files, WebSocket lobby, and the session that runs the races and drives the rivals |
 
-`npm run check` syntax-checks every module. `npm run smoke` runs the game headlessly in Node against stubbed browser APIs: it builds, races and renders every scenery, and drives the menus through a championship, a two-player time challenge and a course-builder race.
+`npm run check` syntax-checks every module. `npm run smoke` runs the game headlessly in Node against stubbed browser APIs: it builds, races and renders every scenery, drives the menus through a championship, a two-player time challenge and a course-builder race, and plays an online session against the real server code.

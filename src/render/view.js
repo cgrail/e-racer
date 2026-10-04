@@ -86,7 +86,7 @@ export function view(g, vp, race, car, vs, opts) {
       if (c.z - camZ < 0 && n === 0) continue;
       const cx = U.lerp(p1.x, s.p2.screen.x, pct) + cs * c.x * T.roadW * sx;
       const cy = U.lerp(p1.y, s.p2.screen.y, pct) - c.jumpY * cs * sy;
-      const img = Art.car(c.model, c.color, c.frame, c.brake);
+      const img = Art.car(c.model, c.color, c.frame, c.brake, c.plate);
       const dw = K.CAR_W * cs * sx, dh = (dw * img.height) / img.width * sprMul;
       if (dw > w * 1.2) continue;
       blit(g, img, cx - dw / 2, cy - dh, dw, dh);
@@ -99,7 +99,7 @@ export function view(g, vp, race, car, vs, opts) {
   // player car
   const pScale = 1 / K.CAM_H;
   const pw = K.CAR_W * pScale * sx;
-  const img = Art.car(car.model, car.color, car.frame, car.brake);
+  const img = Art.car(car.model, car.color, car.frame, car.brake, car.plate);
   const ph = (pw * img.height) / img.width * sprMul;
   let by = h - 2 - car.jumpY * 0.3 * pScale * sy;
   if (car.speed > 200 && !car.air) by -= car.offroad ? Math.random() * 2.5 : (Math.floor(race.wtime * 24) % 2) * 0.6;

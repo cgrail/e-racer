@@ -2,14 +2,10 @@ import { U } from '../core/util.js';
 import { THEME_INDEX } from '../world/themes.js';
 import { Track } from '../world/track.js';
 import { Race } from '../race/race.js';
-import { MODELS, CAR_COLORS } from '../race/specs.js';
+import { MODELS, CAR_COLORS, AI_NAMES, AI_RANGE, lapsFor } from '../race/specs.js';
 import { settings, custom, game, go } from './state.js';
 
 // Sessions: championship, time challenge and custom races, their drivers, courses and race setup.
-export const AI_NAMES = ['K.MORGAN', 'R.BLAKE', 'T.VANCE', 'S.IKEDA', 'L.MORETTI', 'P.DUBOIS', 'J.KOVACS', 'A.LINDQVIST',
-  'M.OKAFOR', 'H.SCHULZ', 'D.PETROV', 'C.ALVAREZ', 'B.BRENNAN', 'W.CHEN', 'F.FONTAINE', 'G.GALLAGHER',
-  'N.HOLM', 'E.JANSEN', 'V.KAPOOR', 'O.LARSEN', 'I.MENDES', 'Z.NOVAK'];
-export const AI_RANGE = [[0.64, 0.8], [0.7, 0.87], [0.76, 0.93]];
 export const POINTS = [20, 15, 12, 10, 8, 6, 4, 3, 2, 1];
 export const QUALIFY = [10, 6, 3];
 export const DIFF_NAMES = ['EASY', 'MEDIUM', 'HARD'];
@@ -27,7 +23,8 @@ export const STAGES = [
 export function makeDrivers(nAI) {
   const hum = [];
   for (let p = 0; p < settings.players; p++) {
-    hum.push({ id: 'P' + (p + 1), name: 'PLAYER ' + (p + 1), human: true, pidx: p, model: settings.cars[p], color: CAR_COLORS[p], points: 0 });
+    const plate = settings.names[p];
+    hum.push({ id: 'P' + (p + 1), name: plate || 'PLAYER ' + (p + 1), plate, human: true, pidx: p, model: settings.cars[p], color: CAR_COLORS[p], points: 0 });
   }
   const names = U.shuffle(Math.random, AI_NAMES);
   const ai = [];
@@ -73,7 +70,7 @@ export function makeRace() {
   } else {
     ai = game.session.drivers.filter(d => !d.human).map(d => Object.assign({}, d, { aiTop: U.lerp(lo, hi, d.skill) + game.session.idx * 0.004 }));
   }
-  const laps = game.session.kind === 'custom' ? custom.laps : track.N < 1300 ? 4 : track.N < 2000 ? 3 : 2;
+  const laps = game.session.kind === 'custom' ? custom.laps : lapsFor(track.N);
   return new Race({ track, mode: game.session.time ? 'time' : 'race', laps, humans, ai, diff: game.session.diff, energy: settings.energy === 1, power: settings.power === 1 });
 }
 export const recordKey = r => r.track.code + (r.mode === 'time' ? 'T' : 'R');

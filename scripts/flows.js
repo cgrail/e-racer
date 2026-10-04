@@ -1,0 +1,108 @@
+// Game flows for the smoke test, run after smoke.js's module checks: the real main.js driven through its key
+// handlers (title, menus, championship, 2P time challenge, course builder), then an online session against the
+// real server lobby behind a fake WebSocket.
+import { define, store, hooks, frames, tap, hold, release } from './stubs.js';
+
+// ---------------------------------------------------------------- game flow through the real key handlers
+store.set('ecr.settings', JSON.stringify({ cars: ['volt', 'ion'], names: ['toolongname!'] })); // car models from an older version, a bad name
+await import('../src/main.js');
+if (window.__ecr.settings.cars.join() !== 'flux,wave') throw new Error('retired car models not replaced: ' + window.__ecr.settings.cars);
+if (window.__ecr.settings.names.join() !== 'TOOLON,') throw new Error('saved names not cleaned up: ' + window.__ecr.settings.names);
+const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };
+const moved = () => { if (!(window.__ecr.race.humans.every(h => h.travel > 2000))) throw new Error('player cars did not drive'); };
+frames(5);
+tap('Enter'); expect('MainMenu'); // title -> main menu
+tap('ArrowUp'); tap('Enter'); // wrap to START GAME (championship)
+frames(5); expect('PreRace'); tap('Enter'); expect('RaceScene'); // pre-race -> race
+hold('ArrowUp'); frames(60 * 20); release('ArrowUp'); moved();
+tap('Escape'); tap('ArrowUp'); tap('Enter'); // pause -> QUIT TO MENU (menu cursor stays on START)
+expect('MainMenu');
+tap('ArrowDown'); tap('Enter'); // PLAYERS -> 2 players
+tap('ArrowDown'); tap('Enter'); // GAME -> time challenge
+tap('ArrowUp'); tap('ArrowUp'); tap('Enter'); frames(5); tap('Enter'); expect('RaceScene');
+if (window.__ecr.race.mode !== 'time' || window.__ecr.race.humans.length !== 2) throw new Error('expected a 2P time challenge');
+hold('KeyW'); hold('ArrowUp'); frames(60 * 20); release('KeyW'); release('ArrowUp'); moved();
+tap('Escape'); tap('ArrowUp'); tap('Enter');
+tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); // GAME -> course builder
+tap('ArrowUp'); tap('ArrowUp'); tap('Enter'); expect('Builder'); // BUILD COURSE
+for (let i = 0; i < 12; i++) tap('ArrowDown');
+tap('Enter'); frames(5); tap('Enter'); expect('RaceScene'); // RACE! -> pre-race -> race
+hold('KeyW'); hold('ArrowUp'); frames(60 * 10); moved();
+console.log('game flow: title, menu, championship, 2P time challenge, course builder race OK');
+
+// ---------------------------------------------------------------- online: the real server lobby behind a fake WebSocket
+{
+  const { Lobby } = await import('../server/lobby.js');
+  const { Online } = await import('../src/game/online.js');
+  const net = []; // deliveries in both directions, handed over between frames as JSON like real traffic
+  let refuse = true; // the first connection finds no server
+  define('location', { href: 'http://localhost:5173/' });
+  define('WebSocket', class {
+    constructor(url) {
+      if (url !== 'ws://localhost:5173/ws') throw new Error('online: socket url ' + url);
+      if (refuse) { refuse = false; net.push(() => this.onclose()); return; }
+      this.readyState = 1;
+      net.push(() => {
+        this.cl = Lobby.connect(o => { const data = JSON.stringify(o); net.push(() => this.onmessage && this.onmessage({ data })); });
+        this.onopen();
+      });
+    }
+    send(data) { net.push(() => this.cl && Lobby.message(this.cl, JSON.parse(data))); }
+    close() { this.readyState = 3; if (this.cl) Lobby.close(this.cl); this.cl = null; }
+  });
+  hooks.push(dt => { Lobby.tick(dt); for (const f of net.splice(0)) f(); });
+  const fail = msg => { throw new Error('online: ' + msg); };
+
+  release('KeyW'); release('ArrowUp');
+  tap('Escape'); tap('ArrowUp'); tap('Enter'); expect('MainMenu'); // quit the course-builder race (cursor on BUILD COURSE)
+  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); // GAME -> online race
+  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); tap('ArrowDown'); tap('Enter'); // ENERGY limited, POWER-UPS on
+  tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); // P1 NAME: edit
+  for (let i = 0; i < 6; i++) tap('Backspace');
+  for (const [code, k] of [['KeyA', 'a'], ['KeyC', 'c'], ['KeyE', 'e'], ['Digit1', '!'], ['Digit7', '7'], ['KeyF', 'f'], ['KeyX', 'x'], ['KeyY', 'y']]) tap(code, k);
+  tap('Enter');
+  if (window.__ecr.settings.names[0] !== 'ACE7FX') fail('name not typed in: ' + window.__ecr.settings.names[0]);
+  tap('ArrowDown'); tap('ArrowDown'); tap('ArrowDown'); tap('Enter'); frames(3); expect('Lobby'); // GO ONLINE
+  if (Online.state !== 'error' || Online.error !== 'NO RACE SERVER FOUND') fail('no server should show as such, got ' + Online.state);
+  tap('Enter'); frames(3); // TRY AGAIN
+  if (Online.state !== 'lobby' || Online.status !== null) fail('lobby should show no session, got ' + Online.state);
+  tap('Enter'); frames(3); expect('RaceScene'); // START SESSION
+  const race = () => window.__ecr.race, sv = () => Lobby.session.race;
+  const me = race().humans[0], mi = race().cars.indexOf(me);
+  if (race().net !== 'client' || race().cars.length !== 20 || race().humans.length !== 1 || mi !== 19) fail('own car not set up at the back of a 20-car grid');
+  if (me.name !== 'ACE7FX' || me.plate !== 'ACE7FX' || me.model !== 'flux' || !race().energy || !race().power) fail('name, car or options not carried online');
+  if (race().track.code !== sv().track.code || sv().humans.length !== 1 || !sv().cars[mi].net) fail('server race does not match');
+
+  const bob = [], cl2 = Lobby.connect(o => bob.push(JSON.parse(JSON.stringify(o)))); // a second player, mid-flight
+  Lobby.message(cl2, { type: 'hello', name: 'bob!', model: 'pixel' }); Lobby.message(cl2, { type: 'join' });
+  const bi = bob.find(m => m.type === 'race').you;
+  frames(3);
+  if (!race().cars[bi].human || race().cars[bi].plate !== 'BOB' || race().cars[bi].model !== 'pixel' || sv().humans.length !== 2) fail('second player did not take over a rival');
+  hold('ArrowUp'); frames(60 * 20);
+  if (!(me.travel > 2000) || Math.abs(sv().cars[mi].travel - me.travel) > 3000) fail(`server copy of the car does not follow (${me.travel} / ${sv().cars[mi].travel})`);
+  if (!(race().cars.some(c => !c.human && c.travel > 2000))) fail('rivals do not move in the browser');
+
+  me.shock = 1; me.superT = 0; // fire a shock: it lands on the server's car
+  const target = race().shockTarget(me), ti = race().cars.indexOf(target);
+  if (!target) fail('no car ahead to shock');
+  tap('KeyE'); frames(2);
+  if (!(sv().cars[ti].shockT > 0) || (ti === bi && !bob.some(m => m.type === 'shocked'))) fail('shock did not reach the server');
+  frames(60 * 4);
+  sv().shockHit(sv().cars[mi]); frames(3); // a rival's shock on the server lands in the browser
+  if (!(me.shockT > 0)) fail('shock from the server did not land');
+
+  Lobby.close(cl2); frames(3); // the second player drops: a rival takes the car back
+  if (race().cars[bi].human || sv().cars[bi].human || sv().humans.length !== 1 || race().cars[bi].plate) fail('dropped player not replaced by a rival');
+
+  race().setTravel(me, race().L * race().laps - 2000); me.prevZ = me.z; me.lap = race().laps; // last metres of the race
+  frames(60 * 6); expect('Results');
+  if (!me.finished || Online.state !== 'results' || !sv().cars[mi].finished) fail('race did not end with the player finished');
+  release('ArrowUp'); frames(60 * 13); expect('RaceScene'); // the next race starts by itself
+  if (Online.id !== 2 || race().humans[0].name !== 'ACE7FX' || race().cars.indexOf(race().humans[0]) !== 19) fail('next race not joined');
+  frames(60 * 3);
+  tap('Escape'); tap('ArrowDown'); tap('Enter'); frames(3); expect('Lobby'); // pause -> LEAVE RACE
+  if (Lobby.session !== null || Online.status !== null) fail('session should end with its last player');
+  tap('Escape'); expect('MainMenu');
+  if (Online.state !== 'off' || Lobby.clients.size !== 0) fail('back to the menu should disconnect');
+  console.log('online: no server, start, mid-race join and drop, state sync, shocks both ways, race end, next race, leave OK');
+}

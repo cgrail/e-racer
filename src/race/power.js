@@ -31,7 +31,7 @@ export function powerShare(c) {
 }
 
 export function collectPower(c, ob) {
-  if (c.place <= 3) return;
+  if (c.power == null || c.place <= 3) return; // rivals don't use power-ups
   c.taken.add(ob);
   if (c.power >= MAX_HELD) return;
   const got = Math.min(MAX_HELD - c.power, 1 + Math.round(this.powerShare(c) * 2));

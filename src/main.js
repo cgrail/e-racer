@@ -11,6 +11,8 @@ import { RaceScene } from './game/scenes/race.js';
 import { Results } from './game/scenes/results.js';
 import { Standings } from './game/scenes/standings.js';
 import { GameEnd } from './game/scenes/gameend.js';
+import { Lobby } from './game/scenes/lobby.js';
+import { Online } from './game/online.js';
 
 // Entry point: wires up the scenes, audio start-up, fullscreen key and the main loop.
 let musicStarted = false;
@@ -19,7 +21,7 @@ Input.onGesture(() => {
   if (!musicStarted) { musicStarted = true; Sound.playMusic(settings.music); }
 });
 window.addEventListener('keydown', e => {
-  if (e.code === 'KeyF' && !(game.scene === scenes.Builder && scenes.Builder.editing)) {
+  if (e.code === 'KeyF' && !game.scene.editing) { // not while typing a course code or a name
     if (document.fullscreenElement) document.exitFullscreen();
     else if (cv.requestFullscreen) cv.requestFullscreen().catch(() => {});
   }
@@ -30,6 +32,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   Input.poll();
+  Online.poll(dt);
   game.scene.update(dt);
   g.imageSmoothingEnabled = false;
   game.scene.draw(dt);
@@ -37,7 +40,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-Object.assign(scenes, { Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd });
+Object.assign(scenes, { Title, MainMenu, Builder, PreRace, RaceScene, Results, Standings, GameEnd, Lobby });
 
 // Debug handle for the console and scripts/smoke.js.
 window.__ecr = {

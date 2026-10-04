@@ -54,9 +54,11 @@ export const DEF = {
   orb: { w: 24, h: 24, ww: 600, hit: 1.6, v: 1, fx: 'power', draw: orb },
   shock: { w: 24, h: 24, ww: 600, hit: 1.6, v: 1, fx: 'shock', draw: shock },
 };
+// Without a DOM (the online race server) only the metadata is needed, so nothing is drawn.
+const canDraw = typeof document !== 'undefined';
 for (const [name, d] of Object.entries(DEF)) {
   d.frames = [];
-  for (let v = 0; v < d.v; v++) {
+  for (let v = 0; v < (canDraw ? d.v : 0); v++) {
     const rnd = U.rng(U.hash(name) + v * 977);
     let c = make(d.w, d.h, g => d.draw(g, d.w, d.h, rnd, d.o || {}, v));
     if (d.flipped) c = flip(c);

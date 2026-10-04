@@ -74,11 +74,11 @@ export function rowsNav(rows, st) {
   } else if (m.ok && r.action) { Sound.fx.select(); r.action(); }
   return m;
 }
-export function carPanel(x, y, w, h, p, t) {
+export function carPanel(x, y, w, h, p, t, plate = settings.names[p]) {
   const model = settings.cars[p], spec = CARSPEC[model];
   panel(x, y, w, h, `PLAYER ${p + 1} CAR`);
   const frame = [0, 2, 0, -2][Math.floor(t / 1.2) % 4];
-  const img = Art.car(model, CAR_COLORS[p], frame, Math.floor(t / 1.2) % 4 === 2);
+  const img = Art.car(model, CAR_COLORS[p], frame, Math.floor(t / 1.2) % 4 === 2, plate);
   g.imageSmoothingEnabled = false;
   g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + 10, y + 24, w - 20, 82);
   g.drawImage(img, Math.round(x + w / 2 - 72), y + 26, 144, 80);
