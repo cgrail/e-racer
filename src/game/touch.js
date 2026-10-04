@@ -109,12 +109,28 @@ function show(v) {
   if (!v) { releaseAll(); root.pad.reset(); }
 }
 
+// iOS Safari ignores user-scalable=no: stop double-tap and pinch zoom by hand (not on the text field,
+// which needs its tap to focus).
+function noZoom() {
+  let lastEnd = 0;
+  const stop = e => { if (e.target !== field) e.preventDefault(); };
+  document.addEventListener('touchend', e => {
+    const now = e.timeStamp;
+    if (now - lastEnd < 350) stop(e);
+    lastEnd = now;
+  }, { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1) stop(e); }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, stop, { passive: false });
+}
+
 export const Touch = {
   init() {
     if (typeof document === 'undefined' || !document.body) return; // headless smoke test
     build();
     window.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !on) show(true); }, true);
     window.addEventListener('keydown', () => { if (on) show(false); });
+    noZoom();
   },
   // Called every frame: pick the layer for the current scene.
   update() {

@@ -23,7 +23,8 @@ canvas:fullscreen {
 }
 
 /* Touch controls (game/touch.js): hidden until the first touch */
-body { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+html, body, canvas { touch-action: none; }
+body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .touch { display: none; position: fixed; inset: 0; pointer-events: none; font-family: 'Press Start 2P', monospace; }
 body.touching .touch { display: block; }
 .touch .layer { display: none; }
