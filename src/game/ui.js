@@ -99,6 +99,10 @@ export function rowsNav(rows, st) {
   } else if (m.ok && r.action) { Sound.fx.select(); r.action(); }
   return m;
 }
+// Which side the touch racing buttons sit (game/touch.js), for the menus while on touch.
+export function buttonsRow() {
+  return { key: 'buttons', label: 'BUTTONS', opts: ['LEFT', 'RIGHT'], val: settings.buttons, set: v => { settings.buttons = v; } };
+}
 // A player's name row (it goes on the number plate) for a menu scene st with editing, who, buf and t.
 export function nameRow(st, p, label) {
   const typing = st.editing && st.who === p;

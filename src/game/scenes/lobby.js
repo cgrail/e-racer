@@ -3,14 +3,15 @@ import { Sound } from '../../audio/sound.js';
 import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, buttonsRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES } from '../session.js';
 import { Online } from '../online.js';
 
 // The online menu, where the title screen leads when the race server answers. The first row starts a session (with
-// the level below it) or joins the race that is running, in place of a rival; then name, car and
-// sound. If the server stops answering, the player can try again or play offline (the local MainMenu).
+// the level below it) or joins the race that is running, in place of a rival; then name, car, sound and units (and
+// on touch the side for the racing buttons). If the server stops answering, the player can try again or play offline
+// (the local MainMenu).
 const INFO = '#9fb0ff';
 
 export const Lobby = {
@@ -35,6 +36,7 @@ export const Lobby = {
       Sound.playMusic(s.music);
     });
     opt('units', 'UNITS', ['MPH', 'KM/H'], () => s.units, v => { s.units = v; });
+    if (Input.touch()) r.push(buttonsRow());
     return r;
   },
   // What the panel says under the rows: [text, colour] lines, 33 characters at most.

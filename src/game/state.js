@@ -3,7 +3,7 @@ import { Track } from '../world/track.js';
 import { CARSPEC } from '../race/specs.js';
 
 // Saved settings, course-builder state and records, plus the live game state.
-export const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['flux', 'wave'], names: ['', ''], music: 0, units: 1 };
+export const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['flux', 'wave'], names: ['', ''], music: 0, units: 1, buttons: 0 };
 export const settings = Object.assign({}, DEFAULTS, U.load('ecr.settings', {}));
 delete settings.manual; // gearbox option from before the cars went single-speed
 if ('energy' in settings) settings.units = 1; // saved while MPH was the default and energy and power-ups were options
@@ -11,6 +11,7 @@ delete settings.energy; delete settings.power; // both are part of every race no
 settings.cars = DEFAULTS.cars.map((m, i) => (CARSPEC[settings.cars[i]] ? settings.cars[i] : m)); // models since retired
 settings.mode = U.clamp(settings.mode | 0, 0, 2); // online play was a game mode for a while; it has its own screen now
 settings.names = DEFAULTS.names.map((n, i) => U.plateName((settings.names || [])[i])); // player names, shown on the number plate
+settings.buttons = U.clamp(settings.buttons | 0, 0, 1); // the touch racing buttons: 0 left, 1 right
 export const custom = Object.assign({ params: null, type: 0, laps: 3 }, U.load('ecr.custom', {}));
 if (!custom.params) custom.params = Track.decode('ELECTRORACER');
 export const records = U.load('ecr.records', {});
