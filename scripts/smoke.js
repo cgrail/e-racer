@@ -161,11 +161,11 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`power: ${orbs.length} orbs, charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
 }
 
-{ // electro shock: pickups get collected, a shock needs a car ahead in range and holds it to SHOCK_CAP of top speed
+{ // electro shock (every race, no option needed): pickups get collected, a shock needs a car ahead in range and holds it to SHOCK_CAP of top speed
   const { SHOCK_CAP, SHOCK_T } = await import('../src/race/specs.js');
   const track = Track.build(Object.assign(Track.random(() => 0.6), { obst: 0, length: 15 }));
   const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'ion', color: CAR_COLORS[k + 2], aiTop: 0.95 }));
-  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, power: true });
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai });
   const h = race.humans[0], [a, b] = race.cars.filter(c => !c.human);
   const pads = track.segments.flatMap(sg => sg.obs.filter(o => o.fx === 'shock').map(o => ({ o, z: sg.index * K.SEG_LEN })));
   if (pads.length < 2) throw new Error('shock: too few pickups placed');

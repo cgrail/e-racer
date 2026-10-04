@@ -44,7 +44,8 @@ export const PreRace = {
       info.push(['CHECKPOINTS', String(game.race.track.cps.length)], ['START TIME', Math.round(game.race.legTime[0]) + ' SEC']);
     }
     if (game.race.energy) info.push(['ENERGY', 'COLLECT CELLS']);
-    if (game.race.power) info.push(['POWER KEY', game.race.humans.length > 1 ? 'SPACE / ENTER' : 'SPACE'], ['SHOCK KEY', game.race.humans.length > 1 ? 'E / .' : 'E']);
+    if (game.race.power) info.push(['POWER KEY', game.race.humans.length > 1 ? 'SPACE / ENTER' : 'SPACE']);
+    if (game.race.shocks) info.push(['SHOCK KEY', game.race.humans.length > 1 ? 'E / .' : 'E']);
     info.push(['DISTANCE', U.km(game.race.track.length * game.race.laps).toFixed(1) + ' KM']);
     if (th.weather || th.wind || th.night || th.fog > 8) {
       info.push(['CONDITIONS', th.night ? 'DARK' : th.weather === 'snow' ? 'SNOW' : th.weather === 'rain' ? 'STORM' : th.wind ? 'GUSTS' : 'FOGGY']);

@@ -10,7 +10,7 @@ import * as shock from './shock.js';
 
 // One race (or time challenge stage) on a track: simulation of every car, hazards, laps and timing.
 export class Race {
-  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power (orbs and shocks) }
+  // o: { track, mode: 'race'|'time', laps, humans: [driver], ai: [driver], diff, attract, energy, power }
   constructor(o) {
     this.track = o.track; this.mode = o.mode; this.attract = !!o.attract;
     this.laps = o.mode === 'time' ? 1 : o.laps || 3;
@@ -23,7 +23,9 @@ export class Race {
     this.energy = !!o.energy && this.mode === 'race';
     if (this.energy) this.placeCells();
     this.power = !!o.power && this.mode === 'race';
-    if (this.power) { this.placeOrbs(); this.placeShocks(); }
+    if (this.power) this.placeOrbs();
+    this.shocks = this.mode === 'race'; // electro shocks are part of every race
+    if (this.shocks) this.placeShocks();
     for (const s of this.track.segments) for (const ob of s.obs) {
       ob.hit = false; ob.fly = null; ob.gone = false; ob.x = ob.bx;
       if (ob.moving) this.dyn.push(ob);
@@ -47,9 +49,10 @@ export class Race {
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
     for (const h of this.humans) {
-      if (this.energy || this.power) h.taken = new Set();
+      if (this.energy || this.power || this.shocks) h.taken = new Set();
       if (this.energy) h.energy = 1;
-      if (this.power) { h.power = 0; h.shock = 0; }
+      if (this.power) h.power = 0;
+      if (this.shocks) h.shock = 0;
     }
     this.rank();
   }

@@ -3,7 +3,7 @@ import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
 import { SHOCK_T, SHOCK_CAP } from './specs.js';
 
-// Race methods for the electro shock, part of the power-up option. Humans pick up a shock charge on the
+// Race methods for the electro shock, in every race. Humans pick up a shock charge on the
 // road (per player via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
 // human or AI, which is held to SHOCK_CAP of its top speed for SHOCK_T seconds. Super power blocks it.
 const SHOCK_GAP = 450;     // segments between pickups (offset from the orbs and energy cells)
