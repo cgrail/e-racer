@@ -14,7 +14,8 @@ export const MODELS = Object.keys(CARSPEC);
 // Single-speed motor: full torque up to MOTOR_BASE of top speed, constant power above it.
 export const MOTOR_ACC = 1.7, MOTOR_BASE = 0.35, REGEN_MAX = 0.6; // regen braking: share of rated kW
 export const CAR_COLORS = ['#d81e1e', '#1e5ad8', '#f0d020', '#f2f2f2', '#22a040', '#26262a', '#a8b0b8', '#f07818', '#8a2be2', '#20c0d0'];
-export const SUPER_T = 3; // seconds of super power per power-up charge
+export const SUPER_T = 3; // seconds of super power: a boost runs from half that in the lead to twice that in last place
+export const PICKUPS = ['energy', 'power', 'shock']; // obstacle fx of the pickups: cells, boosts, flashes
 export const SHOCK_T = 3, SHOCK_CAP = 0.75; // electro shock: seconds held to this share of top speed
 export const AI_SHOCKS = [0.35, 0.5, 0.65]; // share of rivals that use electro shocks, by difficulty
 // Hard: rivals hunt a player at the front, this much faster than the player's car, and save their shocks for them

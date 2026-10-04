@@ -3,48 +3,43 @@ import { Sound } from '../audio/sound.js';
 import { Art } from '../art/index.js';
 import { SUPER_T } from './specs.js';
 
-// Race methods for the power-up option: collectable power orbs and the super power they charge.
+// Race methods for the boost: collectable orbs and the super power they charge. Mixed into Race.
 // Humans only. Like energy cells, orbs are per player (c.taken) and come back every lap.
-// Catch-up: orbs do nothing for the top three (they stay on the road for when the car drops back). Further back,
-// an orb gives more charges and a charge runs longer, so a car at the back can power its way to the front.
+// One at a time: a car holds a boost or a flash (shock.js), never more, and one key fires whichever it holds.
+// While it holds one, neither kind is on its road (sees in contact.js); once it fires, they are back.
+// Catch-up: every place can take a boost, but it runs longer the further back the car is when it fires,
+// from SUPER_T / 2 in the lead to 2 * SUPER_T in last place.
 // Super power: fast acceleration past top speed, barriers are smashed aside, puddles and ice
 // are ignored, roadside crashes are blocked and rivals get shoved out of the way.
-const ORB_GAP = 450;   // segments between orbs (offset from the energy cells)
-const MAX_HELD = 3;
+const ORB_GAP = 450;   // segments between orbs (offset from the flashes)
 const SUPER_ACC = 0.5; // extra acceleration, fraction of MAX_SPEED per second
 
 export function placeOrbs() {
   const T = this.track, rnd = U.rng(U.hash(T.code + 'power')), d = Art.DEF.orb;
-  for (const s of T.segments) s.obs = s.obs.filter(ob => ob.fx !== 'power');
   for (let i = K.START_SEG + 115; i < T.N - 20; i += ORB_GAP) {
-    const s = T.segments[i];
-    if (s.obs.length) continue;
+    const k = this.freeSeg(i);
+    if (k < 0) continue;
     const x = (rnd() * 2 - 1) * 0.75;
-    s.obs.push({ name: 'orb', v: 0, x, bx: x, ww: d.ww, hw: (d.hit * d.ww) / T.roadW / 2, fx: 'power', hit: false, fly: null });
+    T.segments[k].obs.push({ name: 'orb', v: 0, x, bx: x, ww: d.ww, hw: (d.hit * d.ww) / T.roadW / 2, fx: 'power', hit: false, fly: null });
   }
 }
 
-// 0 for 4th place up to 1 for last.
-export function powerShare(c) {
-  const n = this.cars.length;
-  return n > 4 ? U.clamp((c.place - 4) / (n - 4), 0, 1) : 1;
-}
+// Whether car c holds a boost or a flash.
+export function holds(c) { return c.power > 0 || c.shock > 0; }
 
 export function collectPower(c, ob) {
-  if (c.power == null || c.place <= 3) return; // rivals don't use power-ups
+  if (c.power == null || this.holds(c)) return; // rivals don't use boosts
   c.taken.add(ob);
-  if (c.power >= MAX_HELD) return;
-  const got = Math.min(MAX_HELD - c.power, 1 + Math.round(this.powerShare(c) * 2));
-  c.power += got;
-  this.msg(c, got > 1 ? `POWER UP x${got}!` : 'POWER UP!', 1.2, '#ff70ff');
+  c.power = 1;
+  this.msg(c, 'BOOST READY!', 1.2, '#ff70ff');
   Sound.fx.powerup();
 }
 
-// Fires a held charge on the power key and keeps an active super power going.
-export function usePower(c, inp, dt) {
-  if (inp.power && c.power > 0 && c.superT <= 0 && !c.finished) {
-    c.power--; c.superT = c.superMax = SUPER_T * (1 + this.powerShare(c));
-    this.msg(c, 'SUPER POWER!', 1.2, '#ff70ff');
+// Fires a held boost on the fire key and keeps an active super power going.
+export function usePower(c, fire, dt) {
+  if (fire && c.power > 0 && c.superT <= 0 && !c.finished) {
+    c.power = 0; c.superT = c.superMax = SUPER_T * (0.5 + 1.5 * this.share(c));
+    this.msg(c, 'BOOST!', 1.2, '#ff70ff');
     Sound.fx.superboost();
   }
   if (c.superT <= 0) return;

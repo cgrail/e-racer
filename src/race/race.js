@@ -1,6 +1,6 @@
 import { K, U } from '../core/util.js';
 import { Sound } from '../audio/sound.js';
-import { CARSPEC, NO_INPUT, AI_SHOCKS } from './specs.js';
+import { CARSPEC, NO_INPUT, AI_SHOCKS, PICKUPS } from './specs.js';
 import * as driving from './driving.js';
 import * as ai from './ai.js';
 import * as contact from './contact.js';
@@ -22,6 +22,7 @@ export class Race {
     this.phase = this.attract ? 'race' : 'countdown'; this.count = 3.99; this.lastBeep = 9;
     this.over = false; this.doneT = 0;
     this.dyn = [];
+    for (const s of this.track.segments) s.obs = s.obs.filter(ob => !PICKUPS.includes(ob.fx)); // any from a race before
     this.energy = !!o.energy && this.mode === 'race';
     if (this.energy) this.placeCells();
     this.power = !!o.power && this.mode === 'race';
@@ -50,13 +51,13 @@ export class Race {
       for (let i = 1; i < marks.length; i++) this.legTime.push((marks[i] - marks[i - 1]) / pace + (i === 1 ? 4 : 1));
       for (const h of this.humans) h.timeLeft = this.legTime[0];
     }
-    for (const c of this.cars) { // pickups: energy and shocks for every car, super power for humans
+    this.rank();
+    for (const c of this.cars) { // pickups: energy and flashes for every car, boosts for humans
       if (this.energy || this.power || this.shocks) c.taken = new Set();
-      if (this.energy) c.energy = 1;
+      if (this.energy) { c.energy = 1; this.cellNeed(c, 0); }
       if (this.power && c.human) c.power = 0;
       if (this.shocks && (c.human || Math.random() < AI_SHOCKS[this.diff])) c.shock = 0;
     }
-    this.rank();
   }
 
   addCar(d, travel, x) {
@@ -70,7 +71,7 @@ export class Race {
       aiTop: d.aiTop || 0.75, aiLane: x, autopilot: false,
       aiAggro: Math.random(), aiPhase: Math.random() * 6, aiLaneT: 1 + Math.random() * 3, aiFireT: 0, aiRun: 0, aiPrey: null,
       timeLeft: 0, cpNext: 0, outOfTime: false, msg: null, warnS: 99,
-      energy: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
+      energy: null, cellD: null, taken: null, flatT: 0, lowWarned: false, power: null, superT: 0, superMax: 0, shock: null, shockT: 0,
     };
     c.z = U.wrap(this.track.startZ + travel, this.L); c.prevZ = c.z; c.alt = this.roadY(c.z);
     this.cars.push(c);
@@ -112,6 +113,7 @@ export class Race {
       else if (c.human && !c.autopilot) this.driveHuman(c, inputs[c.pidx] || NO_INPUT, dt, racing);
       else this.driveAI(c, dt, racing);
       if (c.shockT > 0) this.shocked(c, dt);
+      if (this.energy) this.cellNeed(c, dt);
       if (!c.net) this.vertical(c, dt);
     }
     if (racing) this.collide();
@@ -194,6 +196,8 @@ export class Race {
       (b.finished - a.finished) || (a.finished ? a.finishTime - b.finishTime : b.travel - a.travel));
   }
   rank() { this.results().forEach((c, i) => { c.place = i + 1; }); }
+  // 0 for the leader up to 1 for the last car: the further back, the more the pickups help (energy.js, power.js).
+  share(c) { return this.cars.length > 1 ? (c.place - 1) / (this.cars.length - 1) : 0; }
 }
 
 Object.assign(Race.prototype, driving, ai, contact, energy, power, shock, online);
