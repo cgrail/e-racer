@@ -29,7 +29,7 @@ export const Title = {
     logo(W / 2, 40, 40);
     text('A TRIBUTE TO THE RACERS OF THE 80S & 90S', W / 2, 112, 8, '#9fb0ff', 'center');
     if (this.waiting) text('CONNECTING...', W / 2, 190, 16, '#ffffff', 'center');
-    else if (blinkOn(this.t)) text('PRESS ENTER', W / 2, 190, 16, '#ffffff', 'center');
+    else if (blinkOn(this.t)) text(Input.touch() ? 'TAP TO START' : 'PRESS ENTER', W / 2, 190, 16, '#ffffff', 'center');
     text(Online.available() ? 'ONLINE RACING  -  KEYBOARD OR GAMEPAD' : '1 OR 2 PLAYERS  -  KEYBOARD OR GAMEPAD', W / 2, 252, 8, '#c0c8ff', 'center');
     text('ALL GRAPHICS & MUSIC MADE IN CODE.', W / 2, 270, 8, '#7080b0', 'center');
   },

@@ -8,6 +8,7 @@ export const Input = (() => {
   let pads = [], padPrev = [], padNow = [];
   const gestureHandlers = [];
   let auto = false; // touch controls: the car accelerates by itself unless braking
+  let touchSteer = null, tapAt = null; // touch steering (-1..1) and this frame's tap in canvas pixels
 
   const P1 = { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], power: ['Space'], shock: ['KeyE'] };
   const P2 = {
@@ -52,6 +53,7 @@ export const Input = (() => {
       pw = pw || anyPressed(m.power); sh = sh || anyPressed(m.shock);
     }
     let throttle = up || (auto && idx === 0 && !dn) ? 1 : 0, brake = dn ? 1 : 0, steer = (r ? 1 : 0) - (l ? 1 : 0), analog = false;
+    if (idx === 0 && touchSteer != null && !steer) { steer = touchSteer; analog = true; }
     const p = twoPlayers ? idx : 0;
     if (pads[p]) {
       const ax = pads[p].axes[0] || 0;
@@ -72,8 +74,9 @@ export const Input = (() => {
       up: anyPressed(['ArrowUp', 'KeyW']), down: anyPressed(['ArrowDown', 'KeyS']),
       left: anyPressed(['ArrowLeft', 'KeyA']), right: anyPressed(['ArrowRight', 'KeyD']),
       ok: anyPressed(['Enter', 'Space', 'NumpadEnter']), back: anyPressed(['Escape', 'Backspace']),
-      pause: anyPressed(['Escape', 'KeyP']),
+      pause: anyPressed(['Escape', 'KeyP']), tap: tapAt,
     };
+    if (tapAt) m.ok = true; // a tap confirms; rowsNav (game/ui.js) turns a tap on a row into picking it
     for (let i = 0; i < pads.length; i++) {
       m.up = m.up || padHit(i, 12); m.down = m.down || padHit(i, 13);
       m.left = m.left || padHit(i, 14); m.right = m.right || padHit(i, 15);
@@ -83,7 +86,7 @@ export const Input = (() => {
     return m;
   }
 
-  function endFrame() { pressed.clear(); typed.length = 0; }
+  function endFrame() { pressed.clear(); typed.length = 0; tapAt = null; }
 
   // On-screen buttons (game/touch.js) hold and release key codes like a keyboard would.
   function virtual(code, on) {
@@ -94,6 +97,9 @@ export const Input = (() => {
   return {
     poll, player, menu, endFrame, virtual,
     setAuto: v => { auto = v; },
+    touch: () => auto,
+    setSteer: v => { touchSteer = v; },
+    tap: (x, y) => { tapAt = { x, y }; },
     type: s => typed.push(...s),
     pressed: code => pressed.has(code),
     typed: () => typed.slice(),
