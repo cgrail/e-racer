@@ -53,7 +53,7 @@ export const Online = {
   available() { return this.state === 'lobby' || this.state === 'waiting' || this.racing(); },
   send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); },
   hello() { this.send({ type: 'hello', name: settings.names[0], model: settings.cars[0] }); }, // name and car as set now
-  start() { this.hello(); this.error = ''; this.state = 'waiting'; this.send({ type: 'start', diff: settings.diff, energy: settings.energy === 1, power: settings.power === 1 }); },
+  start() { this.hello(); this.error = ''; this.state = 'waiting'; this.send({ type: 'start', diff: settings.diff }); },
   join() { this.hello(); this.error = ''; this.state = 'waiting'; this.send({ type: 'join' }); },
   leave() { this.send({ type: 'leave' }); this.state = 'lobby'; this.me = null; },
 
@@ -97,7 +97,7 @@ export const Online = {
   begin(m) {
     const track = Track.build(Track.decode(m.code));
     const race = new Race({ track, mode: 'race', laps: m.laps, humans: [], ai: m.cars.map((d, i) => Object.assign(known(d), { id: 'C' + i })),
-      diff: m.diff, energy: m.energy, power: m.power, net: 'client' });
+      diff: m.diff, energy: true, power: true, net: 'client' });
     this.me = race.joinAs(m.you);
     race.applySnapshot(m.snap, true);
     race.applyCar(this.me, m.snap.cars[m.you], true);

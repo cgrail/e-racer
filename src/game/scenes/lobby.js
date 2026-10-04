@@ -8,7 +8,7 @@ import { DIFF_NAMES } from '../session.js';
 import { Online } from '../online.js';
 
 // The online menu, where the title screen leads when the race server answers. The first row starts a session (with
-// the level and options below it) or joins the race that is running, in place of a rival; then name, car and
+// the level below it) or joins the race that is running, in place of a rival; then name, car and
 // sound. If the server stops answering, the player can try again or play offline (the local MainMenu).
 const INFO = '#9fb0ff';
 
@@ -27,11 +27,8 @@ export const Lobby = {
     if (st === 'lobby' && !(live && live.full)) r.push({ key: 'go', label: live ? 'JOIN RACE >' : 'START RACE >', action: () => (live ? Online.join() : Online.start()) });
     r.push(nameRow(this, 0, 'NAME'));
     opt('car', 'CAR', MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[0]), v => { s.cars[0] = MODELS[v]; });
-    if (!live) { // a new session takes these
+    if (!live) // a new session takes the level
       opt('level', 'LEVEL', DIFF_NAMES, () => s.diff, v => { s.diff = v; });
-      opt('energy', 'ENERGY', ['UNLIMITED', 'LIMITED'], () => s.energy, v => { s.energy = v; });
-      opt('power', 'POWER-UPS', ['OFF', 'ON'], () => s.power, v => { s.power = v; });
-    }
     opt('music', 'MUSIC', Sound.songs.concat(['OFF']), () => (s.music < 0 ? Sound.songs.length : s.music), v => {
       s.music = v >= Sound.songs.length ? -1 : v;
       Sound.playMusic(s.music);
@@ -49,7 +46,7 @@ export const Lobby = {
     if (!s) return out.concat([['NO RACE RUNNING: START ONE.', '#ffffff'], ['OTHERS CAN JOIN ANY TIME AND', INFO], ['TAKE OVER A RIVAL\'S CAR.', INFO]]);
     const phase = s.phase === 'results' ? 'RESULTS' : s.phase === 'countdown' ? 'ON THE GRID' : `LAP ${s.lap}/${s.laps}`;
     out.push([`RACE ON: ${s.scenery}  ${phase}`, '#ffffff'],
-      [DIFF_NAMES[s.diff] + (s.energy ? ', LIMITED ENERGY' : '') + (s.power ? ', POWER-UPS' : ''), '#ffe040'],
+      [`LEVEL ${DIFF_NAMES[s.diff]}`, '#ffe040'],
       [`PLAYERS (${s.players.length}):`, INFO]);
     for (let i = 0; i < Math.min(s.players.length, 8); i += 4) out.push([s.players.slice(i, i + 4).join(' ') + (i === 4 && s.players.length > 8 ? ' ...' : ''), '#7fffb0']);
     if (s.full) out.push(['THE RACE IS FULL.', '#ff5050']);

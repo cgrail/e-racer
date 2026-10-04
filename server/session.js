@@ -5,7 +5,7 @@ import { Race } from '../src/race/race.js';
 import { MODELS, CAR_COLORS, AI_NAMES, AI_RANGE, POINTS, lapsFor } from '../src/race/specs.js';
 
 // The online session: races run back to back on one course after another, for whoever is online. The player who
-// starts it sets the level and the energy and power-up options. A player who comes later takes over the last
+// starts it sets the level. A player who comes later takes over the last
 // rival on the road, mid-race; a player who leaves hands the car back to a rival. The server drives the rivals
 // and referees: the race clock, the end of a race, the results, the session's points table and the next course.
 // Each player's browser drives that player's car and reports it (see src/race/online.js).
@@ -24,9 +24,9 @@ function clean(s, r) {
 }
 
 export class Session {
-  // opts: { diff, energy, power } as the starting player has them set
+  // opts: { diff } as the starting player has it set
   constructor(opts) {
-    this.diff = U.clamp(opts.diff | 0, 0, 2); this.energy = !!opts.energy; this.power = !!opts.power;
+    this.diff = U.clamp(opts.diff | 0, 0, 2);
     this.players = new Set(); this.seats = 0; this.races = 0; this.id = 0;
     this.order = U.shuffle(Math.random, THEMES.map((_, i) => i)); // every scenery once before any comes back
     this.race = null; this.state = 'race'; this.acc = 0; this.snapT = 0; this.wait = 0; this.doneT = 0; this.lastT = 0;
@@ -67,7 +67,7 @@ export class Session {
     const track = Track.build(p), [lo, hi] = AI_RANGE[this.diff], names = U.shuffle(Math.random, AI_NAMES);
     const ai = Array.from({ length: CARS }, (_, k) => ({ id: 'C' + k, name: names[k % names.length], model: U.pick(Math.random, MODELS),
       color: CAR_COLORS[2 + (k % 8)], aiTop: U.lerp(lo, hi, 1 - (k / CARS) * 0.95) }));
-    const r = this.race = new Race({ track, mode: 'race', laps: lapsFor(track.N), humans: [], ai, diff: this.diff, energy: this.energy, power: this.power, net: 'server' });
+    const r = this.race = new Race({ track, mode: 'race', laps: lapsFor(track.N), humans: [], ai, diff: this.diff, energy: true, power: true, net: 'server' });
     r.count = COUNTDOWN;
     for (const pl of this.players) pl.car = null;
     [...this.players].slice(0, CARS).forEach((pl, k) => { pl.car = r.cars[CARS - 1 - k]; r.setDriver(pl.car, this.driver(pl), true); });
@@ -87,7 +87,7 @@ export class Session {
   seatChanged(c, skip) { this.broadcast({ type: 'seat', id: this.id, i: this.race.cars.indexOf(c), car: this.race.carInfo(c) }, skip); }
   sendRace(p) {
     const r = this.race;
-    p.send({ type: 'race', id: this.id, code: r.track.code, laps: r.laps, diff: this.diff, energy: this.energy, power: this.power,
+    p.send({ type: 'race', id: this.id, code: r.track.code, laps: r.laps, diff: this.diff,
       cars: r.cars.map(c => r.carInfo(c)), you: r.cars.indexOf(p.car), snap: r.snapshot() });
   }
 
@@ -137,6 +137,6 @@ export class Session {
     let lead = r.cars[0];
     for (const c of r.cars) if (c.place < lead.place) lead = c;
     return { scenery: r.track.theme.name, lap: U.clamp(lead.lap, 1, r.laps), laps: r.laps, phase: this.state === 'results' ? 'results' : r.phase,
-      diff: this.diff, energy: this.energy, power: this.power, players: [...this.players].map(p => p.name), full: this.players.size >= CARS };
+      diff: this.diff, players: [...this.players].map(p => p.name), full: this.players.size >= CARS };
   }
 }

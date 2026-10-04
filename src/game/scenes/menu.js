@@ -17,10 +17,6 @@ export const MainMenu = {
     opt('PLAYERS', ['1 PLAYER', '2 PLAYERS'], () => s.players - 1, v => { s.players = v + 1; });
     opt('GAME', ['CHAMPIONSHIP', 'TIME CHALLENGE', 'COURSE BUILDER'], () => s.mode, v => { s.mode = v; });
     opt('LEVEL', DIFF_NAMES, () => s.diff, v => { s.diff = v; });
-    if (s.mode !== 1) {
-      opt('ENERGY', ['UNLIMITED', 'LIMITED'], () => s.energy, v => { s.energy = v; });
-      opt('POWER-UPS', ['OFF', 'ON'], () => s.power, v => { s.power = v; });
-    }
     for (let p = 0; p < s.players; p++) {
       opt(`P${p + 1} CAR`, MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[p]), v => { s.cars[p] = MODELS[v]; }, { car: p });
       r.push(nameRow(this, p, `P${p + 1} NAME`));

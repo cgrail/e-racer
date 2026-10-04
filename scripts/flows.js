@@ -4,16 +4,18 @@
 import { define, store, hooks, frames, tap, hold, release } from './stubs.js';
 
 // ---------------------------------------------------------------- game flow through the real key handlers
-store.set('ecr.settings', JSON.stringify({ cars: ['volt', 'ion'], names: ['toolongname!'] })); // car models from an older version, a bad name
+store.set('ecr.settings', JSON.stringify({ cars: ['volt', 'ion'], names: ['toolongname!'], units: 0, energy: 0, power: 1 })); // from an older version: retired cars, a bad name, MPH as the default, options since gone
 await import('../src/main.js');
 if (window.__ecr.settings.cars.join() !== 'flux,wave') throw new Error('retired car models not replaced: ' + window.__ecr.settings.cars);
 if (window.__ecr.settings.names.join() !== 'TOOLON,') throw new Error('saved names not cleaned up: ' + window.__ecr.settings.names);
+if (window.__ecr.settings.units !== 1 || 'energy' in window.__ecr.settings || 'power' in window.__ecr.settings) throw new Error('old settings not moved to KM/H without the energy and power-up options');
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };
 const moved = () => { if (!(window.__ecr.race.humans.every(h => h.travel > 2000))) throw new Error('player cars did not drive'); };
 frames(5);
 tap('Enter'); expect('MainMenu'); // title -> main menu
 tap('ArrowUp'); tap('Enter'); // wrap to START GAME (championship)
 frames(5); expect('PreRace'); tap('Enter'); expect('RaceScene'); // pre-race -> race
+if (!window.__ecr.race.energy || !window.__ecr.race.power) throw new Error('a championship race should have limited energy and power-ups');
 hold('ArrowUp'); frames(60 * 20); release('ArrowUp'); moved();
 tap('Escape'); tap('ArrowUp'); tap('Enter'); // pause -> QUIT TO MENU (menu cursor stays on START)
 expect('MainMenu');
@@ -65,11 +67,8 @@ console.log('game flow: title, menu, championship, 2P time challenge, course bui
   tap('Escape'); expect('Title'); frames(3); // back on the title it looks again, and now the server is up
   tap('Enter'); frames(2); expect('Lobby');
   if (Online.state !== 'lobby' || Online.status !== null) fail('online menu should show no session, got ' + Online.state);
-  // rows: START RACE (the cursor starts here), NAME, CAR, LEVEL, ENERGY, POWER-UPS, MUSIC, UNITS
-  for (let i = 0; i < 4; i++) tap('ArrowDown');
-  tap('Enter'); tap('ArrowDown'); tap('Enter'); // ENERGY limited, POWER-UPS on
-  for (let i = 0; i < 4; i++) tap('ArrowUp');
-  tap('Enter'); // NAME: edit
+  // rows: START RACE (the cursor starts here), NAME, CAR, LEVEL, MUSIC, UNITS
+  tap('ArrowDown'); tap('Enter'); // NAME: edit
   for (let i = 0; i < 6; i++) tap('Backspace');
   for (const [code, k] of [['KeyA', 'a'], ['KeyC', 'c'], ['KeyE', 'e'], ['Digit1', '!'], ['Digit7', '7'], ['KeyF', 'f'], ['KeyX', 'x'], ['KeyY', 'y']]) tap(code, k);
   tap('Enter');

@@ -6,11 +6,11 @@ import { Session, CARS } from './session.js';
 // session; the first player to start one sets it up, and it ends when the last player leaves. server.js feeds
 // this the WebSocket traffic; scripts/smoke.js feeds it directly. Messages are JSON objects with a type:
 //   browser -> server   hello {name, model}            name and car, sent on connecting
-//                       start {diff, energy, power}    start a session, or join the one that is running
+//                       start {diff}                   start a session, or join the one that is running
 //                       join | leave                   take a car in the running session / give it back
 //                       car {id, s} | shock {id, i}    in a race: this player's car, a shock fired at car i
 //   server -> browser   status {session}               to browsers not in the session, now and every second
-//                       race {id, code, laps, diff, energy, power, cars, you, snap}   a race to drive in
+//                       race {id, code, laps, diff, cars, you, snap}   a race to drive in
 //                       seat {id, i, car} | snap {id, t, ph, n, cars} | shocked {id}
 //                       results {id, snap, next, table: [{name, points, last}]}   the session's points after the race
 //                       wait {next}                    joined, for the next race | error {message}
