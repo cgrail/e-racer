@@ -32,25 +32,23 @@ function el(tag, cls, parent, label) {
 // A pointer in stage coordinates. Upright, the stage is turned a quarter clockwise: its x runs down the screen.
 const upright = () => matchMedia('(orientation: portrait)').matches;
 
-// The stage is the screen less its safe-area insets on the camera side(s): an iPhone fades whatever sits under
-// its status bar and hides it behind the camera. Only the home bar may overlap it; the buttons keep clear of that.
+// The stage is the viewport less the status bar's safe-area inset at the top, where an iPhone fades whatever sits
+// under it. (Home screen apps get an opaque status bar, index.html, so their viewport already starts below it: a
+// see-through one gave a viewport short by the bar and clipped below that.) The camera in landscape and the home bar
+// may overlap the stage, so the buttons keep clear of them (--l, --r, --t, --b on its edges).
 let safe = null;
 function fit() {
   if (!root) return;
   const s = getComputedStyle(safe), i = {};
   for (const k of ['Top', 'Right', 'Bottom', 'Left']) i[k] = parseFloat(s['padding' + k]) || 0;
-  const up = upright(), w = innerWidth;
-  let h = innerHeight;
-  // A home screen app under a see-through status bar gets a viewport short by the bar, still starting at the top
-  // of the screen, so the screen goes on below it.
-  if (up && standalone() && Math.abs(screen.height - h - i.Top) < 4) h += i.Top;
-  const x0 = i.Left, x1 = w - i.Right, y0 = i.Top, y1 = h;
-  const v = up ? [x1, y0, y1 - y0, x1 - x0, 'rotate(90deg)'] : [x0, y0, x1 - x0, y1 - y0, 'none'];
+  const up = upright(), w = innerWidth, y0 = i.Top, h = innerHeight - y0;
+  const v = up ? [w, y0, h, w, 'rotate(90deg)'] : [0, y0, w, h, 'none'];
   const d = document.documentElement.style;
   ['--sl', '--st', '--sw', '--sh'].forEach((k, n) => d.setProperty(k, v[n] + 'px'));
   d.setProperty('--rot', v[4]);
-  root.style.setProperty('--r', (up ? i.Bottom : 0) + 'px');
-  root.style.setProperty('--b', (up ? 0 : i.Bottom) + 'px');
+  // the stage's left, right, top and bottom edges: turned, they are the screen's top, bottom, right and left
+  const edges = up ? [0, i.Bottom, i.Right, i.Left] : [i.Left, i.Right, 0, i.Bottom];
+  ['--l', '--r', '--t', '--b'].forEach((k, n) => root.style.setProperty(k, edges[n] + 'px'));
 }
 function local(e) {
   const b = root.getBoundingClientRect();
