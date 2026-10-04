@@ -1,6 +1,6 @@
 'use strict';
 
-// R.E.C.S. - Racing Environment Construction Set.
+// Course builder: generates a course from slider parameters or a course code.
 // A course is fully described by 8 parameters (0-15) plus a seed, encoded as a 10-letter code.
 // Any other word typed in as a code is hashed into a course too.
 const Track = (() => {
@@ -20,7 +20,7 @@ const Track = (() => {
       KEYS.forEach((k, i) => { p[k] = LETTERS.indexOf(c[i]); });
       p.seed = (c.charCodeAt(8) - 65) * 26 + (c.charCodeAt(9) - 65);
     } else {
-      const r = U.rng(U.hash(c || 'LOTUS'));
+      const r = U.rng(U.hash(c || 'ELECTRO'));
       for (const k of KEYS) p[k] = Math.floor(r() * 16);
       p.seed = Math.floor(r() * 676);
     }

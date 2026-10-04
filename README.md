@@ -1,8 +1,8 @@
-# Lotus III Remake
+# Electro Car Racer
 
-A web remake of the 1992 Amiga/ST racer *Lotus III: The Ultimate Challenge*, written in plain JavaScript and HTML5 canvas. It has no dependencies and no build step.
+A tribute to the pseudo-3D racing games of the 80s and 90s, with split-screen duels, chiptune radio stations and roads that roll over the horizon. It is written in plain JavaScript and HTML5 canvas, with no dependencies and no build step.
 
-It is a fan project. Every graphic, sound and piece of music is generated in code, and no assets from the original game are used.
+Every graphic, sound and piece of music is generated in code.
 
 ## Play
 
@@ -18,15 +18,15 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
 
 ## Features
 
-- **Split-screen two-player mode**, the series' signature feature, plus full-screen single player.
-- **Three cars:** Esprit Turbo SE (balanced), Elan SE (quick and grippy) and M200 concept (fastest but loose), each with automatic or manual 5-speed gears.
+- **Split-screen two-player mode**, plus full-screen single player.
+- **Three cars:** Volt GT (balanced), Spark Roadster (quick and grippy) and Ion Concept (fastest but loose), each with automatic or manual 5-speed gears.
 - **Twelve sceneries:** Forest, Night, Fog, Snow, Desert, Motorway, Marsh, Storm, Mountains, Roadworks, Windy and Future.
   - **Weather and lighting:** rain with lightning, snowfall, wind gusts that push the car, blowing leaves, dense fog, and night driving with headlights and lit lamps.
   - **Road hazards:** cones you can knock flying, barriers, lane closures, logs, rocks, puddles that splash and slide you, ice, rolling tumbleweeds, jump ramps and boost pads. Steep crests launch the car into the air.
 - **Game modes:**
   - **Championship:** six races on Easy, Medium or Hard against 19 rivals, starting from the back of the grid. You must finish in the qualifying places (top 10, 6 or 3) to go on, and points go to the top 10.
   - **Time Challenge:** five point-to-point stages per level against the clock. Each checkpoint extends your time.
-  - **R.E.C.S. (Racing Environment Construction Set):** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
+  - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
 - **Original chiptune soundtrack** with three tracks. You pick the "radio station" in the menu or press **M** while racing.
 - **Lap and stage records** are saved in the browser.
 
@@ -53,7 +53,7 @@ Other keys: **Esc** or **P** pauses, **M** changes the music, **F** toggles full
 | `js/audio.js`   | Web Audio engine synth, sound effects, music sequencer and songs |
 | `js/art.js`     | Procedural pixel art: scenery, hazards, cars and parallax layers |
 | `js/themes.js`  | The 12 scenery definitions |
-| `js/track.js`   | R.E.C.S. course generator and course-code encoding |
+| `js/track.js`   | Course generator and course-code encoding |
 | `js/race.js`    | Race simulation: driving physics, gearbox, AI, collisions, laps, checkpoints |
 | `js/render.js`  | Segment-based pseudo-3D renderer, weather effects and HUD |
 | `js/main.js`    | Menus, game flow, championship and time-challenge sessions, main loop |

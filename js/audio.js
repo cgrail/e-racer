@@ -111,7 +111,7 @@ const Sound = (() => {
   const midi = n => { const m = /^([a-g]#?)(\d)$/.exec(n); return 12 * (+m[2] + 1) + NOTE[m[1]]; };
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
 
-  // All melodies are original compositions for this remake.
+  // All melodies are original compositions for this game.
   const SONGS = [
     {
       name: 'TURBO DRIVE', bpm: 150, chords: 'Am F C G Am F G E',

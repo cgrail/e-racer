@@ -144,7 +144,7 @@ const Art = (() => {
     for (const k of [0, 1]) P(g, '#111', [5 + k * 10, 4, 11 + k * 10, 9.5, 5 + k * 10, 15, 8 + k * 10, 15, 14 + k * 10, 9.5, 8 + k * 10, 4]);
   }
   const BOARDS = [
-    { text: 'TURBO', bg: '#d02020', fg: '#ffffff' }, { text: 'R.E.C.S', bg: '#2040c0', fg: '#ffdd00' },
+    { text: 'TURBO', bg: '#d02020', fg: '#ffffff' }, { text: 'ELECTRO', bg: '#2040c0', fg: '#ffdd00' },
     { text: 'SPEED', bg: '#ffd000', fg: '#c01010' }, { text: 'OIL', bg: '#101010', fg: '#ffb000' },
     { text: 'GO!', bg: '#20a040', fg: '#ffffff' }, { text: 'TYRES', bg: '#e8e8e8', fg: '#202020' },
   ];
@@ -352,7 +352,7 @@ const Art = (() => {
     const glass = '#1d2a3c', tl = brake ? '#ff4a3a' : '#a81010', tlL = brake ? '#ffe0c0' : '#ff5040';
     const tyre = x => { R(g, x, 24, 11, 14, '#111'); R(g, x + 1, 25, 9, 2, '#2c2c2c'); R(g, x + 1, 30, 9, 1, '#262626'); R(g, x + 1, 34, 9, 1, '#262626'); };
     tyre(5); tyre(56);
-    if (model === 'esprit') {
+    if (model === 'volt') { // wedge coupe
       P(g, col, [4 + s, 30, 68 + s, 30, 67 + s, 17, 5 + s, 17]);
       R(g, 4 + s, 28, 64, 5, '#1a1a1a'); R(g, 6 + s, 29, 60, 1, '#333');
       P(g, bL, [6 + s * 1.5, 17, 66 + s * 1.5, 17, 62 + s * 2, 12, 10 + s * 2, 12]);
@@ -366,7 +366,7 @@ const Art = (() => {
       R(g, 29 + s, 21, 14, 5, '#f4d000'); R(g, 31 + s, 23, 10, 1, '#5a4a00');
       R(g, 14 + s, 32, 4, 2, '#999'); R(g, 54 + s, 32, 4, 2, '#999');
       R(g, 5 + s, 17, 62, 1, bL);
-    } else if (model === 'elan') {
+    } else if (model === 'spark') { // two-seat roadster
       g.fillStyle = col; g.beginPath();
       if (g.roundRect) g.roundRect(5 + s, 15, 62, 15, 5); else g.rect(5 + s, 15, 62, 15);
       g.fill();
@@ -382,7 +382,7 @@ const Art = (() => {
       R(g, 29 + s, 21, 14, 5, '#f4d000'); R(g, 31 + s, 23, 10, 1, '#5a4a00');
       R(g, 8 + s, 16, 56, 1, bL);
       R(g, 50 + s, 31, 5, 2, '#999');
-    } else { // m200 speedster concept
+    } else { // ion speedster concept
       P(g, col, [2 + s, 30, 70 + s, 30, 68 + s, 17, 4 + s, 17]);
       R(g, 6 + s, 27, 60, 6, '#111');
       for (let x = 12; x < 62; x += 6) R(g, x + s, 28, 1, 5, '#333');
@@ -400,9 +400,9 @@ const Art = (() => {
   // Right-hand flank geometry, in straight-on rear-art coordinates: body side top/bottom, deck height,
   // body edge x, cabin rear edge [bottom x, bottom y, top x, top y] and how far s slides it [bottom, top].
   const PROFILE = {
-    esprit: { top: 17, bot: 33, deck: 12, edge: 68, cab: [57, 12, 50, 3], slide: [2, 3], glass: '#1d2a3c' },
-    elan: { top: 15, bot: 32, deck: 12, edge: 67, cab: [56, 10, 52, 2], slide: [3, 3.5], glass: 'rgba(170,210,240,0.5)', open: true },
-    m200: { top: 17, bot: 33, deck: 14, edge: 70, cab: [58, 13, 53, 9], slide: [2, 2.5], glass: '#1d2a3c' },
+    volt: { top: 17, bot: 33, deck: 12, edge: 68, cab: [57, 12, 50, 3], slide: [2, 3], glass: '#1d2a3c' },
+    spark: { top: 15, bot: 32, deck: 12, edge: 67, cab: [56, 10, 52, 2], slide: [3, 3.5], glass: 'rgba(170,210,240,0.5)', open: true },
+    ion: { top: 17, bot: 33, deck: 14, edge: 70, cab: [58, 13, 53, 9], slide: [2, 2.5], glass: '#1d2a3c' },
   };
   const TURN = [[1, 0], [0.86, 10], [0.74, 18]]; // per steer level: rear-face squash, flank width
 

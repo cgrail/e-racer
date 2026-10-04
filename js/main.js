@@ -1,18 +1,18 @@
 'use strict';
 
-// Game flow: title, menus, R.E.C.S. course editor, championship / time challenge, results.
+// Game flow: title, menus, course builder, championship / time challenge, results.
 (() => {
   const cv = document.getElementById('screen');
   const g = cv.getContext('2d');
   cv.width = K.W; cv.height = K.H;
   const W = K.W, H = K.H;
 
-  const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['esprit', 'elan'], manual: [false, false], music: 0, units: 0 };
-  const settings = Object.assign({}, DEFAULTS, U.load('lotus3.settings', {}));
-  const recs = Object.assign({ params: null, type: 0, laps: 3 }, U.load('lotus3.recs', {}));
-  if (!recs.params) recs.params = Track.decode('LOTUSTHREE');
-  const records = U.load('lotus3.records', {});
-  const saveAll = () => { U.save('lotus3.settings', settings); U.save('lotus3.recs', recs); };
+  const DEFAULTS = { players: 1, mode: 0, diff: 0, cars: ['volt', 'spark'], manual: [false, false], music: 0, units: 0 };
+  const settings = Object.assign({}, DEFAULTS, U.load('ecr.settings', {}));
+  const custom = Object.assign({ params: null, type: 0, laps: 3 }, U.load('ecr.custom', {}));
+  if (!custom.params) custom.params = Track.decode('ELECTRORACER');
+  const records = U.load('ecr.records', {});
+  const saveAll = () => { U.save('ecr.settings', settings); U.save('ecr.custom', custom); };
 
   const AI_NAMES = ['K.MORGAN', 'R.BLAKE', 'T.VANCE', 'S.IKEDA', 'L.MORETTI', 'P.DUBOIS', 'J.KOVACS', 'A.LINDQVIST',
     'M.OKAFOR', 'H.SCHULZ', 'D.PETROV', 'C.ALVAREZ', 'B.BRENNAN', 'W.CHEN', 'F.FONTAINE', 'G.GALLAGHER',
@@ -49,18 +49,23 @@
       text(title, x + w / 2, y + 9, 8, '#ffe040', 'center');
     }
   }
-  function logo(cx, y, size = 40) {
-    g.font = Render.font(size); g.textAlign = 'left'; g.textBaseline = 'top';
-    const total = size * 9, x0 = Math.round(cx - total / 2);
-    for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 3], [3, 3]]) {
-      g.fillStyle = '#0a0a30'; g.fillText('LOTUS', x0 + dx, y + dy); g.fillText('III', x0 + size * 6 + dx, y + dy);
+  // 'ELECTRO' in chrome over 'CAR RACER' in gold; flat puts both on one line for menu headers.
+  function logo(cx, y, size = 40, flat = false) {
+    const sub = flat ? size : Math.round(size * 0.4);
+    const parts = flat
+      ? [['ELECTRO', cx - size * 8.5, y, size, 0], ['CAR RACER', cx - size * 0.5, y, size, 1]]
+      : [['ELECTRO', cx - size * 3.5, y, size, 0], ['CAR RACER', cx - sub * 4.5, y + size + 6, sub, 1]];
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    for (const [str, x, yy, sz, gold] of parts) {
+      const x0 = Math.round(x), sh = Math.max(1, Math.round(sz / 20));
+      g.font = Render.font(sz);
+      g.fillStyle = '#0a0a30';
+      for (const [dx, dy] of [[-sh, 0], [sh, 0], [0, -sh], [0, sh + 1], [sh + 1, sh + 1]]) g.fillText(str, x0 + dx, yy + dy);
+      const gr = g.createLinearGradient(0, yy, 0, yy + sz);
+      const stops = gold ? ['#fff6a0', '#ffb020', '#a02010', '#ffd060'] : ['#ffffff', '#a8ccff', '#2a3c90', '#d8e8ff'];
+      [0, 0.45, 0.5, 1].forEach((t, i) => gr.addColorStop(t, stops[i]));
+      g.fillStyle = gr; g.fillText(str, x0, yy);
     }
-    const chrome = g.createLinearGradient(0, y, 0, y + size);
-    chrome.addColorStop(0, '#ffffff'); chrome.addColorStop(0.45, '#a8ccff'); chrome.addColorStop(0.5, '#2a3c90'); chrome.addColorStop(1, '#d8e8ff');
-    g.fillStyle = chrome; g.fillText('LOTUS', x0, y);
-    const gold = g.createLinearGradient(0, y, 0, y + size);
-    gold.addColorStop(0, '#fff6a0'); gold.addColorStop(0.45, '#ffb020'); gold.addColorStop(0.5, '#a02010'); gold.addColorStop(1, '#ffd060');
-    g.fillStyle = gold; g.fillText('III', x0 + size * 6, y);
   }
   function rowsDraw(rows, sel, x, y, w, lh = 14) {
     rows.forEach((r, i) => {
@@ -188,9 +193,9 @@
   function startSession(kind) {
     const n = 20 - settings.players;
     session = { kind, diff: settings.diff, idx: 0, drivers: makeDrivers(kind === 'champ' ? n : 0) };
-    if (kind === 'recs') {
-      session.courses = [{ params: Object.assign({}, recs.params) }];
-      session.time = recs.type === 1;
+    if (kind === 'custom') {
+      session.courses = [{ params: Object.assign({}, custom.params) }];
+      session.time = custom.type === 1;
       if (!session.time) session.drivers = session.drivers.concat(makeDrivers(n).filter(d => !d.human));
     } else {
       const list = kind === 'time' ? STAGES : CHAMP;
@@ -210,7 +215,7 @@
     } else {
       ai = session.drivers.filter(d => !d.human).map(d => Object.assign({}, d, { aiTop: U.lerp(lo, hi, d.skill) + session.idx * 0.004 }));
     }
-    const laps = session.kind === 'recs' ? recs.laps : track.N < 1300 ? 4 : track.N < 2000 ? 3 : 2;
+    const laps = session.kind === 'custom' ? custom.laps : track.N < 1300 ? 4 : track.N < 2000 ? 3 : 2;
     return new Race({ track, mode: session.time ? 'time' : 'race', laps, humans, ai, diff: session.diff });
   }
   const recordKey = r => r.track.code + (r.mode === 'time' ? 'T' : 'R');
@@ -230,12 +235,11 @@
       band.addColorStop(0.8, 'rgba(0,0,30,0.55)'); band.addColorStop(1, 'rgba(0,0,30,0)');
       g.fillStyle = band; g.fillRect(0, 30, W, 100);
       g.fillStyle = 'rgba(0,0,30,0.5)'; g.fillRect(0, 182, W, 28); g.fillRect(0, 246, W, 38);
-      logo(W / 2, 46, 40);
-      text('THE ULTIMATE CHALLENGE', W / 2, 96, 8, '#ffe040', 'center');
-      text('WEB REMAKE', W / 2, 110, 8, '#9fb0ff', 'center');
+      logo(W / 2, 40, 40);
+      text('A TRIBUTE TO THE RACERS OF THE 80S & 90S', W / 2, 112, 8, '#9fb0ff', 'center');
       if (blinkOn(this.t)) text('PRESS ENTER', W / 2, 190, 16, '#ffffff', 'center');
       text('1 OR 2 PLAYERS  -  KEYBOARD OR GAMEPAD', W / 2, 252, 8, '#c0c8ff', 'center');
-      text('FAN REMAKE. ALL GRAPHICS & MUSIC ORIGINAL.', W / 2, 270, 8, '#7080b0', 'center');
+      text('ALL GRAPHICS & MUSIC MADE IN CODE.', W / 2, 270, 8, '#7080b0', 'center');
     },
   };
 
@@ -246,7 +250,7 @@
       const s = settings, r = [];
       const opt = (label, opts, get, set, extra) => r.push(Object.assign({ label, opts, val: get(), set }, extra));
       opt('PLAYERS', ['1 PLAYER', '2 PLAYERS'], () => s.players - 1, v => { s.players = v + 1; });
-      opt('GAME', ['CHAMPIONSHIP', 'TIME CHALLENGE', 'R.E.C.S.'], () => s.mode, v => { s.mode = v; });
+      opt('GAME', ['CHAMPIONSHIP', 'TIME CHALLENGE', 'COURSE BUILDER'], () => s.mode, v => { s.mode = v; });
       opt('LEVEL', DIFF_NAMES, () => s.diff, v => { s.diff = v; });
       for (let p = 0; p < s.players; p++) {
         opt(`P${p + 1} CAR`, MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[p]), v => { s.cars[p] = MODELS[v]; }, { car: p });
@@ -257,7 +261,7 @@
         Sound.playMusic(s.music);
       });
       opt('UNITS', ['MPH', 'KM/H'], () => s.units, v => { s.units = v; });
-      r.push({ label: s.mode === 2 ? 'BUILD COURSE >' : 'START GAME >', action: () => (s.mode === 2 ? go(Recs) : startSession(s.mode === 0 ? 'champ' : 'time')) });
+      r.push({ label: s.mode === 2 ? 'BUILD COURSE >' : 'START GAME >', action: () => (s.mode === 2 ? go(Builder) : startSession(s.mode === 0 ? 'champ' : 'time')) });
       return r;
     },
     update(dt) {
@@ -269,8 +273,8 @@
     },
     draw(dt) {
       drawAttract(dt, 0.55);
-      logo(W / 2, 8, 16);
-      text('THE ULTIMATE CHALLENGE', W / 2, 27, 8, '#ffe040', 'center');
+      logo(W / 2, 8, 16, true);
+      text('A TRIBUTE TO THE RACERS OF THE 80S & 90S', W / 2, 27, 8, '#9fb0ff', 'center');
       const rows = this.rows();
       panel(10, 40, 278, 214, 'OPTIONS');
       rowsDraw(rows, this.sel, 16, 64, 266);
@@ -284,27 +288,27 @@
     },
   };
 
-  const Recs = {
+  const Builder = {
     sel: 0, editing: false, buf: '', pv: null, track: null, t: 0,
     enter() { this.editing = false; this.refresh(); },
     refresh() {
-      this.track = Track.build(recs.params, recs.type === 1 ? { checkpoints: 4, scale: 1.8 } : {});
+      this.track = Track.build(custom.params, custom.type === 1 ? { checkpoints: 4, scale: 1.8 } : {});
       this.pv = Track.preview(this.track);
       saveAll();
     },
     rows() {
-      const p = recs.params, r = [];
+      const p = custom.params, r = [];
       const set = k => v => { p[k] = v; this.refresh(); };
       r.push({ label: 'SCENERY', opts: THEMES.map(t => t.name), val: p.scenery, set: set('scenery') });
       for (const [k, lab] of [['curves', 'CURVES'], ['sharp', 'SHARPNESS'], ['hills', 'HILLS'], ['steep', 'STEEPNESS'],
         ['scatter', 'SCATTER'], ['obst', 'OBSTACLES'], ['length', 'LENGTH']]) {
         r.push({ label: lab, slider: 15, val: p[k], set: set(k) });
       }
-      r.push({ label: 'RACE TYPE', opts: ['RACE (20 CARS)', 'TIME TRIAL'], val: recs.type, set: v => { recs.type = v; this.refresh(); } });
-      if (recs.type === 0) r.push({ label: 'LAPS', opts: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], val: recs.laps - 1, set: v => { recs.laps = v + 1; } });
+      r.push({ label: 'RACE TYPE', opts: ['RACE (20 CARS)', 'TIME TRIAL'], val: custom.type, set: v => { custom.type = v; this.refresh(); } });
+      if (custom.type === 0) r.push({ label: 'LAPS', opts: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], val: custom.laps - 1, set: v => { custom.laps = v + 1; } });
       r.push({ label: 'ENTER CODE', value: this.editing ? this.buf + (blinkOn(this.t, 3) ? '_' : ' ') : '', action: () => { this.editing = true; this.buf = ''; } });
-      r.push({ label: 'RANDOMISE', action: () => { recs.params = Track.random(); this.refresh(); } });
-      r.push({ label: 'RACE! >', action: () => startSession('recs') });
+      r.push({ label: 'RANDOMISE', action: () => { custom.params = Track.random(); this.refresh(); } });
+      r.push({ label: 'RACE! >', action: () => startSession('custom') });
       r.push({ label: '< BACK', action: () => go(MainMenu) });
       return r;
     },
@@ -317,7 +321,7 @@
         }
         if (Input.pressed('Enter') || Input.pressed('NumpadEnter')) {
           this.editing = false;
-          if (this.buf) { recs.params = Track.decode(this.buf); this.refresh(); Sound.fx.select(); }
+          if (this.buf) { custom.params = Track.decode(this.buf); this.refresh(); Sound.fx.select(); }
         } else if (Input.pressed('Escape')) { this.editing = false; Sound.fx.back(); }
         return;
       }
@@ -328,8 +332,8 @@
     },
     draw(dt) {
       drawAttract(dt, 0.6);
-      text('R.E.C.S.', W / 2, 8, 16, '#ffe040', 'center');
-      text('RACING ENVIRONMENT CONSTRUCTION SET', W / 2, 27, 8, '#9fb0ff', 'center');
+      text('COURSE BUILDER', W / 2, 8, 16, '#ffe040', 'center');
+      text('DESIGN YOUR OWN TRACK', W / 2, 27, 8, '#9fb0ff', 'center');
       const rows = this.rows();
       panel(10, 40, 252, 236, 'COURSE DESIGN');
       rowsDraw(rows, this.sel, 16, 62, 240, 14);
@@ -341,7 +345,7 @@
       text('COURSE CODE', 370, 230, 8, '#9fb0ff', 'center');
       text(this.track.code, 370, 244, 16, '#7fffb0', 'center');
       const km = U.km(this.track.length).toFixed(1);
-      text(`${THEMES[recs.params.scenery].name}  ${km} KM`, 370, 262, 8, '#ffffff', 'center');
+      text(`${THEMES[custom.params.scenery].name}  ${km} KM`, 370, 262, 8, '#ffffff', 'center');
       text(this.editing ? 'TYPE ANY WORD - IT BECOMES A COURSE!  ENTER TO BUILD' : 'LEFT/RIGHT ADJUST   ENTER SELECT', W / 2, 284, 8, '#c0c8ff', 'center');
     },
   };
@@ -367,7 +371,7 @@
       let head;
       if (session.kind === 'champ') head = `CHAMPIONSHIP ${DIFF_NAMES[session.diff]} - RACE ${session.idx + 1} OF ${session.courses.length}`;
       else if (session.kind === 'time') head = `TIME CHALLENGE ${DIFF_NAMES[session.diff]} - STAGE ${session.idx + 1} OF ${session.courses.length}`;
-      else head = 'R.E.C.S. CUSTOM COURSE';
+      else head = 'CUSTOM COURSE';
       panel(30, 20, 420, 250, head);
       text(th.name, 150, 46, 24, '#ffffff', 'center');
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(50, 80, 200, 120);
@@ -459,7 +463,7 @@
         const best = race.mode === 'race' ? h.bestLap : h.finished ? h.finishTime : 0;
         if (best && (!records[key] || best < records[key])) { records[key] = best; this.newRecord = true; }
       }
-      U.save('lotus3.records', records);
+      U.save('ecr.records', records);
       if (race.mode === 'race' && session.kind === 'champ') {
         this.list.forEach((c, i) => {
           const d = session.drivers.find(x => x.id === c.id);
@@ -472,7 +476,7 @@
       } else this.qualified = true;
     },
     next() {
-      if (session.kind === 'recs') { go(Recs); return; }
+      if (session.kind === 'custom') { go(Builder); return; }
       if (session.kind === 'champ') { go(Standings); return; }
       if (!this.qualified) { GameEnd.set('GAME OVER', ['OUT OF TIME ON ' + race.track.theme.name, `REACHED STAGE ${session.idx + 1} OF ${session.courses.length}`]); go(GameEnd); return; }
       session.idx++;
@@ -585,7 +589,7 @@
     if (!musicStarted) { musicStarted = true; Sound.playMusic(settings.music); }
   });
   window.addEventListener('keydown', e => {
-    if (e.code === 'KeyF' && !(scene === Recs && Recs.editing)) {
+    if (e.code === 'KeyF' && !(scene === Builder && Builder.editing)) {
       if (document.fullscreenElement) document.exitFullscreen();
       else if (cv.requestFullscreen) cv.requestFullscreen().catch(() => {});
     }
