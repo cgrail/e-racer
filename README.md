@@ -26,6 +26,7 @@ The pixel font loads from Google Fonts. Without a connection the game falls back
   - **Road hazards:** cones you can knock flying, barriers, lane closures, logs, rocks, puddles that splash and slide you, ice, rolling tumbleweeds, jump ramps and boost pads. Steep crests launch the car into the air.
 - **Game modes:**
   - **Championship:** six races on Easy, Medium or Hard against 19 rivals, starting from the back of the grid. You must finish in the qualifying places (top 10, 6 or 3) to go on, and points go to the top 10.
+  - **Rubber-band rivals:** in races the pack stays close. Rivals far ahead of you ease off, and rivals far behind push harder, more on Easy than on Hard.
   - **Time Challenge:** five point-to-point stages per level against the clock. Each checkpoint extends your time.
   - **Course Builder:** design a course with sliders for curves, sharpness, hills, steepness, scatter, obstacles, length and scenery. Every course has a 10-letter code, and typing *any* word as a code builds a course from it.
 - **Limited energy (option):** in races your battery drains as you drive, and braking recovers a little. Drive through the glowing energy cells on the road to recharge them; they come back every lap, and in two-player mode each player has their own. If your battery runs empty, you are put behind the last car with a partial recharge. Set **ENERGY** to *Limited* in the main menu.

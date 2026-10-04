@@ -128,6 +128,17 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log(`power: ${orbs.length} orbs, charge fired, ${Math.round(top / (h.spec.top * K.MAX_SPEED) * 100)}% of top speed, barrier smashed OK`);
 }
 
+{ // rubber band: rivals far ahead of the humans slow down, far behind speed up, close ones race unaided
+  const track = Track.build(Track.random(() => 0.4));
+  const ai = [0, 1, 2].map(k => ({ id: 'A' + k, name: 'AI', model: 'volt', color: CAR_COLORS[k + 2], aiTop: 0.8 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'volt', color: CAR_COLORS[0] }], ai, diff: 0 });
+  const [a, b, c] = race.cars.filter(x => !x.human), h = race.humans[0];
+  race.setTravel(h, 100000); race.setTravel(a, 200000); race.setTravel(b, 101000); race.setTravel(c, 10000);
+  const fa = race.rubberBand(a), fb = race.rubberBand(b), fc = race.rubberBand(c);
+  if (!(fa < 0.9 && fb === 1 && fc > 1.1)) throw new Error(`rubber band factors wrong: ahead ${fa}, close ${fb}, behind ${fc}`);
+  console.log(`rubber band: ahead x${fa.toFixed(2)}, close x${fb}, behind x${fc.toFixed(2)} OK`);
+}
+
 // ---------------------------------------------------------------- game flow through the real key handlers
 await import('../src/main.js');
 const expect = name => { if (window.__ecr.scene !== name) throw new Error(`expected scene ${name}, got ${window.__ecr.scene}`); };

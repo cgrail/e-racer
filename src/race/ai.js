@@ -1,7 +1,23 @@
 import { K, U } from '../core/util.js';
 import { Art } from '../art/index.js';
 
-// Race method for computer drivers: target speed, overtaking, hazard avoidance. Mixed into Race.
+// Race methods for computer drivers: target speed, rubber band, overtaking, hazard avoidance. Mixed into Race.
+const BAND = [0.16, 0.12, 0.09]; // rubber-band strength by difficulty (easy, medium, hard)
+const BAND_DEAD = 6000;          // world units around the humans where rivals race unaided
+const BAND_RANGE = 50000;        // distance beyond the dead zone at which the full effect applies
+
+// Speed factor that keeps the field together around the human players: rivals ahead of the
+// leading human ease off, rivals behind the last human push harder. Races only.
+export function rubberBand(c) {
+  if (this.mode !== 'race') return 1;
+  let front = -Infinity, back = Infinity;
+  for (const h of this.humans) if (!h.finished) { front = Math.max(front, h.travel); back = Math.min(back, h.travel); }
+  if (front === -Infinity) return 1;
+  const ahead = c.travel - front - BAND_DEAD, behind = back - c.travel - BAND_DEAD;
+  const pull = ahead > 0 ? -Math.min(1, ahead / BAND_RANGE) : behind > 0 ? Math.min(1, behind / BAND_RANGE) : 0;
+  return 1 + BAND[this.diff] * pull;
+}
+
 export function driveAI(c, dt, racing) {
   const T = this.track, MAX = K.MAX_SPEED, seg = T.findSegment(c.z);
   if (!racing) { c.speed = 0; return; }
@@ -9,11 +25,7 @@ export function driveAI(c, dt, racing) {
   let maxC = 0;
   for (let n = 0; n < 14; n += 2) maxC = Math.max(maxC, Math.abs(T.segments[(seg.index + n) % T.N].curve));
   target *= 1 - Math.min(0.2, maxC * 0.03);
-  if (this.mode === 'race' && this.humans.length && !c.finished && !c.human) {
-    const lead = Math.max(...this.humans.map(h => h.travel));
-    const d = (c.travel - lead) / this.L;
-    if (d > 0.25) target *= 0.95; else if (d < -0.25) target *= 1.05;
-  }
+  if (!c.finished && !c.human) target *= this.rubberBand(c);
   if (c.finished && !c.human) target *= 0.85;
   if (c.speed < target) c.speed = Math.min(target, c.speed + MAX * 0.22 * (1.25 - c.speed / MAX) * dt);
   else c.speed = Math.max(target, c.speed - MAX * 0.5 * dt);

@@ -7,5 +7,5 @@
 [x] add vite build step
 [x] add option where you run out of energy and you need to collect energy along the way. if you run empty you will put behind the last place.
 [x] add option for power boost where you can collect super power
-[ ] implement the rubberbanding effect to keep the field closer together
+[x] implement the rubberbanding effect to keep the field closer together
 [ ] update the todo skill to match this project
