@@ -20,7 +20,7 @@ function clean(s, r) {
   if (!Array.isArray(s) || s.length !== 8 || !s.every(Number.isFinite)) return null;
   const [travel, x, speed, frame, flags, jumpY, lap, fin] = s;
   return [U.clamp(travel, -50000, r.L * (r.laps + 1)), U.clamp(x, -3.2, 3.2), U.clamp(speed, 0, K.MAX_SPEED * 1.5),
-    U.clamp(Math.round(frame), -2, 2), flags & 7, U.clamp(jumpY, 0, 5000), U.clamp(lap | 0, 0, r.laps + 1), Math.max(0, fin)];
+    U.clamp(Math.round(frame), -2, 2), flags & 15, U.clamp(jumpY, 0, 5000), U.clamp(lap | 0, 0, r.laps + 1), Math.max(0, fin)];
 }
 
 export class Session {

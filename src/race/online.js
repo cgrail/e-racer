@@ -6,7 +6,8 @@ import { CARSPEC, AI_SHOCKS } from './specs.js';
 // network, and between updates it runs on at its last speed and eases onto the reported position. this.net is
 // 'server' or 'client'. On a client race.humans is just the car driven here; on the server it is every player's car,
 // so the rubber band and defending rivals work as offline. Shocks that land on a puppet queue in race.outbox.
-// A car's state on the wire: [travel, x, speed, frame, flags (1 braking, 2 super power, 4 shocked), jumpY, lap, finishTime].
+// A car's state on the wire: [travel, x, speed, frame, flags, jumpY, lap, finishTime], flags 1 braking, 2 super power,
+// 4 shocked, 8 can pick up a shock (so a browser sees a rival use up the pickup it drives over, as the server does).
 const SNAP_TO = 4000; // a puppet further than this from its reported position jumps there
 const QUIET_T = 1;    // seconds without word from a puppet before it rolls to a stop (a browser tab in the background)
 
@@ -48,7 +49,7 @@ export function drivePuppet(c, dt) {
 
 export function packCar(c) {
   const n = c.nets || c, r = (v, k = 1) => Math.round(v * k) / k; // a puppet is passed on as last reported
-  const flags = (c.brake ? 1 : 0) | (c.superT > 0 ? 2 : 0) | (c.shockT > 0 ? 4 : 0);
+  const flags = (c.brake ? 1 : 0) | (c.superT > 0 ? 2 : 0) | (c.shockT > 0 ? 4 : 0) | (c.shock === 0 ? 8 : 0);
   return [r(n.travel), r(n.x, 1000), r(c.speed), c.frame, flags, r(n.jumpY), c.lap, r(c.finishTime, 1000)];
 }
 
@@ -60,6 +61,7 @@ export function applyCar(c, s, hard) {
   c.speed = speed; c.frame = frame; c.brake = !!(flags & 1);
   if (c.net) c.superT = flags & 2 ? 0.2 : 0;
   if (flags & 4 && this.net === 'client') c.shockT = Math.max(c.shockT, 0.2); // the server times a player's shock itself
+  if (c.net && !c.human && this.net === 'client') c.shock = flags & 8 ? 0 : null;
   if (lap > c.lap && c.taken) c.taken.clear();
   c.lap = lap; c.finished = fin > 0; c.finishTime = fin;
 }

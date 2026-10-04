@@ -179,6 +179,23 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
   console.log('energy: a rival uses up the cell it drives over, it comes back later OK');
 }
 
+{ // likewise a shock pickup a rival collects; a rival that doesn't use shocks leaves it
+  const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 0 }));
+  const ai = [0, 1].map(k => ({ id: 'A' + k, name: 'AI', model: 'wave', color: CAR_COLORS[k + 2], aiTop: 0.8 }));
+  const race = new Race({ track, mode: 'race', laps: 3, humans: [{ id: 'P1', name: 'P1', human: true, pidx: 0, model: 'aero', color: CAR_COLORS[0] }], ai });
+  const h = race.humans[0], [a, b] = race.cars.filter(c => !c.human), halfW = K.CAR_W / 2 / track.roadW;
+  const pad = track.segments.flatMap(sg => sg.obs).find(o => o.fx === 'shock');
+  b.shock = null; race.hitObstacle(b, pad, halfW);
+  if (pad.backAt) throw new Error('shock: a rival without shocks used up the pickup');
+  a.shock = 0; race.hitObstacle(a, pad, halfW);
+  if (a.shock !== 1 || !(pad.backAt > race.time)) throw new Error('shock: rival did not use up the pickup');
+  race.hitObstacle(h, pad, halfW);
+  if (h.shock !== 0) throw new Error('shock: a pickup a rival took was still collectable');
+  race.time += 30; race.hitObstacle(h, pad, halfW);
+  if (h.shock !== 1) throw new Error('shock: the pickup did not come back');
+  console.log('shock: a rival uses up the pickup it collects, it comes back later OK');
+}
+
 { // active rivals: they recharge from cells, collect and fire shocks, and keep changing lanes
   const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 4 }));
   const ai = Array.from({ length: 10 }, (_, k) => ({ id: 'A' + k, name: 'AI', model: MODELS[k % MODELS.length], color: CAR_COLORS[k % 10], aiTop: 0.7 + k * 0.01 }));

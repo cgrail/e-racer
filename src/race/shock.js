@@ -6,8 +6,10 @@ import { SHOCK_T, SHOCK_CAP } from './specs.js';
 // Race methods for the electro shock, in every race. Humans and some rivals (AI_SHOCKS) pick up a shock charge
 // on the road (per car via c.taken, back every lap, like the orbs) and fire it at the car directly ahead,
 // human or AI, which is held to SHOCK_CAP of its top speed for SHOCK_T seconds. Super power blocks it.
+// Like an energy cell, a pickup a rival collects is used up for every car until it comes back (ob.backAt).
 const SHOCK_GAP = 450;     // segments between pickups (offset from the orbs and energy cells)
 const SHOCK_RANGE = 60000; // how far ahead a shock reaches, in world units
+const SHOCK_BACK = 6;      // seconds until a pickup a rival took comes back
 
 export function placeShocks() {
   const T = this.track, rnd = U.rng(U.hash(T.code + 'shock')), d = Art.DEF.shock;
@@ -25,6 +27,7 @@ export function collectShock(c, ob) {
   c.taken.add(ob);
   if (c.shock) return;
   c.shock = 1; c.aiFireT = 1 + Math.random() * 3;
+  if (!c.human) ob.backAt = this.time + SHOCK_BACK;
   if (c.human) { this.msg(c, 'SHOCK READY!', 1.2, '#60e0ff'); Sound.fx.powerup(); }
 }
 
