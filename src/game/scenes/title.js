@@ -5,6 +5,7 @@ import { go } from '../state.js';
 import { logo, blinkOn } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { Online } from '../online.js';
+import { Touch } from '../touch.js';
 
 // Title screen over the attract-mode demo race. It looks for the race server: when it answers, Enter leads to
 // online play (the Lobby), otherwise to the local game. Coming back here looks again.
@@ -30,7 +31,8 @@ export const Title = {
     text('A TRIBUTE TO THE RACERS OF THE 80S & 90S', W / 2, 112, 8, '#9fb0ff', 'center');
     if (this.waiting) text('CONNECTING...', W / 2, 190, 16, '#ffffff', 'center');
     else if (blinkOn(this.t)) text(Input.touch() ? 'TAP TO START' : 'PRESS ENTER', W / 2, 190, 16, '#ffffff', 'center');
-    text(Online.available() ? 'ONLINE RACING  -  KEYBOARD OR GAMEPAD' : '1 OR 2 PLAYERS  -  KEYBOARD OR GAMEPAD', W / 2, 252, 8, '#c0c8ff', 'center');
+    if (Touch.homeHint()) text('FULL SCREEN: SHARE > ADD TO HOME SCREEN', W / 2, 252, 8, '#ffe040', 'center');
+    else text(Online.available() ? 'ONLINE RACING  -  KEYBOARD OR GAMEPAD' : '1 OR 2 PLAYERS  -  KEYBOARD OR GAMEPAD', W / 2, 252, 8, '#c0c8ff', 'center');
     text('ALL GRAPHICS & MUSIC MADE IN CODE.', W / 2, 270, 8, '#7080b0', 'center');
   },
 };
