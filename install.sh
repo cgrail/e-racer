@@ -17,7 +17,9 @@
 #           serving https://$DOMAIN with an auto-issued/renewed
 #           certificate
 #   Update  systemd timer runs update.sh every 5 minutes,
-#           auto-deploying whatever lands on origin/main
+#           auto-deploying whatever lands on origin/main; a GitHub
+#           webhook on push (POST https://$DOMAIN/update, signed with
+#           UPDATE_SECRET) has it deploy a merge at once
 #
 # Usage — run ON the server, from a checkout of this repo:
 #
@@ -78,6 +80,15 @@ DOMAIN="${DOMAIN:-}"
   || die "DOMAIN doesn't look like a hostname: $DOMAIN"
 log "Electro Car Racer will be served at https://$DOMAIN"
 
+# ---------- deploy webhook secret (remembered across runs) ----------
+# GitHub signs its webhook calls to POST /update with it; made up on the first run
+if [[ -z ${UPDATE_SECRET:-} && -f $DEFAULTS_FILE ]]; then
+  UPDATE_SECRET="$(sed -n 's/^UPDATE_SECRET=//p' "$DEFAULTS_FILE" | tail -1)"
+fi
+UPDATE_SECRET="${UPDATE_SECRET:-$(node -e 'process.stdout.write(require("crypto").randomBytes(32).toString("hex"))')}"
+[[ $UPDATE_SECRET =~ ^[A-Za-z0-9._~+/=-]{16,}$ ]] \
+  || die "UPDATE_SECRET must be 16 or more letters, digits or ._~+/=- (or leave it out to have one made up)"
+
 # ---------- app user + code ----------
 if ! id -u "$APP_USER" > /dev/null 2>&1; then
   log "Creating system user '$APP_USER'"
@@ -96,14 +107,18 @@ chmod -R g-w,o-rwx "$APP_DIR"
 # ---------- systemd service (sandboxed) ----------
 log "Installing systemd service"
 # settings someone added by hand survive; the ones below are this script's
-extra="$(grep -vE '^(#|$|PORT=|HOST=|TRUST_PROXY=|DOMAIN=)' "$DEFAULTS_FILE" 2> /dev/null || true)"
+extra="$(grep -vE '^(#|$|PORT=|HOST=|TRUST_PROXY=|DOMAIN=|UPDATE_SECRET=)' "$DEFAULTS_FILE" 2> /dev/null || true)"
+# it holds the webhook's secret: only root reads it (systemd, for the service)
+touch "$DEFAULTS_FILE"
+chmod 600 "$DEFAULTS_FILE"
 {
-  echo "# Electro Car Racer settings — install.sh rewrites the four below on every run;"
+  echo "# Electro Car Racer settings — install.sh rewrites the five below on every run;"
   echo "# other settings (see the top of server/server.js) can be added and are kept"
   echo "PORT=$APP_PORT"
   echo "HOST=127.0.0.1"
   echo "TRUST_PROXY=1"
   echo "DOMAIN=$DOMAIN"
+  echo "UPDATE_SECRET=$UPDATE_SECRET"
   if [[ -n $extra ]]; then printf '%s\n' "$extra"; fi
 } > "$DEFAULTS_FILE"
 cat > /etc/systemd/system/$APP.service <<EOF
@@ -119,6 +134,12 @@ Group=$APP_USER
 WorkingDirectory=$APP_DIR
 EnvironmentFile=-$DEFAULTS_FILE
 Environment=NODE_ENV=production
+# the only place the server may write: the file its POST /update writes for
+# $APP-update.path (kept over restarts, since update.sh restarts the server)
+RuntimeDirectory=$APP
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+Environment=UPDATE_FILE=/run/$APP/update
 ExecStart=$(command -v node) $APP_DIR/server/server.js
 Restart=always
 RestartSec=2
@@ -214,8 +235,21 @@ RandomizedDelaySec=30
 [Install]
 WantedBy=timers.target
 EOF
+# and at once when the server's POST /update (the GitHub webhook) asks for it;
+# update.sh removes the file first, so a push during a deploy runs it again
+cat > /etc/systemd/system/$APP-update.path <<EOF
+[Unit]
+Description=Electro Car Racer deploy on request (GitHub webhook on push)
+
+[Path]
+PathExists=/run/$APP/update
+Unit=$APP-update.service
+
+[Install]
+WantedBy=paths.target
+EOF
 systemctl daemon-reload
-systemctl enable --now $APP-update.timer
+systemctl enable --now $APP-update.timer $APP-update.path
 
 # ---------- summary ----------
 sleep 2
@@ -244,4 +278,11 @@ cat <<EOF
   updates      : auto — pushes to origin/main go live within ~5 min
                  ($APP-update.timer → update.sh, discards local edits
                  in this checkout); manual: sudo ./update.sh --force
+  webhook      : to deploy a merge at once, add a webhook in the GitHub
+                 repo (Settings → Webhooks → Add webhook):
+                   payload URL   https://$DOMAIN/update
+                   content type  application/json
+                   secret        sudo sed -n 's/^UPDATE_SECRET=//p' $DEFAULTS_FILE
+                   events        just the push event
+                 then watch: journalctl -u $APP-update -f
 EOF
