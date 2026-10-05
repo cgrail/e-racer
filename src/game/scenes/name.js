@@ -2,7 +2,7 @@ import { Input } from '../../core/input.js';
 import { Sound } from '../../audio/sound.js';
 import { g, W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, carPanel, typeName, blinkOn, TOUCH_TYPE } from '../ui.js';
+import { panel, logo, carPanel, typeName, blinkOn } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { Online } from '../online.js';
 import { askName } from '../askname.js';
@@ -47,7 +47,6 @@ export const NameEntry = {
     text('YOU CAN CHANGE IT IN THE MENU.', 149, 200, 8, '#7080b0', 'center');
     if (this.waiting) text('CONNECTING...', 149, 226, 8, '#ffffff', 'center');
     carPanel(296, 40, 174, 214, 0, this.t, this.buf);
-    if (Input.touch()) { text(TOUCH_TYPE, W / 2, 268, 8, '#c0c8ff', 'center'); return; }
     text('TYPE YOUR NAME  ENTER OK  ESC SKIP', W / 2, 262, 8, '#c0c8ff', 'center');
   },
 };

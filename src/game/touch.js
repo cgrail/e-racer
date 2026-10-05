@@ -3,7 +3,7 @@ import { Input } from '../core/input.js';
 import { Art } from '../art/index.js';
 import { MODELS, CAR_COLORS } from '../race/specs.js';
 import { settings, game, scenes } from './state.js';
-import { rowsDrawn } from './ui.js';
+import { Page } from './page.js';
 
 // Touch controls for phones and tablets. They are on from the start on a device whose main pointer is a finger
 // (elsewhere they appear with the first touch) and hide again on a key press, and each touch asks for fullscreen
@@ -14,11 +14,11 @@ import { rowsDrawn } from './ui.js';
 // clear of the HUD's corners, or on the right edge (settings.buttons: BUTTONS in the menus on touch), pause top
 // right. The fire button says BOOST (pink) or FLASH (blue) for what the car holds (one at a time), and is blank and
 // faint while it holds neither.
-// Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap: rowsNav picks the row, anything else
-// takes it as OK); < and > in the bottom corners while the scene shows rows, BACK top left, all in the menus'
-// panel style; and a text field brings up the keyboard while a name is typed.
-// The buttons hold the keyboard's key codes (Input.virtual), so the scenes need nothing touch-specific.
-let root = null, field = null, stick = null, fire = null, on = false, mode = '', item = '';
+// Menus (a scene with page(), the pause menu too) are pages of plain HTML (game/page.js) instead of the canvas.
+// Elsewhere: a tap goes to the scene as a tap in canvas pixels (Input.tap, taken as OK) and BACK sits top left, in
+// the menus' panel style.
+// The buttons hold the keyboard's key codes (Input.virtual), so the scenes need nothing touch-specific but pages.
+let root = null, stick = null, fire = null, on = false, mode = '', item = '';
 const held = new Set();
 
 function press(code, down) {
@@ -124,34 +124,6 @@ function build() {
   button(drive, 'tb pause', '❚❚', 'Escape');
   taps(menu);
   button(menu, 'mb back', 'BACK', 'Escape');
-  button(menu, 'mb prev', '<', 'ArrowLeft');
-  button(menu, 'mb next', '>', 'ArrowRight');
-
-  // Typing a name or course code: the field forwards characters, Enter and Esc to Input. Each change to its text
-  // goes over as backspaces for what went and characters for what came, so a word an Android keyboard is still
-  // composing ('C', 'CH', 'CHR'...) is left alone until it is done. Then the field goes back to a single space:
-  // something left to delete, so Backspace always fires.
-  field = el('input', 'type', root);
-  Object.assign(field, { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, value: ' ' });
-  field.setAttribute('autocorrect', 'off');
-  field.placeholder = 'TAP TO TYPE';
-  let sent = ' ';
-  const sync = done => {
-    const v = field.value;
-    let i = 0;
-    while (i < v.length && v[i] === sent[i]) i++;
-    Input.type('\b'.repeat(sent.length - i) + v.slice(i));
-    sent = v;
-    if (done) field.value = sent = ' ';
-  };
-  field.addEventListener('keydown', e => {
-    e.stopPropagation();
-    const code = e.key === 'Enter' ? 'Enter' : e.key === 'Escape' ? 'Escape' : null;
-    if (code) { e.preventDefault(); Input.virtual(code, true); Input.virtual(code, false); field.blur(); }
-  });
-  field.addEventListener('input', e => sync(!e.isComposing));
-  field.addEventListener('compositionend', () => sync(true));
-  field.addEventListener('focus', () => { field.value = sent = ' '; });
 }
 
 function releaseAll() {
@@ -204,10 +176,11 @@ function homeIcon() {
 }
 
 // The page stays put: no scrolling (which would also slide the browser bars in and out), and no double-tap
-// or pinch zoom, which iOS Safari allows despite user-scalable=no. Text fields keep their own touches.
+// or pinch zoom, which iOS Safari allows despite user-scalable=no. Text fields and the menu pages keep their own
+// touches: a page scrolls its card column, and its touch-action (style.css) leaves out both zooms.
 function noScroll() {
   let lastEnd = 0;
-  const stop = e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); };
+  const stop = e => { if (e.target.tagName !== 'INPUT' && !(e.target.closest && e.target.closest('.page'))) e.preventDefault(); };
   document.addEventListener('touchend', e => {
     const now = e.timeStamp;
     if (now - lastEnd < 350) stop(e);
@@ -215,7 +188,7 @@ function noScroll() {
   }, { passive: false });
   document.addEventListener('touchmove', stop, { passive: false });
   document.addEventListener('dblclick', stop, { passive: false });
-  for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, stop, { passive: false });
+  for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, e => e.preventDefault(), { passive: false });
 }
 
 export const Touch = {
@@ -236,17 +209,19 @@ export const Touch = {
   },
   // Whether to tell the player that the home screen gives full screen: on touch, with no fullscreen to ask for.
   homeHint() { return on && !fsEnabled() && !standalone(); },
-  // Called every frame: pick the layer for the current scene.
+  // Called every frame: the scene's page, if it has one, or the layer for the scene.
   update() {
-    if (!root || !on) return;
+    if (!root) return;
+    const paged = Page.update(on, root);
+    if (!on) return;
     const racing = game.scene === scenes.RaceScene && !scenes.RaceScene.paused;
     if (racing) showItem();
-    const rows = rowsDrawn();
-    const m = racing ? 'drive' + (settings.buttons ? '' : ' left') : 'menu' + (game.scene.editing ? ' typing' : rows ? ' rows' : '');
+    const m = racing ? 'drive' + (settings.buttons ? '' : ' left') : paged ? 'page' : 'menu';
     if (m === mode) return;
     if (racing !== mode.startsWith('drive')) releaseAll();
-    if (!game.scene.editing) field.blur();
     mode = m;
     root.className = 'touch ' + m;
   },
+  // Whether a menu page hides the canvas, so there is no need to draw it.
+  covers() { return Page.covers(); },
 };

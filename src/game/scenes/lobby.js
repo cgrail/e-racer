@@ -3,7 +3,7 @@ import { Sound } from '../../audio/sound.js';
 import { CARSPEC, MODELS } from '../../race/specs.js';
 import { W, text } from '../screen.js';
 import { settings, go } from '../state.js';
-import { panel, logo, rowsDraw, rowsNav, carPanel, nameRow, buttonsRow, typeName, TOUCH_HELP, TOUCH_TYPE } from '../ui.js';
+import { panel, logo, rowsDraw, rowsNav, carPanel, carCard, nameRow, buttonsRow, typeName, TOUCH_DRIVE } from '../ui.js';
 import { drawAttract } from '../attract.js';
 import { DIFF_NAMES } from '../session.js';
 import { Online } from '../online.js';
@@ -11,7 +11,8 @@ import { Online } from '../online.js';
 // The online menu, where the title screen leads when the race server answers. The first row starts a session (with
 // the level below it) or joins the race that is running, in place of a rival; then name, car, sound and units (and
 // on touch the side for the racing buttons). If the server stops answering, the player can try again or play offline
-// (the local MainMenu).
+// (the local MainMenu). On a touch screen it is a page (game/page.js): the session's state, then a card per sec of
+// rows, with the go rows below.
 const INFO = '#9fb0ff';
 
 export const Lobby = {
@@ -20,15 +21,17 @@ export const Lobby = {
   offline() { Online.close(); go('MainMenu'); },
   rows() {
     const s = settings, st = Online.state, live = Online.status, r = [];
-    if (st === 'error') r.push({ key: 'retry', label: 'TRY AGAIN', action: () => Online.connect() });
+    if (st === 'error') r.push({ key: 'retry', go: true, label: 'TRY AGAIN', action: () => Online.connect() });
     if (st === 'error' || st === 'connecting') {
-      r.push({ key: 'offline', label: 'PLAY OFFLINE >', action: () => this.offline() });
+      r.push({ key: 'offline', go: true, label: 'PLAY OFFLINE >', action: () => this.offline() });
       return r;
     }
-    const opt = (key, label, opts, get, set, extra) => r.push(Object.assign({ key, label, opts, val: get(), set }, extra));
-    if (st === 'lobby' && !(live && live.full)) r.push({ key: 'go', label: live ? 'JOIN RACE >' : 'START RACE >', action: () => (live ? Online.join() : Online.start()) });
-    r.push(nameRow(this, 0, 'NAME'));
+    let sec = 'car';
+    const opt = (key, label, opts, get, set, extra) => r.push(Object.assign({ key, sec, label, opts, val: get(), set }, extra));
+    if (st === 'lobby' && !(live && live.full)) r.push({ key: 'go', go: true, label: live ? 'JOIN RACE >' : 'START RACE >', action: () => (live ? Online.join() : Online.start()) });
+    r.push(Object.assign(nameRow(this, 0, 'NAME'), { sec }));
     opt('car', 'CAR', MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[0]), v => { s.cars[0] = MODELS[v]; });
+    sec = 'more';
     if (!live) // a new session takes the level
       opt('level', 'LEVEL', DIFF_NAMES, () => s.diff, v => { s.diff = v; });
     opt('music', 'MUSIC', Sound.songs.concat(['OFF']), () => (s.music < 0 ? Sound.songs.length : s.music), v => {
@@ -36,7 +39,7 @@ export const Lobby = {
       Sound.playMusic(s.music);
     });
     opt('units', 'UNITS', ['MPH', 'KM/H'], () => s.units, v => { s.units = v; });
-    if (Input.touch()) r.push(buttonsRow());
+    if (Input.touch()) r.push(Object.assign(buttonsRow(), { sec }));
     return r;
   },
   // What the panel says under the rows: [text, colour] lines, 33 characters at most.
@@ -55,6 +58,14 @@ export const Lobby = {
     if (s.full) out.push(['THE RACE IS FULL.', '#ff5050']);
     return out;
   },
+  page() {
+    const rows = this.rows(), sec = k => rows.filter(r => r.sec === k), cards = [{ head: 'RACE SERVER', ico: '📡', lines: this.lines() }];
+    if (sec('car').length) {
+      cards.push(carCard(0, sec('car'), this.t, 'YOUR CAR'), { head: 'OPTIONS', ico: '⚙', rows: sec('more') },
+        { head: 'HOW TO DRIVE', ico: '📋', help: TOUCH_DRIVE });
+    }
+    return { title: 'ONLINE RACE', cards, go: rows.filter(r => r.go) };
+  },
   update(dt) {
     this.t += dt;
     if (this.editing) { typeName(this); return; }
@@ -70,10 +81,9 @@ export const Lobby = {
     text('ONLINE: RACE OTHER PLAYERS AND RIVALS', W / 2, 27, 8, INFO, 'center');
     const rows = this.rows();
     panel(10, 40, 278, 214, 'ONLINE RACE');
-    const y0 = 70 + rows.length * rowsDraw(rows, this.sel, 16, 64, 266, 14, 108);
+    const y0 = 70 + rows.length * rowsDraw(rows, this.sel, 16, 64, 266);
     this.lines().slice(0, Math.floor((250 - y0) / 12)).forEach(([s, col], i) => text(s, 22, y0 + i * 12, 8, col));
     carPanel(296, 40, 174, 214, 0, this.t, this.editing ? this.buf : settings.names[0]);
-    if (Input.touch()) { text(this.editing ? TOUCH_TYPE : TOUCH_HELP, W / 2, 268, 8, '#c0c8ff', 'center'); return; }
     text(this.editing ? 'TYPE A NAME (UP TO 6)  ENTER OK  ESC CANCEL' : 'ARROWS/WASD DRIVE  SPACE POWER  E SHOCK', W / 2, 262, 8, '#c0c8ff', 'center');
     text('ESC BACK   M MUSIC   F FULLSCREEN', W / 2, 276, 8, '#7080b0', 'center');
   },

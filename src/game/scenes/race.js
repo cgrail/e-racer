@@ -9,14 +9,14 @@ import { panel, rowsDraw, rowsNav, buttonsRow } from '../ui.js';
 import { makeRace } from '../session.js';
 import { Online } from '../online.js';
 
-// The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu (where a touch
-// screen can also move the racing buttons to the other side).
+// The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu (on a touch screen
+// a page in the stage, over the race, where it can also move the racing buttons to the other side: game/page.js).
 // Online the race goes on while paused (the car coasts), and the server ends it (game/online.js).
 export const RaceScene = {
   acc: 0, vs: [{}, {}], paused: false, psel: 0,
   enter() { this.acc = 0; this.vs = [{}, {}]; this.paused = false; },
   pauseRows() {
-    const rows = [{ label: 'CONTINUE', action: () => { this.paused = false; } }];
+    const rows = [{ go: true, label: 'CONTINUE', action: () => { this.paused = false; } }];
     if (game.race.net) rows.push({ label: 'LEAVE RACE', action: () => { Sound.enginesOff(); Online.leave(); go('Lobby'); } });
     else {
       rows.push({ label: 'RESTART RACE', action: () => { game.race = makeRace(); this.enter(); } },
@@ -24,6 +24,12 @@ export const RaceScene = {
     }
     if (Input.touch()) rows.push(buttonsRow());
     return rows;
+  },
+  page() {
+    if (!this.paused) return null;
+    const rows = this.pauseRows(), net = !!game.race.net;
+    return { title: 'PAUSED', staged: true, go: rows.filter(r => r.go), cards: [{ head: net ? 'ONLINE RACE' : 'RACE', ico: '🏁',
+      rows: rows.filter(r => !r.go), note: net ? 'THE RACE GOES ON WHILE YOU ARE HERE.' : null }] };
   },
   update(dt) {
     const online = !!game.race.net;
@@ -59,11 +65,10 @@ export const RaceScene = {
       gr.addColorStop(0, '#6a8aff'); gr.addColorStop(1, '#101a70');
       g.fillStyle = gr; g.fillRect(0, hh, W, 4);
     }
-    if (this.paused) {
+    if (this.paused && !Input.touch()) { // on touch the pause menu is a page over the race
       g.fillStyle = 'rgba(0,0,20,0.6)'; g.fillRect(0, 0, W, H);
-      const rows = this.pauseRows(), d = Math.max(0, rows.length - 3) * 10; // a fourth row (on touch) makes it taller
-      panel(140, 90 - d, 200, 100 + 2 * d, 'PAUSED');
-      rowsDraw(rows, this.psel, 150, 120 - d, 180, 14, 62 + 2 * d);
+      panel(140, 90, 200, 100, 'PAUSED');
+      rowsDraw(this.pauseRows(), this.psel, 150, 120, 180);
     }
   },
 };
