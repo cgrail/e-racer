@@ -70,6 +70,7 @@ console.log(`modules: ${THEMES.length} sceneries built, raced and rendered`);
 }
 
 await import('./pickups.js'); // energy cells by place, one boost or flash at a time, pickups rivals use up
+await import('./update.js'); // the deploy hook: GET /update asks for a deploy, at most once per cooldown
 
 { // active rivals: they recharge from cells, collect and fire shocks, and keep changing lanes
   const track = Track.build(Object.assign(Track.random(() => 0.45), { obst: 4 }));

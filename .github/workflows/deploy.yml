@@ -1,0 +1,21 @@
+name: Deploy
+
+# On every push to main (a merge), asks the race server to deploy it at once (GET /update, server/update.js) rather
+# than on update.sh's next 5-minute tick. It runs once the repository variable DEPLOY_URL is set to
+# https://<the game's domain>/update (Settings > Secrets and variables > Actions > Variables).
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Ask the server to deploy
+    if: vars.DEPLOY_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      # retried, because the server may be restarting for the deploy before this one
+      - run: curl -fsS --max-time 10 --retry 5 --retry-delay 5 --retry-all-errors "$DEPLOY_URL"
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}

@@ -10,6 +10,8 @@
 //   ALLOWED_ORIGINS   page origins besides the server's own that may open the WebSocket, comma-separated
 //   MAX_CLIENTS       WebSocket connections in total (default 200)
 //   MAX_CONNS_PER_IP  connections from one address (default 16)
+//   UPDATE_FILE       turns on GET /update (update.js), which asks for a deploy by writing this file; install.sh sets
+//                     it in the service, and its systemd path unit runs update.sh for it
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import { Lobby } from './lobby.js';
+import { updateHook } from './update.js';
 
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const PORT = Number(process.env.PORT) || 8090;
@@ -26,6 +29,7 @@ const TRUST_PROXY = /^(1|true|yes)$/i.test(process.env.TRUST_PROXY || '');
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim().toLowerCase().replace(/\/$/, '')).filter(Boolean);
 const MAX_CLIENTS = Number(process.env.MAX_CLIENTS) || 200;
 const MAX_CONNS_PER_IP = Number(process.env.MAX_CONNS_PER_IP) || 16;
+const UPDATE_FILE = process.env.UPDATE_FILE || '';
 const RATE_BURST = 120, RATE_PER_SEC = 60, MAX_DROPPED = 600; // a racing browser sends about 20 messages a second
 const MAX_BUFFERED = 1 << 20; // a browser that stops reading is cut off rather than buffered for
 
@@ -50,6 +54,7 @@ app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return res.set('Allow', 'GET, HEAD').status(405).end();
   next();
 });
+if (UPDATE_FILE) app.get('/update', updateHook(UPDATE_FILE));
 if (built) {
   app.use(express.static(DIST, {
     setHeaders(res, file) {
@@ -141,5 +146,5 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
 }
 
 server.listen(PORT, HOST, () => {
-  console.log(`Electro Car Racer server: http://${HOST || 'localhost'}:${PORT}  (online races on /ws)`);
+  console.log(`Electro Car Racer server: http://${HOST || 'localhost'}:${PORT}  (online races on /ws${UPDATE_FILE ? ', deploys on GET /update' : ''})`);
 });
