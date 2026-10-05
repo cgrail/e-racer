@@ -5,7 +5,7 @@ import { Render } from '../../render/index.js';
 import { NO_INPUT } from '../../race/specs.js';
 import { g, W, H } from '../screen.js';
 import { settings, saveAll, game, go } from '../state.js';
-import { panel, rowsDraw, rowsNav, buttonsRow } from '../ui.js';
+import { panel, rowsDraw, rowsNav, buttonsRow, TOUCH_DRIVE } from '../ui.js';
 import { makeRace } from '../session.js';
 import { Online } from '../online.js';
 
@@ -28,7 +28,7 @@ export const RaceScene = {
   page() {
     if (!this.paused) return null;
     const rows = this.pauseRows(), net = !!game.race.net;
-    return { title: 'PAUSED', over: true, go: rows.filter(r => r.go), cards: [{ head: net ? 'ONLINE RACE' : 'RACE', ico: '🏁',
+    return { title: 'PAUSED', over: true, help: TOUCH_DRIVE, go: rows.filter(r => r.go), cards: [{ head: net ? 'ONLINE RACE' : 'RACE', ico: '🏁',
       rows: rows.filter(r => !r.go), note: net ? 'THE RACE GOES ON WHILE YOU ARE HERE.' : null }] };
   },
   update(dt) {

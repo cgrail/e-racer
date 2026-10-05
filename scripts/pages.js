@@ -21,11 +21,17 @@ const button = label => find(e => e.tagName === 'BUTTON' && e.textContent === la
 const opt = label => find(e => /^opt/.test(e.className) && e.all().some(k => k.className === 'k' && k.textContent === label), 'row ' + label);
 const step = (label, dir) => opt(label).children[dir < 0 ? 0 : 2].fire('click');
 const input = label => opt(label).all().find(e => e.tagName === 'INPUT');
+const column = label => { let e = opt(label); while (!/^side/.test(e.className)) e = e.parentNode; return e.className; }; // its column
 const type = (inp, v) => { inp.focus(); inp.value = v; inp.fire('input', {}); inp.fire('keydown', { key: 'Enter' }); inp.fire('change'); };
 
 expect('Lobby'); show(); // where the phone name test left off: the online menu, no race running
-if (title() !== 'ONLINE RACE' || heads().join() !== 'RACE SERVER,YOUR CAR,OPTIONS,HOW TO DRIVE') fail('online page: ' + title() + ' ' + heads());
-opt('BUTTONS');
+if (title() !== 'ONLINE RACE' || heads().join() !== 'OPTIONS,RACE SERVER,YOUR CAR') fail('online page: ' + title() + ' ' + heads());
+if (column('NAME') !== 'side left' || column('BUTTONS') !== 'side left' || column('CAR') !== 'side right') fail('name and options not on the left, car not on the right');
+button('? HELP').fire('click'); // how to drive, over the page
+const help = () => find(e => /^helpbox/.test(e.className), 'help').className === 'helpbox on';
+if (!help() || !all().some(e => e.className === 'chip brake')) fail('HELP did not show how to drive');
+button('◂').fire('click'); frames(1); expect('Lobby'); if (help()) fail('back did not close the help first');
+button('? HELP').fire('click'); button('GOT IT').fire('click'); if (help()) fail('GOT IT did not close the help');
 if (button('START RACE').className !== 'go' || !Page.covers()) fail('START RACE should be the green action over the whole canvas');
 const car = s.cars[0];
 step('CAR', 1); if (s.cars[0] === car) fail('▸ did not change the car');
@@ -39,9 +45,11 @@ if (show() || stage.children.length) fail('page left up on the title');
 
 go('MainMenu'); show();
 s.players = 1; show();
-if (title() !== 'LOCAL GAME' || heads().join() !== 'RACE SETUP,PLAYER 1,OPTIONS,HOW TO DRIVE') fail('local page: ' + heads());
-opt('BUTTONS');
+if (title() !== 'LOCAL GAME' || heads().join() !== 'SETUP,PLAYER 1') fail('local page: ' + heads());
+const p1 = input('P1 NAME'), labels = () => opt('P1 NAME').parentNode.children.map(e => e.all().find(k => k.className === 'k').textContent).join();
 step('PLAYERS', 1); if (s.players !== 2 || !heads().includes('PLAYER 2')) fail('a second player did not get a card');
+if (input('P1 NAME') !== p1) fail('the rows around a name field were built again, so typing would lose the keyboard');
+if (labels() !== 'P1 NAME,P2 NAME,PLAYERS,GAME,LEVEL,MUSIC,UNITS,BUTTONS') fail('rows out of order after one came: ' + labels());
 step('PLAYERS', -1); if (s.players !== 1 || heads().includes('PLAYER 2')) fail('the second player card stayed');
 while (s.mode !== 2) step('GAME', 1);
 button('BUILD COURSE').fire('click'); expect('Builder');
@@ -77,4 +85,4 @@ if (stage.children.length !== 1 || stage.children[0].className !== 'page' || tit
 
 Page.update(false, stage); if (stage.children.length) fail('a key press (touch off) did not take the page away');
 document.createElement = make; Input.setAuto(false);
-console.log('touch pages: online menu (car, name, back), local menu (players, game), course builder (slider, turned slider, code, randomise), pause menu (continue, back, buttons side, quit) OK');
+console.log('touch pages: online menu (columns, help, car, name, back), local menu (players, rows kept, game), course builder (slider, turned slider, code, randomise), pause menu (continue, back, buttons side, quit) OK');

@@ -9,7 +9,8 @@ import { DIFF_NAMES, QUALIFY, CHAMP, STAGES, startSession } from '../session.js'
 
 // Main menu of the local game (online play has the Lobby, when the race server answers): players, game mode,
 // level, cars and names, music and units, and on touch the side for the racing buttons. On a touch screen it is a
-// page (game/page.js), a card per sec of rows.
+// page (game/page.js): names, race setup and options top left, the cars on the right with START under them, and
+// how to drive behind HELP.
 export const MainMenu = {
   sel: 0, t: 0, editing: false, who: 0, buf: '',
   enter() { this.t = 0; this.editing = false; Sound.enginesOff(); },
@@ -42,13 +43,13 @@ export const MainMenu = {
       `${STAGES[s.diff].length} STAGES AGAINST THE CLOCK. EVERY CHECKPOINT GIVES YOU MORE TIME.`,
       'DESIGN YOUR OWN COURSE, OR TURN ANY WORD INTO ONE.',
     ][s.mode];
+    const players = Array.from({ length: s.players }, (_, p) => sec('p' + p));
     return {
       title: 'LOCAL GAME',
+      help: TOUCH_DRIVE,
       cards: [
-        { head: 'RACE SETUP', ico: '🏁', rows: sec('race'), note: about },
-        ...Array.from({ length: s.players }, (_, p) => carCard(p, sec('p' + p), this.t)),
-        { head: 'OPTIONS', ico: '⚙', rows: sec('sound') },
-        { head: 'HOW TO DRIVE', ico: '📋', help: TOUCH_DRIVE },
+        { head: 'SETUP', ico: '🏁', rows: [...players.flat().filter(r => r.field), ...sec('race'), ...sec('sound')], note: about },
+        ...players.map((own, p) => carCard(p, own.filter(r => !r.field), this.t)),
       ],
       go: rows.filter(r => r.go),
       foot: s.players > 1 ? 'PLAYER 2 DRIVES WITH THE KEYBOARD OR A PAD' : null,

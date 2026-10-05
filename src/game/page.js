@@ -5,20 +5,22 @@ import { game } from './state.js';
 import { SLIDER, rowSet, rowStep, rowAct } from './ui.js';
 
 // Menus on a touch screen, laid out like mech.grails.de: a page of plain HTML over the game instead of rows on the
-// canvas. A nav bar with the way back (it presses Esc) and the title, scrolling titled cards (in two columns when
-// there is room), and the green action pinned below them. A scene with a menu has page(), built from its rows
-// (game/ui.js):
-//   { title, over, cards: [{ head, ico, pic, lines, bars, rows, help, note }], go: [rows], foot }
-// pic: { w, h, key, draw(ctx), fill } is drawn again when its key changes (fill: as wide as the card, smoothed;
-// otherwise pixel art at 1.5x); lines: [[text, colour, big]]; bars: [[label, 0..1]]; help: [[button, style, text]].
-// An option or slider row is ◂ LABEL VALUE ▸, a row with a field is a text box, an action row is a button, and the
-// go rows are the footer's buttons, the first one green. A page fills the stage, landscape like the game and turned
-// with it on a phone held upright, so the phone never has to turn between menus and races. One that is over (the
-// pause menu) lets the race show through.
-// Touch.update hands the scene's page over every frame. A card is built again only when its shape changes (other
-// rows, other parts), otherwise its values are brought up to date, so a field keeps the keyboard while the rows
-// around it come and go.
-let page = null, stage = null, over = false, title = null, scroll = null, list = null, foot = null, cards = [], footer = null;
+// canvas, landscape like the game and turned with it on a phone held upright, so the phone never has to turn
+// between menus and races. A nav bar with the way back (it presses Esc), the title and, where the scene has
+// instructions, a HELP button that shows them over the page. Below it, two columns sized to fit without scrolling:
+// the settings on the left, and on the right what they are for (the car, the course), with the go buttons pinned
+// under it, the first one green. A page with nothing on the right is one column in the middle, its buttons below.
+// A scene with a menu has page(), built from its rows (game/ui.js):
+//   { title, over, help, cards: [{ head, ico, side, pic, lines, bars, rows, note }], go: [rows], foot }
+// side: 'right' puts a card in the right column; help: [[button, style, text]] (TOUCH_DRIVE); over: the page lets
+// the race show through (the pause menu). pic: { w, h, key, draw(ctx), fill } is drawn again when its key changes
+// (fill: as wide as the card, smoothed; otherwise pixel art at 1.25x); lines: [[text, colour, big]]; bars:
+// [[label, 0..1]]. An option or slider row is ◂ LABEL VALUE ▸, a row with a field is a text box, an action row is a
+// button.
+// Touch.update hands the scene's page over every frame. A card is built again only when its parts change; its rows
+// are matched by label, so rows come and go around the others and a field keeps the keyboard meanwhile.
+let page = null, stage = null, over = false, title = null, helpBtn = null, cols = null, left = null, right = null;
+let foot = null, helpBox = null, helpOn = false, cards = [], footer = null;
 
 function el(tag, cls, parent, txt) {
   const e = document.createElement(tag);
@@ -34,7 +36,8 @@ function put(e, txt, col) {
 }
 const tidy = label => label.replace(/^< | >$/g, '');
 const kind = r => (r.field ? 'f' : r.slider != null ? 's' : r.opts ? 'o' : r.action ? 'a' : 'v');
-const shape = c => [c.head, c.ico, !!c.pic, !!c.lines, !!c.bars, (c.rows || []).map(r => kind(r) + r.label).join(), c.help ? c.help.length : 0, c.note != null].join('|');
+const side = c => (c.side === 'right' ? 'right' : 'left');
+const shape = c => [c.head, c.ico, !!c.pic, !!c.lines, !!c.bars, !!c.rows, c.note != null].join('|');
 
 // A tap does its thing, then the page catches up at once (the next tap may come before the next frame).
 function tap(b, fn) { b.addEventListener('click', e => { fn(e); sync(); }); }
@@ -42,8 +45,8 @@ function sync() { if (page) render(game.scene.page ? game.scene.page() : null); 
 function back() { Input.virtual('Escape', true); Input.virtual('Escape', false); }
 
 // ◂ LABEL VALUE ▸: the arrows step the value; the middle steps an option on, or sets a slider to where it is tapped.
-function option(body, ref) {
-  const o = el('div', 'opt', body);
+function option(ref) {
+  const o = el('div', 'opt');
   const prev = el('button', 'step', o, '◂'), main = el('button', 'main', o), next = el('button', 'step', o, '▸');
   el('span', 'k', main, tidy(ref.row.label));
   const v = el('span', 'v', main);
@@ -52,7 +55,7 @@ function option(body, ref) {
   tap(next, () => rowStep(ref.row, 1));
   if (ref.row.slider == null) {
     tap(main, () => rowStep(ref.row, 1));
-    return r => put(v, r.opts[r.val] || '');
+    return { node: o, show: r => put(v, r.opts[r.val] || '') };
   }
   v.className = 'v notches';
   const marks = Array.from({ length: ref.row.slider }, () => el('i', '', v));
@@ -61,16 +64,16 @@ function option(body, ref) {
     if (f > -0.1) rowSet(ref.row, Math.round(U.clamp(f, 0, 1) * ref.row.slider));
   });
   let shown = -1;
-  return r => {
+  return { node: o, show: r => {
     if (r.val === shown) return;
     shown = r.val;
     marks.forEach((m, k) => { m.style.background = k < r.val ? SLIDER(k) : ''; });
-  };
+  } };
 }
 // LABEL [text]: what is typed is cleaned up as it comes (a word still being composed is left alone) and kept once
 // the keyboard closes. Its keys stop here: they aren't game input, and F isn't fullscreen.
-function field(body, ref) {
-  const o = el('label', 'opt field', body), m = el('span', 'main', o);
+function field(ref) {
+  const o = el('label', 'opt field'), m = el('span', 'main', o);
   el('span', 'k', m, tidy(ref.row.label));
   const inp = el('input', 'v', m), f = () => ref.row.field;
   Object.assign(inp, { type: 'text', autocomplete: 'off', spellcheck: false });
@@ -85,19 +88,44 @@ function field(body, ref) {
   });
   inp.addEventListener('change', () => { clean(); f().apply(inp.value); Sound.fx.select(); sync(); });
   inp.addEventListener('blur', () => { if (window.scrollTo) window.scrollTo(0, 0); }); // iOS may have moved the page for the keyboard
-  return r => {
+  return { node: o, show: r => {
     if (inp.placeholder !== r.field.hint) inp.placeholder = r.field.hint;
     if (document.activeElement !== inp && inp.value !== r.field.value) inp.value = r.field.value;
-  };
+  } };
 }
-function row(body, r0, i) {
+function row(r0) {
   const ref = { row: r0 }, k = kind(r0);
-  let show = () => {};
-  if (k === 'f') show = field(body, ref);
-  else if (k === 'o' || k === 's') show = option(body, ref);
-  else if (k === 'a') tap(el('button', 'act', body, tidy(r0.label)), () => rowAct(ref.row));
-  else { const m = el('div', 'main', el('div', 'opt', body)); el('span', 'k', m, tidy(r0.label)); const v = el('span', 'v', m); show = r => put(v, r.value || ''); }
-  return c => { ref.row = c.rows[i]; show(ref.row); };
+  let made;
+  if (k === 'f') made = field(ref);
+  else if (k === 'o' || k === 's') made = option(ref);
+  else if (k === 'a') { const b = el('button', 'act', null, tidy(r0.label)); tap(b, () => rowAct(ref.row)); made = { node: b, show: () => {} }; }
+  else {
+    const o = el('div', 'opt'), m = el('div', 'main', o);
+    el('span', 'k', m, tidy(r0.label));
+    const v = el('span', 'v', m);
+    made = { node: o, show: r => put(v, r.value || '') };
+  }
+  return { node: made.node, show: r => { ref.row = r; made.show(r); } };
+}
+// A card's rows, matched by kind and label: new ones go in where they belong and gone ones go, and the rest stay
+// where they are (rows come and go but never trade places).
+function rows(body) {
+  const box = el('div', 'rows', body);
+  let have = new Map();
+  return c => {
+    const next = new Map();
+    let after = null;
+    for (let i = c.rows.length - 1; i >= 0; i--) {
+      const r = c.rows[i], key = kind(r) + r.label;
+      let h = have.get(key);
+      if (!h) { h = row(r); box.insertBefore(h.node, after); }
+      h.show(r);
+      next.set(key, h);
+      after = h.node;
+    }
+    for (const [key, h] of have) if (!next.has(key)) h.node.remove();
+    have = next;
+  };
 }
 
 function pic(body) {
@@ -110,7 +138,7 @@ function pic(body) {
     const s = p.fill ? 2 : 1;
     cv.width = p.w * s; cv.height = p.h * s;
     cv.className = p.fill ? 'fill' : '';
-    if (!p.fill) cv.style.width = p.w * 1.5 + 'px';
+    if (!p.fill) cv.style.width = p.w * 1.25 + 'px';
     const x = cv.getContext('2d');
     x.setTransform(s, 0, 0, s, 0, 0);
     x.imageSmoothingEnabled = !!p.fill;
@@ -147,13 +175,9 @@ function card(c) {
   if (c.pic) parts.push(pic(body));
   if (c.lines) parts.push(lines(body));
   if (c.bars) parts.push(bars(body));
-  (c.rows || []).forEach((r, i) => parts.push(row(body, r, i)));
-  if (c.help) {
-    const box = el('div', 'help', body);
-    for (const [chip, style, txt] of c.help) { const t = el('div', 'tip', box); el('span', 'chip ' + style, t, chip); el('span', '', t, txt); }
-  }
+  if (c.rows) parts.push(rows(body));
   if (c.note != null) { const n = el('div', 'note', body); parts.push(c2 => put(n, c2.note)); }
-  return { node, shape: shape(c), show: c2 => parts.forEach(f => f(c2)) };
+  return { node, shape: shape(c), side: side(c), show: c2 => parts.forEach(f => f(c2)) };
 }
 function buttons(spec) {
   const sh = spec.go.map(r => r.label).join('|') + '|' + (spec.foot || '');
@@ -167,35 +191,56 @@ function buttons(spec) {
   if (spec.foot) el('div', 'sub', foot, spec.foot);
   footer = { shape: sh, refs };
 }
-// The page's frame: nav bar, cards, footer. A new title is a new page, scrolled to the top.
+// The instructions, over the page until GOT IT or back.
+function help(on, list) {
+  helpOn = on;
+  helpBox.replaceChildren();
+  helpBox.className = on ? 'helpbox on' : 'helpbox';
+  if (!on) return;
+  const c = el('div', 'card', helpBox), h = el('div', 'head', c);
+  el('span', 'ico', h, '📋'); el('span', '', h, 'HOW TO DRIVE');
+  const tips = el('div', 'help', el('div', 'body', c));
+  for (const [chip, style, txt] of list) { const t = el('div', 'tip', tips); el('span', 'chip ' + style, t, chip); el('span', '', t, txt); }
+  tap(el('button', 'go', helpBox, 'GOT IT'), () => help(false));
+}
+// The page's frame: nav bar, the two columns and the buttons, and the instructions over them. A new title is a new
+// page, scrolled to the top.
 function frame(spec) {
   if (page) page.remove();
-  over = !!spec.over; title = spec.title; cards = []; footer = null;
+  over = !!spec.over; title = spec.title; cards = []; footer = null; helpOn = false;
   page = el('div', 'page' + (over ? ' over' : ''), stage);
   const nav = el('div', 'nav', page), b = el('button', 'back', nav, '◂');
   b.setAttribute('aria-label', 'Back');
-  tap(b, back);
+  tap(b, () => (helpOn ? help(false) : back()));
   el('div', 'title', nav, spec.title);
-  scroll = el('div', 'scroll', page);
-  list = el('div', 'list', scroll);
-  foot = el('div', 'foot', page);
+  helpBtn = el('button', 'helps', nav, '? HELP');
+  tap(helpBtn, () => help(!helpOn, game.scene.page().help));
+  cols = el('div', 'cols', page);
+  left = el('div', 'side left', cols); right = el('div', 'side right', cols); foot = el('div', 'foot', cols);
+  helpBox = el('div', 'helpbox', page);
 }
 function render(spec) {
   if (!spec) { if (page) page.remove(); page = null; return; }
   if (!page || !!spec.over !== over || spec.title !== title) frame(spec);
-  const top = scroll.scrollTop; // where the cards were scrolled to, kept as they come and go
-  if (cards.length !== spec.cards.length) { cards.forEach(c => c.node.remove()); cards = []; }
+  const tops = [left.scrollTop, right.scrollTop]; // where the columns were scrolled to, kept as cards come and go
+  let from = spec.cards.findIndex((c, i) => !cards[i] || cards[i].side !== side(c)); // cards from here on are new
+  if (from < 0) from = spec.cards.length;
+  cards.splice(from).forEach(c => c.node.remove());
   spec.cards.forEach((c, i) => {
     const old = cards[i];
     if (!old || old.shape !== shape(c)) {
       cards[i] = card(c);
-      if (old) old.node.replaceWith(cards[i].node); else list.appendChild(cards[i].node);
+      if (old) old.node.replaceWith(cards[i].node); else (side(c) === 'right' ? right : left).appendChild(cards[i].node);
     }
     cards[i].show(c);
   });
-  if (scroll.scrollTop !== top) scroll.scrollTop = top;
-  const lc = spec.cards.length > 1 ? 'list' : 'list one'; // a lone card in the middle, not in a column
-  if (list.className !== lc) list.className = lc;
+  if (left.scrollTop !== tops[0]) left.scrollTop = tops[0];
+  if (right.scrollTop !== tops[1]) right.scrollTop = tops[1];
+  const cc = spec.cards.some(c => side(c) === 'right') ? 'cols' : 'cols one'; // nothing on the right: one column
+  if (cols.className !== cc) cols.className = cc;
+  const hc = spec.help ? 'helps' : 'helps none';
+  if (helpBtn.className !== hc) helpBtn.className = hc;
+  if (helpOn && !spec.help) help(false);
   buttons(spec);
 }
 
