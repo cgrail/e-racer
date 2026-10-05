@@ -11,8 +11,8 @@ import { Online } from '../online.js';
 // The online menu, where the title screen leads when the race server answers. The first row starts a session (with
 // the level below it) or joins the race that is running, in place of a rival; then name, car, sound and units (and
 // on touch the side for the racing buttons). If the server stops answering, the player can try again or play offline
-// (the local MainMenu). On a touch screen it is a page (game/page.js): the session's state, then a card per sec of
-// rows, with the go rows below.
+// (the local MainMenu). On a touch screen it is a page (game/page.js): name and options top left, the race server
+// under them, the car on the right with the go rows under it, and how to drive behind HELP.
 const INFO = '#9fb0ff';
 
 export const Lobby = {
@@ -26,10 +26,11 @@ export const Lobby = {
       r.push({ key: 'offline', go: true, label: 'PLAY OFFLINE >', action: () => this.offline() });
       return r;
     }
-    let sec = 'car';
+    let sec = 'more';
     const opt = (key, label, opts, get, set, extra) => r.push(Object.assign({ key, sec, label, opts, val: get(), set }, extra));
     if (st === 'lobby' && !(live && live.full)) r.push({ key: 'go', go: true, label: live ? 'JOIN RACE >' : 'START RACE >', action: () => (live ? Online.join() : Online.start()) });
     r.push(Object.assign(nameRow(this, 0, 'NAME'), { sec }));
+    sec = 'car';
     opt('car', 'CAR', MODELS.map(m => CARSPEC[m].short), () => MODELS.indexOf(s.cars[0]), v => { s.cars[0] = MODELS[v]; });
     sec = 'more';
     if (!live) // a new session takes the level
@@ -59,12 +60,11 @@ export const Lobby = {
     return out;
   },
   page() {
-    const rows = this.rows(), sec = k => rows.filter(r => r.sec === k), cards = [{ head: 'RACE SERVER', ico: '📡', lines: this.lines() }];
-    if (sec('car').length) {
-      cards.push(carCard(0, sec('car'), this.t, 'YOUR CAR'), { head: 'OPTIONS', ico: '⚙', rows: sec('more') },
-        { head: 'HOW TO DRIVE', ico: '📋', help: TOUCH_DRIVE });
-    }
-    return { title: 'ONLINE RACE', cards, go: rows.filter(r => r.go) };
+    const rows = this.rows(), sec = k => rows.filter(r => r.sec === k), server = { head: 'RACE SERVER', ico: '📡', lines: this.lines() };
+    const page = { title: 'ONLINE RACE', cards: [server], go: rows.filter(r => r.go) };
+    if (!sec('car').length) return page; // no server: just what happened, and the way on
+    page.cards = [{ head: 'OPTIONS', ico: '⚙', rows: sec('more') }, server, carCard(0, sec('car'), this.t, 'YOUR CAR')];
+    return Object.assign(page, { help: TOUCH_DRIVE });
   },
   update(dt) {
     this.t += dt;

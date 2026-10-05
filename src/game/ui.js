@@ -124,16 +124,16 @@ export function carPanel(x, y, w, h, p, t, plate = settings.names[p]) {
 }
 const carBars = spec => [['TOP SPEED', spec.top], ['ACCELERATION', spec.acc / 1.25], ['GRIP', spec.grip / 1.25]];
 const carSpeed = spec => `${Math.round(spec.top * K.MPH * (settings.units ? 1.609 : 1))} ${settings.units ? 'KM/H' : 'MPH'}  ${spec.kw} KW`;
-// carPanel as a card for a page (game/page.js), with the player's rows (under the player's head, so without the
-// P1 or P2 in front).
+// carPanel as a card for a page (game/page.js), in its right column, with the player's rows (under the player's
+// head, so without the P1 or P2 in front).
 export function carCard(p, rows, t, head = `PLAYER ${p + 1}`) {
   const model = settings.cars[p], spec = CARSPEC[model], plate = settings.names[p], k = Math.floor(t / 1.2) % 4;
   const draw = c => c.drawImage(Art.car(model, CAR_COLORS[p], [0, 2, 0, -2][k], k === 2, plate), 0, 0);
   rows = rows.map(r => Object.assign({}, r, { label: r.label.replace(/^P\d /, '') }));
-  return { head, ico: '🚗', rows, pic: { w: 144, h: 80, key: model + plate + k, draw },
+  return { head, ico: '🚗', side: 'right', rows, pic: { w: 144, h: 80, key: model + plate + k, draw },
     lines: [[spec.name, '#ffffff'], [carSpeed(spec), '#7fffb0']], bars: carBars(spec) };
 }
-// How to drive on a touch screen, for the pages: a button as it looks while racing, and what it does.
+// How to drive on a touch screen, behind the pages' HELP button: a button as it looks while racing, and what it does.
 export const TOUCH_DRIVE = [
   ['DRAG', 'steer', 'A FINGER ANYWHERE, LEFT OR RIGHT, TO STEER. THE CAR ACCELERATES BY ITSELF.'],
   ['BRAKE', 'brake', 'HALFWAY UP THE LEFT EDGE, UNDER YOUR THUMB (OR THE RIGHT: SEE BUTTONS).'],

@@ -51,6 +51,11 @@ export class El {
   get textContent() { return this.own + this.children.map(c => c.textContent).join(''); }
   set textContent(s) { this.replaceChildren(); this.own = String(s); }
   appendChild(c) { if (c.parentNode) c.remove(); c.parentNode = this; this.children.push(c); return c; }
+  insertBefore(c, ref) {
+    if (!ref) return this.appendChild(c);
+    if (c.parentNode) c.remove();
+    c.parentNode = this; this.children.splice(this.children.indexOf(ref), 0, c); return c;
+  }
   remove() { const p = this.parentNode; if (p) p.children.splice(p.children.indexOf(this), 1); this.parentNode = null; }
   replaceWith(c) { const p = this.parentNode; p.children[p.children.indexOf(this)] = c; c.parentNode = p; this.parentNode = null; }
   replaceChildren() { this.children.forEach(c => { c.parentNode = null; }); this.children = []; this.own = ''; }

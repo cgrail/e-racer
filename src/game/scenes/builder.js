@@ -10,7 +10,8 @@ import { drawAttract } from '../attract.js';
 import { startSession } from '../session.js';
 
 // Course builder: sliders, scenery, race type, course codes and a live course preview. On a touch screen it is a
-// page (game/page.js): the preview, then a card per sec of rows; the code is typed into a field there.
+// page (game/page.js): the settings on the left, the preview on the right with RACE! under it; the code is typed
+// into a field there.
 export const Builder = {
   sel: 0, editing: false, buf: '', pv: null, track: null, t: 0,
   enter() { this.editing = false; this.refresh(); },
@@ -48,11 +49,11 @@ export const Builder = {
     return {
       title: 'COURSE BUILDER',
       cards: [
-        { head: 'COURSE PREVIEW', ico: '🗺', pic: { w: 300, h: 186, key: this.track.code + custom.type, draw, fill: true },
-          lines: [[this.track.code, '#7fffb0', true], [`${THEMES[custom.params.scenery].name}  ${km} KM`, '#ffffff']] },
-        { head: 'COURSE CODE', ico: '🔤', rows: sec('code'), note: 'TYPE ANY WORD: IT BECOMES A COURSE!' },
         { head: 'DESIGN', ico: '🛠', rows: sec('design') },
         { head: 'RACE', ico: '🏁', rows: sec('race') },
+        { head: 'COURSE CODE', ico: '🔤', rows: sec('code'), note: 'TYPE ANY WORD: IT BECOMES A COURSE!' },
+        { head: 'COURSE PREVIEW', ico: '🗺', side: 'right', pic: { w: 300, h: 186, key: this.track.code + custom.type, draw, fill: true },
+          lines: [[this.track.code, '#7fffb0', true], [`${THEMES[custom.params.scenery].name}  ${km} KM`, '#ffffff']] },
       ],
       go: rows.filter(r => r.go),
     };
