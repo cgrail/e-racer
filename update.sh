@@ -9,8 +9,9 @@
 # restarts the service.
 #
 # install.sh registers this as a systemd timer (every 5 min), and as a
-# path unit that runs it at once when the server's POST /update (a
-# GitHub webhook on push) writes /run/electro-car-racer/update:
+# path unit that runs it at once when the server's GET /update (the
+# Deploy workflow, on every push to main) writes
+# /run/electro-car-racer/update:
 #   systemctl list-timers electro-car-racer-update.timer
 #   journalctl -u electro-car-racer-update
 #
@@ -28,7 +29,7 @@ APP_DIR=/opt/$APP
 APP_USER=ecr
 APP_HOME=/var/lib/$APP
 DEPLOYED_REV_FILE=$APP_HOME/deployed-rev
-UPDATE_FILE=/run/$APP/update # the webhook's request, which starts this through $APP-update.path
+UPDATE_FILE=/run/$APP/update # GET /update's request, which starts this through $APP-update.path
 BRANCH="${BRANCH:-main}"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -36,7 +37,7 @@ log() { printf '\033[1;32m==> %s\033[0m\n' "$*"; }
 die() { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "run with sudo: sudo ./update.sh [--force]"
-# this run takes the webhook's request, whatever happens below (a request left
+# this run takes GET /update's request, whatever happens below (a request left
 # in place would start it again and again); one that comes in from here on
 # may be newer than the fetch, so the path unit runs this again when it ends
 rm -f "$UPDATE_FILE"
