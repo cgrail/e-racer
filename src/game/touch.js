@@ -177,7 +177,7 @@ function homeIcon() {
 
 // The page stays put: no scrolling (which would also slide the browser bars in and out), and no double-tap
 // or pinch zoom, which iOS Safari allows despite user-scalable=no. Text fields and the menu pages keep their own
-// touches: a page scrolls its card column, and its touch-action (style.css) leaves out both zooms.
+// touches: a page scrolls its cards, and its touch-action (style.css) leaves out both zooms.
 function noScroll() {
   let lastEnd = 0;
   const stop = e => { if (e.target.tagName !== 'INPUT' && !(e.target.closest && e.target.closest('.page'))) e.preventDefault(); };

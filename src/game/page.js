@@ -5,18 +5,20 @@ import { game } from './state.js';
 import { SLIDER, rowSet, rowStep, rowAct } from './ui.js';
 
 // Menus on a touch screen, laid out like mech.grails.de: a page of plain HTML over the game instead of rows on the
-// canvas. A nav bar with the way back (it presses Esc) and the title, a scrolling column of titled cards, and the
-// green action pinned below it. A scene with a menu has page(), built from its rows (game/ui.js):
-//   { title, staged, cards: [{ head, ico, pic, lines, bars, rows, help, note }], go: [rows], foot }
+// canvas. A nav bar with the way back (it presses Esc) and the title, scrolling titled cards (in two columns when
+// there is room), and the green action pinned below them. A scene with a menu has page(), built from its rows
+// (game/ui.js):
+//   { title, over, cards: [{ head, ico, pic, lines, bars, rows, help, note }], go: [rows], foot }
 // pic: { w, h, key, draw(ctx), fill } is drawn again when its key changes (fill: as wide as the card, smoothed;
 // otherwise pixel art at 1.5x); lines: [[text, colour, big]]; bars: [[label, 0..1]]; help: [[button, style, text]].
 // An option or slider row is ◂ LABEL VALUE ▸, a row with a field is a text box, an action row is a button, and the
-// go rows are the footer's buttons, the first one green. A page fills the screen upright, whichever way the phone
-// is held; a staged one (the pause menu) sits in the stage, turned with the game, over the race.
+// go rows are the footer's buttons, the first one green. A page fills the stage, landscape like the game and turned
+// with it on a phone held upright, so the phone never has to turn between menus and races. One that is over (the
+// pause menu) lets the race show through.
 // Touch.update hands the scene's page over every frame. A card is built again only when its shape changes (other
 // rows, other parts), otherwise its values are brought up to date, so a field keeps the keyboard while the rows
 // around it come and go.
-let page = null, stage = null, host = null, title = null, list = null, foot = null, cards = [], footer = null;
+let page = null, stage = null, over = false, title = null, scroll = null, list = null, foot = null, cards = [], footer = null;
 
 function el(tag, cls, parent, txt) {
   const e = document.createElement(tag);
@@ -54,8 +56,8 @@ function option(body, ref) {
   }
   v.className = 'v notches';
   const marks = Array.from({ length: ref.row.slider }, () => el('i', '', v));
-  tap(main, e => {
-    const b = v.getBoundingClientRect(), f = (e.clientX - b.left) / b.width;
+  tap(main, e => { // turned a quarter clockwise with the stage, the slider runs down the screen
+    const b = v.getBoundingClientRect(), f = b.height > b.width ? (e.clientY - b.top) / b.height : (e.clientX - b.left) / b.width;
     if (f > -0.1) rowSet(ref.row, Math.round(U.clamp(f, 0, 1) * ref.row.slider));
   });
   let shown = -1;
@@ -165,23 +167,23 @@ function buttons(spec) {
   if (spec.foot) el('div', 'sub', foot, spec.foot);
   footer = { shape: sh, refs };
 }
-// The page's frame: nav bar, card column, footer. A new title or place is a new page, scrolled to the top.
-function frame(spec, to) {
+// The page's frame: nav bar, cards, footer. A new title is a new page, scrolled to the top.
+function frame(spec) {
   if (page) page.remove();
-  host = to; title = spec.title; cards = []; footer = null;
-  page = el('div', 'page' + (spec.staged ? ' staged' : ''), to);
+  over = !!spec.over; title = spec.title; cards = []; footer = null;
+  page = el('div', 'page' + (over ? ' over' : ''), stage);
   const nav = el('div', 'nav', page), b = el('button', 'back', nav, '◂');
   b.setAttribute('aria-label', 'Back');
   tap(b, back);
   el('div', 'title', nav, spec.title);
-  list = el('div', 'list', page);
+  scroll = el('div', 'scroll', page);
+  list = el('div', 'list', scroll);
   foot = el('div', 'foot', page);
 }
 function render(spec) {
   if (!spec) { if (page) page.remove(); page = null; return; }
-  const to = spec.staged ? stage : document.body;
-  if (!page || to !== host || spec.title !== title) frame(spec, to);
-  const top = list.scrollTop; // where the column was scrolled to, kept as cards come and go
+  if (!page || !!spec.over !== over || spec.title !== title) frame(spec);
+  const top = scroll.scrollTop; // where the cards were scrolled to, kept as they come and go
   if (cards.length !== spec.cards.length) { cards.forEach(c => c.node.remove()); cards = []; }
   spec.cards.forEach((c, i) => {
     const old = cards[i];
@@ -191,18 +193,20 @@ function render(spec) {
     }
     cards[i].show(c);
   });
-  if (list.scrollTop !== top) list.scrollTop = top;
+  if (scroll.scrollTop !== top) scroll.scrollTop = top;
+  const lc = spec.cards.length > 1 ? 'list' : 'list one'; // a lone card in the middle, not in a column
+  if (list.className !== lc) list.className = lc;
   buttons(spec);
 }
 
 export const Page = {
-  // Shows the current scene's page, if it has one and show is set, or takes the page away. A staged page goes into
-  // the stage element. Returns whether a page is up.
+  // Shows the current scene's page in the stage element, if it has one and show is set, or takes the page away.
+  // Returns whether a page is up.
   update(show, stageEl) {
     stage = stageEl;
     render(show && game.scene.page ? game.scene.page() : null);
     return !!page;
   },
-  // Whether a page hides the whole canvas (an upright one), so the game needn't draw it.
-  covers() { return !!page && host === document.body; },
+  // Whether a page hides the whole canvas (one that isn't over the race), so the game needn't draw it.
+  covers() { return !!page && !over; },
 };
