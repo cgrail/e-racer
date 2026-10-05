@@ -101,8 +101,9 @@ body.touching #screen, body.touching .touch {
 
 /* Menus on a touch screen (game/page.js), laid out like mech.grails.de in the game's own colours and sized to fit a
    phone's stage without scrolling: a nav bar with the way back, the title and HELP; the settings in the left column,
-   and in the right one what they are for (the car, the course) with the go buttons pinned under it. With nothing
-   on the right (.one) it is one column in the middle with its buttons below. A column scrolls only if it must.
+   what they are for (the car, the course) in the right one, and the go buttons pinned in the middle below both.
+   With nothing on the right (.one) it is one column in the middle with its buttons below. A column scrolls only if
+   it must.
    A page fills the stage, landscape like the game and turned with it on a phone held upright, so the phone never
    turns between menus and races; the stage's insets (--l, --r, --t, --b) pad it. One over the race (pause) lets
    the race show through. touch-action pan-x pan-y, on everything in it (it isn't inherited), lets a column scroll
@@ -133,18 +134,22 @@ body.touching #screen, body.touching .touch {
 .page .cols {
   display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
   gap: 6px 10px; min-height: 0; padding: 8px 10px 6px;
+  position: relative; z-index: 0; /* iOS paints scrolling columns over what follows them unless they are stacked */
 }
 .page .side {
   display: flex; flex-direction: column; gap: 6px; min-height: 0;
-  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-  scrollbar-width: thin; scrollbar-color: #4a6cff transparent;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #4a6cff transparent;
 }
-.page .left { grid-column: 1; grid-row: 1 / 3; }
+.page .left { grid-column: 1; grid-row: 1; }
 .page .right { grid-column: 2; grid-row: 1; }
-.page .foot { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 6px; }
+.page .foot {
+  grid-column: 1 / 3; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+}
+.page .foot .go { width: min(360px, 50%); }
+.page .foot .alt { padding: 0 16px; }
+.page .foot .sub { flex-basis: 100%; }
 .page .foot:empty { display: none; }
 .page .cols.one { grid-template-columns: minmax(0, 420px); justify-content: center; }
-.page .one .left { grid-row: 1; }
 .page .one .left::before, .page .one .left::after { content: ''; flex: 1 0 0; } /* in the middle while short */
 .page .one .right { display: none; }
 .page .one .foot { grid-column: 1; }
@@ -193,7 +198,7 @@ body.touching #screen, body.touching .touch {
 .page .note, .page .sub { font-size: 8px; line-height: 1.5; color: #7080b0; text-align: center; }
 /* HELP: how to drive over the page, the racing buttons as they look and what they do, in two columns */
 .page .helpbox {
-  display: none; grid-row: 2; grid-column: 1; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  display: none; grid-row: 2; grid-column: 1; position: relative; z-index: 1; /* over the columns */ flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   padding: 8px 10px; background: rgba(5, 5, 28, 0.95);
 }
 .page .helpbox.on { display: flex; }

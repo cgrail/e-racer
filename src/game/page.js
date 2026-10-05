@@ -8,8 +8,8 @@ import { SLIDER, rowSet, rowStep, rowAct } from './ui.js';
 // canvas, landscape like the game and turned with it on a phone held upright, so the phone never has to turn
 // between menus and races. A nav bar with the way back (it presses Esc), the title and, where the scene has
 // instructions, a HELP button that shows them over the page. Below it, two columns sized to fit without scrolling:
-// the settings on the left, and on the right what they are for (the car, the course), with the go buttons pinned
-// under it, the first one green. A page with nothing on the right is one column in the middle, its buttons below.
+// the settings on the left and what they are for (the car, the course) on the right, and the go buttons pinned in
+// the middle below both, the first one green. A page with nothing on the right is one column in the middle.
 // A scene with a menu has page(), built from its rows (game/ui.js):
 //   { title, over, help, cards: [{ head, ico, side, pic, lines, bars, rows, note }], go: [rows], foot }
 // side: 'right' puts a card in the right column; help: [[button, style, text]] (TOUCH_DRIVE); over: the page lets
