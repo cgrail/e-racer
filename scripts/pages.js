@@ -1,5 +1,6 @@
 // Touch menus: the pages (game/page.js) that the online and local menus, the course builder and the pause menu
-// become on a touch screen, on a stand-in DOM, tapped through from the online menu to a race and back.
+// become on a touch screen, all in the stage, on a stand-in DOM, tapped through from the online menu to a race and
+// back.
 import { El, store, frames, tap } from './stubs.js';
 
 const { Input } = await import('../src/core/input.js');
@@ -9,11 +10,10 @@ const fail = msg => { throw new Error('pages: ' + msg); };
 const expect = name => { if (window.__ecr.scene !== name) fail(`expected scene ${name}, got ${window.__ecr.scene}`); };
 const make = document.createElement, s = window.__ecr.settings, stage = new El('div');
 document.createElement = t => new El(t);
-document.body = new El('body');
 Input.setAuto(true); // touch on: the menus are pages, with BUTTONS for the racing buttons' side
 
 const show = () => Page.update(true, stage);
-const all = () => document.body.all().concat(stage.all());
+const all = () => stage.all();
 const find = (test, what) => all().find(test) || fail('no ' + what);
 const title = () => find(e => e.className === 'title', 'title').textContent;
 const heads = () => all().filter(e => e.className === 'head').map(e => e.children[e.children.length - 1].textContent);
@@ -35,7 +35,7 @@ type(name, 'zed-9x');
 if (name.value !== 'ZED9X' || s.names[0] !== 'ZED9X') fail('typed name not cleaned up and kept: ' + s.names[0]);
 s.names[0] = 'ABC'; show(); if (name.value !== 'ABC') fail('name field not brought up to date');
 button('◂').fire('click'); frames(1); expect('Title'); // back presses Esc
-if (show() || document.body.children.length) fail('page left up on the title');
+if (show() || stage.children.length) fail('page left up on the title');
 
 go('MainMenu'); show();
 s.players = 1; show();
@@ -51,6 +51,9 @@ custom.params.curves = 5; show();
 step('CURVES', 1); if (custom.params.curves !== 6) fail('▸ did not move the slider');
 if (opt('CURVES').all().filter(e => e.tagName === 'I' && e.style.background).length !== 6) fail('slider notches not lit');
 opt('CURVES').children[1].fire('click', { clientX: 100 + 150 * 0.2 }); if (custom.params.curves !== 3) fail('tapping the slider did not set it: ' + custom.params.curves);
+const bar = opt('CURVES').all().find(e => /notches/.test(e.className)); // the stage turned a quarter: the slider runs down the screen
+bar.getBoundingClientRect = () => ({ left: 0, top: 200, width: 20, height: 150 });
+opt('CURVES').children[1].fire('click', { clientX: 5, clientY: 200 + 150 * 0.6 }); if (custom.params.curves !== 9) fail('tapping the turned slider did not set it: ' + custom.params.curves);
 const code = input('ENTER CODE'), before = scenes.Builder.track.code;
 code.focus(); code.value = 'hello world'; code.fire('input', {}); code.blur(); code.fire('change');
 if (scenes.Builder.track.code === before || code.value !== '') fail('typing a word did not build a course');
@@ -61,7 +64,7 @@ button('RACE!').fire('click'); expect('PreRace');
 if (show()) fail('page left up before the race');
 
 tap('Enter'); expect('RaceScene'); tap('Escape'); show(); // the pause menu: a page in the stage, over the race
-if (!stage.all().some(e => e.className === 'page staged') || Page.covers() || title() !== 'PAUSED') fail('pause page not in the stage');
+if (!stage.all().some(e => e.className === 'page over') || Page.covers() || title() !== 'PAUSED') fail('pause page not over the race');
 button('CONTINUE').fire('click'); if (scenes.RaceScene.paused || show()) fail('CONTINUE did not go on');
 tap('Escape'); show(); button('◂').fire('click'); frames(1); if (scenes.RaceScene.paused) fail('back did not go on');
 const side = () => [s.buttons, JSON.parse(store.get('ecr.settings')).buttons].join();
@@ -70,8 +73,8 @@ step('BUTTONS', 1); if (side() !== '1,1') fail('BUTTONS did not move the racing 
 step('BUTTONS', -1); if (side() !== '0,0') fail('BUTTONS did not move the racing buttons back left');
 button('CONTINUE').fire('click');
 tap('Escape'); show(); button('QUIT TO MENU').fire('click'); expect('MainMenu');
-if (stage.children.length || title() !== 'LOCAL GAME') fail('quitting did not take the pause page away');
+if (stage.children.length !== 1 || stage.children[0].className !== 'page' || title() !== 'LOCAL GAME') fail('quitting did not take the pause page away');
 
-Page.update(false, stage); if (document.body.children.length) fail('a key press (touch off) did not take the page away');
-document.createElement = make; delete document.body; Input.setAuto(false);
-console.log('touch pages: online menu (car, name, back), local menu (players, game), course builder (slider, code, randomise), pause menu (continue, back, buttons side, quit) OK');
+Page.update(false, stage); if (stage.children.length) fail('a key press (touch off) did not take the page away');
+document.createElement = make; Input.setAuto(false);
+console.log('touch pages: online menu (car, name, back), local menu (players, game), course builder (slider, turned slider, code, randomise), pause menu (continue, back, buttons side, quit) OK');

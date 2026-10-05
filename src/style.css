@@ -100,22 +100,22 @@ body.touching #screen, body.touching .touch {
 .mb.back { width: 72px; height: 36px; top: calc(8px + var(--t)); left: calc(8px + var(--l)); font-size: 9px; }
 
 /* Menus on a touch screen (game/page.js), laid out like mech.grails.de in the game's own colours: a nav bar with the
-   way back, a scrolling column of cards (all as wide as --col) and the green action pinned below it, so neither
-   ever scrolls away. An upright page covers the screen; a staged one (pause) sits in the stage, over the race.
-   touch-action pan-y, on everything in it (it isn't inherited), lets the column scroll but leaves out pinch and
-   double-tap zoom. */
+   way back, scrolling cards (in two balanced columns where there is room) and the green action pinned below them,
+   so neither ever scrolls away. A page fills the stage, landscape like the game and turned with it on a phone held
+   upright, so the phone never turns between menus and races; the stage's insets (--l, --r, --t, --b) pad it. One
+   over the race (pause) lets the race show through. touch-action pan-x pan-y, on everything in it (it isn't
+   inherited), lets the cards scroll whichever way the stage is turned, but leaves out pinch and double-tap zoom. */
 .page {
-  position: fixed; inset: 0; z-index: 5; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
-  --col: min(440px, calc(100vw - 24px));
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  position: absolute; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: var(--t) var(--r) var(--b) var(--l);
   font-family: 'Press Start 2P', monospace; color: #fff; text-align: center; pointer-events: auto;
   background: linear-gradient(#101a70, #0a0a30 45%, #05051c);
   -webkit-tap-highlight-color: transparent;
 }
-.page, .page * { box-sizing: border-box; touch-action: pan-y; }
-.page.staged { position: absolute; --col: min(380px, 92%); padding: var(--t) var(--r) var(--b) var(--l); background: rgba(0, 0, 20, 0.62); }
+.page.over { background: rgba(0, 0, 20, 0.62); }
+.page, .page * { box-sizing: border-box; touch-action: pan-x pan-y; }
 .page .nav {
-  position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 60px;
+  position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 60px;
   background: rgba(8, 10, 40, 0.92); border-bottom: 2px solid #4a6cff; box-shadow: 0 2px 0 #1c2a80;
 }
 .page .title { font-size: 13px; letter-spacing: 3px; color: #ffe040; text-shadow: 2px 2px 0 #0a0a30; }
@@ -124,17 +124,19 @@ body.touching #screen, body.touching .touch {
   background: rgba(20, 26, 80, 0.9); border: 1px solid #2a3a9a; border-top-color: #6a8aff; border-left-color: #4a6cff;
   box-shadow: inset 0 0 0 1px rgba(8, 10, 40, 0.6);
 }
-.page .back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 44px; height: 34px; font-size: 14px; color: #ffe040; }
-.page .list {
-  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px;
+.page .back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 44px; height: 30px; font-size: 14px; color: #ffe040; }
+.page .scroll {
+  display: flex; flex-direction: column; padding: 10px 12px 0;
   overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: #4a6cff transparent;
 }
-.page .list::before, .page .list::after { content: ''; flex: 1 0 0; } /* centred while short, from the top while long */
-.page .list > *, .page .foot > * { width: var(--col); }
+.page .scroll::before, .page .scroll::after { content: ''; flex: 1 0 0; } /* centred while short, from the top while long */
+.page .list { flex: none; align-self: center; width: 100%; max-width: 900px; columns: 2 260px; column-gap: 12px; }
+.page .list.one { columns: auto; max-width: 420px; }
 /* a card: the canvas menus' panel, its title bar on top */
 .page .card {
-  flex: none; display: flex; flex-direction: column; padding: 4px; text-align: left;
+  display: flex; flex-direction: column; margin-bottom: 10px; padding: 4px; text-align: left;
+  break-inside: avoid; -webkit-column-break-inside: avoid; /* a card stays whole in one column */
   background: rgba(8, 10, 40, 0.86); border: 2px solid #4a6cff; box-shadow: inset 0 0 0 3px rgba(8, 10, 40, 0.86), inset 0 0 0 4px #1c2a80;
 }
 .page .head {
@@ -185,25 +187,19 @@ body.touching #screen, body.touching .touch {
 .page .chip.boost { color: #ffd0ff; background: radial-gradient(circle at 50% 35%, rgba(255, 128, 255, 0.45), rgba(200, 32, 200, 0.28)); border-color: rgba(255, 112, 255, 0.85); }
 .page .chip.flash { color: #d0f6ff; background: radial-gradient(circle at 50% 35%, rgba(112, 228, 255, 0.45), rgba(16, 150, 220, 0.28)); border-color: rgba(64, 216, 255, 0.85); }
 .page .chip.cell { color: #d8ffe8; background: radial-gradient(circle at 50% 35%, rgba(127, 255, 176, 0.45), rgba(32, 180, 96, 0.28)); border-color: rgba(127, 255, 176, 0.85); }
-/* the footer: the green action (the first go row), the others under it */
+/* the footer, a slim row: the green action (the first go row), the others and a note beside it */
 .page .foot {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 12px 12px;
-  background: linear-gradient(rgba(5, 5, 28, 0), rgba(5, 5, 28, 0.94) 35%);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; padding: 6px 12px;
+  background: rgba(5, 5, 28, 0.92); border-top: 2px solid #1c2a80;
 }
 .page .foot:empty { display: none; }
 .page .go {
-  height: 54px; font-size: 16px; letter-spacing: 4px; color: #06210b;
+  width: min(340px, 60%); height: 44px; font-size: 15px; letter-spacing: 4px; color: #06210b;
   background: linear-gradient(#7ce065, #2f9d3a); border: 2px solid #bcffa8; box-shadow: 0 0 18px rgba(54, 201, 74, 0.45);
 }
 .page .go:active { color: #06210b; background: linear-gradient(#9cf085, #3fb04a); }
-.page .alt { height: 44px; font-size: 11px; letter-spacing: 2px; }
-@media (max-height: 460px) { /* a phone on its side */
-  .page .nav { min-height: 40px; }
-  .page .back { height: 30px; }
-  .page .list { gap: 8px; padding: 8px 12px; }
-  .page .foot { padding: 6px 12px 8px; }
-  .page .go { height: 44px; }
-}
+.page .alt { height: 44px; padding: 0 18px; font-size: 10px; letter-spacing: 2px; }
+.page .foot .sub { flex: 0 1 300px; }
 
 /* A phone's first stop while it has no name (game/askname.js): a plain page, upright and over everything, kept to
    the top so the keyboard leaves it in view */

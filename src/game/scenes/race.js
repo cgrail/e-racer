@@ -10,7 +10,7 @@ import { makeRace } from '../session.js';
 import { Online } from '../online.js';
 
 // The race itself: fixed-step simulation, full or split-screen views, engines and the pause menu (on a touch screen
-// a page in the stage, over the race, where it can also move the racing buttons to the other side: game/page.js).
+// a page over the race, where it can also move the racing buttons to the other side: game/page.js).
 // Online the race goes on while paused (the car coasts), and the server ends it (game/online.js).
 export const RaceScene = {
   acc: 0, vs: [{}, {}], paused: false, psel: 0,
@@ -28,7 +28,7 @@ export const RaceScene = {
   page() {
     if (!this.paused) return null;
     const rows = this.pauseRows(), net = !!game.race.net;
-    return { title: 'PAUSED', staged: true, go: rows.filter(r => r.go), cards: [{ head: net ? 'ONLINE RACE' : 'RACE', ico: '🏁',
+    return { title: 'PAUSED', over: true, go: rows.filter(r => r.go), cards: [{ head: net ? 'ONLINE RACE' : 'RACE', ico: '🏁',
       rows: rows.filter(r => !r.go), note: net ? 'THE RACE GOES ON WHILE YOU ARE HERE.' : null }] };
   },
   update(dt) {

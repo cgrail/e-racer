@@ -50,9 +50,9 @@ export const Builder = {
       cards: [
         { head: 'COURSE PREVIEW', ico: '🗺', pic: { w: 300, h: 186, key: this.track.code + custom.type, draw, fill: true },
           lines: [[this.track.code, '#7fffb0', true], [`${THEMES[custom.params.scenery].name}  ${km} KM`, '#ffffff']] },
+        { head: 'COURSE CODE', ico: '🔤', rows: sec('code'), note: 'TYPE ANY WORD: IT BECOMES A COURSE!' },
         { head: 'DESIGN', ico: '🛠', rows: sec('design') },
         { head: 'RACE', ico: '🏁', rows: sec('race') },
-        { head: 'COURSE CODE', ico: '🔤', rows: sec('code'), note: 'TYPE ANY WORD: IT BECOMES A COURSE!' },
       ],
       go: rows.filter(r => r.go),
     };
