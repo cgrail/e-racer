@@ -17,7 +17,9 @@
 #           serving https://$DOMAIN with an auto-issued/renewed
 #           certificate
 #   Update  systemd timer runs update.sh every 5 minutes,
-#           auto-deploying whatever lands on origin/main
+#           auto-deploying whatever lands on origin/main; a call to
+#           https://$DOMAIN/update (the Deploy workflow, on every
+#           push to main) has it look at once
 #
 # Usage — run ON the server, from a checkout of this repo:
 #
@@ -119,6 +121,12 @@ Group=$APP_USER
 WorkingDirectory=$APP_DIR
 EnvironmentFile=-$DEFAULTS_FILE
 Environment=NODE_ENV=production
+# the only place the server may write: the file its GET /update writes for
+# $APP-update.path (kept over restarts, since update.sh restarts the server)
+RuntimeDirectory=$APP
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+Environment=UPDATE_FILE=/run/$APP/update
 ExecStart=$(command -v node) $APP_DIR/server/server.js
 Restart=always
 RestartSec=2
@@ -214,8 +222,21 @@ RandomizedDelaySec=30
 [Install]
 WantedBy=timers.target
 EOF
+# and at once when the server's GET /update asks for it; update.sh removes
+# the file first, so a call during a deploy runs it once more
+cat > /etc/systemd/system/$APP-update.path <<EOF
+[Unit]
+Description=Electro Car Racer deploy on request (GET /update)
+
+[Path]
+PathExists=/run/$APP/update
+Unit=$APP-update.service
+
+[Install]
+WantedBy=paths.target
+EOF
 systemctl daemon-reload
-systemctl enable --now $APP-update.timer
+systemctl enable --now $APP-update.timer $APP-update.path
 
 # ---------- summary ----------
 sleep 2
@@ -244,4 +265,9 @@ cat <<EOF
   updates      : auto — pushes to origin/main go live within ~5 min
                  ($APP-update.timer → update.sh, discards local edits
                  in this checkout); manual: sudo ./update.sh --force
+  deploy hook  : curl https://$DOMAIN/update deploys a new origin/main at
+                 once; to have GitHub call it on every merge, set the repo
+                 variable DEPLOY_URL to that URL (Settings → Secrets and
+                 variables → Actions → Variables); the Deploy workflow
+                 calls it. Watch: journalctl -u $APP-update -f
 EOF
